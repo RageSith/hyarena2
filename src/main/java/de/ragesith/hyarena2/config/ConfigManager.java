@@ -91,6 +91,34 @@ public class ConfigManager {
         return configRoot;
     }
 
+    /**
+     * Loads a config file of the specified type.
+     * Returns null if file doesn't exist or fails to load.
+     *
+     * @param filename The config file path relative to config root (e.g., "arenas/test_duel")
+     * @param type The class type to deserialize to
+     * @return The loaded config, or null if not found
+     */
+    public <T> T loadConfig(String filename, Class<T> type) {
+        // Ensure .json extension
+        String fullPath = filename.endsWith(".json") ? filename : filename + ".json";
+        Path file = configRoot.resolve(fullPath);
+
+        if (!Files.exists(file)) {
+            return null;
+        }
+
+        try (Reader reader = Files.newBufferedReader(file)) {
+            return GSON.fromJson(reader, type);
+        } catch (IOException e) {
+            System.err.println("[HyArena2] Failed to load " + fullPath + ": " + e.getMessage());
+            return null;
+        } catch (Exception e) {
+            System.err.println("[HyArena2] Error parsing " + fullPath + ": " + e.getMessage());
+            return null;
+        }
+    }
+
     // ========== Private Helpers ==========
 
     private void ensureDirectoryExists() {

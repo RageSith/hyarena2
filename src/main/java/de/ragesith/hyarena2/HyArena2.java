@@ -11,8 +11,17 @@ import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import de.ragesith.hyarena2.arena.KillDetectionSystem;
+import de.ragesith.hyarena2.arena.MatchManager;
 import de.ragesith.hyarena2.boundary.BoundaryManager;
 import de.ragesith.hyarena2.command.ArenaCommand;
+import de.ragesith.hyarena2.command.TestMatchArenasCommand;
+import de.ragesith.hyarena2.command.TestMatchCreateCommand;
+import de.ragesith.hyarena2.command.TestMatchJoinCommand;
+import de.ragesith.hyarena2.command.TestMatchListCommand;
+import de.ragesith.hyarena2.command.TestMatchLeaveCommand;
+import de.ragesith.hyarena2.command.TestMatchCancelCommand;
+import de.ragesith.hyarena2.command.TestMatchStartCommand;
 import de.ragesith.hyarena2.config.ConfigManager;
 import de.ragesith.hyarena2.config.GlobalConfig;
 import de.ragesith.hyarena2.config.HubConfig;
@@ -40,6 +49,8 @@ public class HyArena2 extends JavaPlugin {
     private EventBus eventBus;
     private HubManager hubManager;
     private BoundaryManager boundaryManager;
+    private MatchManager matchManager;
+    private KillDetectionSystem killDetectionSystem;
 
     // Track known players (to detect world changes vs fresh joins)
     private final Map<UUID, String> knownPlayers = new ConcurrentHashMap<>();
@@ -78,8 +89,25 @@ public class HyArena2 extends JavaPlugin {
             hubManager
         );
 
+        // Initialize match manager
+        this.matchManager = new MatchManager(configManager, eventBus, hubManager);
+        this.matchManager.initialize();
+
+        // Initialize kill detection system
+        this.killDetectionSystem = new KillDetectionSystem(matchManager);
+        this.getEntityStoreRegistry().registerSystem(killDetectionSystem);
+
         // Register commands
         this.getCommandRegistry().registerCommand(new ArenaCommand(this));
+
+        // Test match commands (Phase 2 testing)
+        this.getCommandRegistry().registerCommand(new TestMatchArenasCommand(matchManager));
+        this.getCommandRegistry().registerCommand(new TestMatchCreateCommand(matchManager));
+        this.getCommandRegistry().registerCommand(new TestMatchJoinCommand(matchManager));
+        this.getCommandRegistry().registerCommand(new TestMatchListCommand(matchManager));
+        this.getCommandRegistry().registerCommand(new TestMatchLeaveCommand(matchManager));
+        this.getCommandRegistry().registerCommand(new TestMatchCancelCommand(matchManager));
+        this.getCommandRegistry().registerCommand(new TestMatchStartCommand(matchManager));
 
         // Register Hytale events
         this.getEventRegistry().registerGlobal(PlayerReadyEvent.class, this::onPlayerReady);
@@ -132,6 +160,10 @@ public class HyArena2 extends JavaPlugin {
     private void cleanup() {
         System.out.println("[HyArena2] Shutting down...");
 
+        if (matchManager != null) {
+            matchManager.shutdown();
+        }
+
         if (scheduler != null) {
             scheduler.shutdown();
         }
@@ -167,7 +199,7 @@ public class HyArena2 extends JavaPlugin {
 
         if (isWorldChange) {
             // World change - just update boundary tracking
-            boundaryManager.registerPlayer(playerRef, player);
+            boundaryManager.registerPlayer(playerId, player);
             System.out.println("[HyArena2] Player " + playerName + " changed worlds to " + player.getWorld().getName());
             return;
         }
@@ -179,15 +211,15 @@ public class HyArena2 extends JavaPlugin {
         knownPlayers.put(playerId, playerName);
 
         // Register for boundary checking
-        boundaryManager.registerPlayer(playerRef, player);
+        boundaryManager.registerPlayer(playerId, player);
 
         // Teleport to hub
-        hubManager.teleportToHub(player);
+        hubManager.teleportToHub(player, () -> {
+            // Send welcome message after teleport
+            player.sendMessage(Message.raw("Welcome to HyArena2!"));
+            player.sendMessage(Message.raw("Use /arena to open the menu."));
+        });
         boundaryManager.grantTeleportGrace(playerId);
-
-        // Send welcome message
-        player.sendMessage(Message.raw("Welcome to HyArena2!"));
-        player.sendMessage(Message.raw("Use /arena to open the menu."));
 
         // Publish event
         eventBus.publish(new PlayerJoinedHubEvent(playerId, playerName, true));
@@ -204,8 +236,11 @@ public class HyArena2 extends JavaPlugin {
         String playerName = knownPlayers.getOrDefault(playerId, "Unknown");
         System.out.println("[HyArena2] Player " + playerName + " disconnected");
 
+        // Remove from match if in one
+        matchManager.removePlayerFromMatch(playerId, "Disconnected");
+
         // Unregister from boundary checking
-        boundaryManager.unregisterPlayer(playerRef);
+        boundaryManager.unregisterPlayer(playerId);
 
         // Remove from tracking
         knownPlayers.remove(playerId);
@@ -255,5 +290,9 @@ public class HyArena2 extends JavaPlugin {
 
     public BoundaryManager getBoundaryManager() {
         return boundaryManager;
+    }
+
+    public MatchManager getMatchManager() {
+        return matchManager;
     }
 }

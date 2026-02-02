@@ -7,21 +7,21 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.modules.entity.EntityModule;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.Permissions;
 import de.ragesith.hyarena2.config.GlobalConfig;
 import de.ragesith.hyarena2.config.HubConfig;
-import de.ragesith.hyarena2.config.Position;
 import de.ragesith.hyarena2.hub.HubManager;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Manages boundary enforcement for players.
- * Phase 1: Simple hub boundary enforcement.
- * Future phases will add arena boundaries and spatial optimization.
+ * Phase 2: Skip boundary checks for players in matches.
  */
 public class BoundaryManager {
 
@@ -30,8 +30,7 @@ public class BoundaryManager {
     private final HubManager hubManager;
 
     // Track players for boundary checking
-    private final Map<UUID, PlayerRef> playerRefs = new ConcurrentHashMap<>();
-    private final Map<UUID, Player> playerEntities = new ConcurrentHashMap<>();
+    private final Set<UUID> trackedPlayers = ConcurrentHashMap.newKeySet();
 
     // Grace period after teleport to prevent loops
     private final Map<UUID, Long> teleportGracePeriod = new ConcurrentHashMap<>();
@@ -48,27 +47,33 @@ public class BoundaryManager {
     /**
      * Registers a player for boundary checking.
      */
-    public void registerPlayer(PlayerRef playerRef, Player player) {
-        UUID playerId = playerRef.getUuid();
-        playerRefs.put(playerId, playerRef);
-        playerEntities.put(playerId, player);
+    public void registerPlayer(UUID playerId, Player player) {
+        trackedPlayers.add(playerId);
 
-        // Check initial position
-        Position pos = getPlayerPosition(player);
-        if (pos != null && !hubConfig.isInBounds(pos.getX(), pos.getY(), pos.getZ())) {
-            // Player spawned outside hub, teleport to spawn
-            hubManager.teleportToHub(player);
-            grantTeleportGrace(playerId);
+        // Check initial position using TransformComponent
+        Ref<EntityStore> ref = player.getReference();
+        if (ref != null) {
+            Store<EntityStore> store = ref.getStore();
+            if (store != null) {
+                TransformComponent transform = store.getComponent(ref,
+                    EntityModule.get().getTransformComponentType());
+                if (transform != null) {
+                    Vector3d pos = transform.getPosition();
+                    if (!hubConfig.isInBounds(pos.getX(), pos.getY(), pos.getZ())) {
+                        // Player spawned outside hub, teleport to spawn
+                        hubManager.teleportToHub(player, null);
+                        grantTeleportGrace(playerId);
+                    }
+                }
+            }
         }
     }
 
     /**
      * Unregisters a player from boundary checking.
      */
-    public void unregisterPlayer(PlayerRef playerRef) {
-        UUID playerId = playerRef.getUuid();
-        playerRefs.remove(playerId);
-        playerEntities.remove(playerId);
+    public void unregisterPlayer(UUID playerId) {
+        trackedPlayers.remove(playerId);
         teleportGracePeriod.remove(playerId);
     }
 
@@ -94,13 +99,27 @@ public class BoundaryManager {
         }
         lastCheckMs = now;
 
-        for (Map.Entry<UUID, Player> entry : playerEntities.entrySet()) {
-            checkPlayer(entry.getKey(), entry.getValue());
+        for (UUID playerId : trackedPlayers) {
+            PlayerRef playerRef = Universe.get().getPlayer(playerId);
+            if (playerRef != null) {
+                Ref<EntityStore> ref = playerRef.getReference();
+                if (ref != null) {
+                    Store<EntityStore> store = ref.getStore();
+                    if (store != null) {
+                        Player player = store.getComponent(ref, Player.getComponentType());
+                        if (player != null) {
+                            checkPlayer(playerId, player);
+                        }
+                    }
+                }
+            }
         }
     }
 
     /**
      * Checks a single player's boundaries.
+     * Note: Players in matches are skipped by MatchManager setting their world
+     * to the arena world, so hub boundaries won't apply.
      */
     private void checkPlayer(UUID playerId, Player player) {
         try {
@@ -114,15 +133,29 @@ public class BoundaryManager {
                 return;
             }
 
-            Position pos = getPlayerPosition(player);
-            if (pos == null) {
+            // Get player position using TransformComponent
+            Ref<EntityStore> ref = player.getReference();
+            if (ref == null) {
                 return;
             }
 
-            // Phase 1: Just check hub bounds
+            Store<EntityStore> store = ref.getStore();
+            if (store == null) {
+                return;
+            }
+
+            TransformComponent transform = store.getComponent(ref,
+                EntityModule.get().getTransformComponentType());
+            if (transform == null) {
+                return;
+            }
+
+            Vector3d pos = transform.getPosition();
+
+            // Only check hub bounds (arena bounds checked by arena system in future)
             if (!hubConfig.isInBounds(pos.getX(), pos.getY(), pos.getZ())) {
                 // Out of bounds - teleport to hub spawn
-                hubManager.teleportToHub(player);
+                hubManager.teleportToHub(player, null);
                 grantTeleportGrace(playerId);
             }
 
@@ -147,27 +180,9 @@ public class BoundaryManager {
     }
 
     /**
-     * Gets a player's current position.
-     */
-    private Position getPlayerPosition(Player player) {
-        Ref<EntityStore> ref = player.getReference();
-        if (ref == null) return null;
-
-        Store<EntityStore> store = ref.getStore();
-        if (store == null) return null;
-
-        TransformComponent transform = store.getComponent(ref,
-            EntityModule.get().getTransformComponentType());
-        if (transform == null) return null;
-
-        Vector3d vec = transform.getPosition();
-        return new Position(vec.getX(), vec.getY(), vec.getZ());
-    }
-
-    /**
      * Gets the number of tracked players.
      */
     public int getPlayerCount() {
-        return playerEntities.size();
+        return trackedPlayers.size();
     }
 }

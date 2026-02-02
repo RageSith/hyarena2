@@ -1,0 +1,35 @@
+{
+  "id": "the_pit",
+  "displayName": "The Pit: Duel",
+  "worldName": "world2",
+  "gameMode": "duel",
+  "minPlayers": 2,
+  "maxPlayers": 2,
+  "waitTimeSeconds": 5,
+  "botDifficulty": "MEDIUM",
+  "allowedKits": ["warrior"],
+  "spawnPoints": [
+    {
+      "x": 9.60657024383545,
+      "y": 80.0,
+      "z": -9.600266456604004,
+      "yaw": 14.916575,
+      "pitch": 0.0
+    },
+    {
+      "x": 2.4688401222229004,
+      "y": 80.0,
+      "z": -1.4378407001495361,
+      "yaw": 17.437817,
+      "pitch": 0.0
+    }
+  ],
+  "bounds": {
+    "minX": 0.478,
+    "minY": 75.0,
+    "minZ": -11.572,
+    "maxX": 11.609,
+    "maxY": 90.0,
+    "maxZ": 0.557
+  }
+}

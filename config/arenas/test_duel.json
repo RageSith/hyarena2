@@ -1,0 +1,35 @@
+{
+  "id": "test_duel",
+  "displayName": "Room42: Duel",
+  "worldName": "default",
+  "gameMode": "duel",
+  "minPlayers": 2,
+  "maxPlayers": 2,
+  "waitTimeSeconds": 5,
+  "botDifficulty": "MEDIUM",
+  "allowedKits": ["rogue", "warrior", "archer"],
+  "spawnPoints": [
+    {
+      "x": 3.7494728565216064,
+      "y": 81.0,
+      "z": -29.509742736816406,
+      "yaw": 8.342463,
+      "pitch": 0.0
+    },
+    {
+      "x": -9.09185791015625,
+      "y": 81.0,
+      "z": -29.436410903930664,
+      "yaw": 10.962132,
+      "pitch": 0.0
+    }
+  ],
+  "bounds": {
+    "minX": -11.0,
+    "minY": 75.0,
+    "minZ": -38.0,
+    "maxX": 6.0,
+    "maxY": 90.0,
+    "maxZ": -21.0
+  }
+}
