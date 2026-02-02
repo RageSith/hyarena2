@@ -53,7 +53,25 @@ Key reference files in old project:
 - [x] Basic boundary system
 - [x] `PlayerReadyEvent` handling (world change detection)
 
-### Phases 2-12: Not Started
+### Phase 2: Arena & Match Basics - COMPLETE
+- [x] Arena configuration system (ArenaConfig, Arena)
+- [x] Match state machine (WAITING → STARTING → IN_PROGRESS → ENDING → FINISHED)
+- [x] GameMode interface + DuelGameMode (1v1 last standing)
+- [x] Participant abstraction (Participant, PlayerParticipant)
+- [x] KillDetectionSystem - damage/kill tracking, prevents non-match damage
+- [x] Match events (created, started, ended, finished)
+- [x] Participant events (joined, left, damaged, killed)
+- [x] Multi-world support (test_duel in default, the_pit in world2)
+- [x] Thread-safe ticking via world.execute()
+- [x] Test commands: /tmarenas, /tmcreate, /tmjoin, /tmstart, /tmlist, /tmleave, /tmcancel
+
+**Next session TODOs (match polish):**
+- [ ] Freeze player movement during STARTING countdown
+- [ ] Respawn immunity period after teleport
+- [ ] Better spawn point assignment (face opponent)
+- [ ] Test full 2-player match flow (kill → winner → teleport back)
+
+### Phases 3-12: Not Started
 See `plan/03_implementation_plan.md` for full roadmap.
 
 ## Package Structure
