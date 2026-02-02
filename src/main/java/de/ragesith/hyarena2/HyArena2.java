@@ -1,25 +1,26 @@
 package de.ragesith.hyarena2;
 
-import com.hypixel.hytale.server.core.plugin.ServerPlugin;
+import com.hypixel.hytale.server.core.plugin.JavaPlugin;
+import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
+import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 /**
  * HyArena2 - PvP Arena Plugin
  * Main plugin entry point.
  */
-public class HyArena2 extends ServerPlugin {
+public class HyArena2 extends JavaPlugin {
 
     private static HyArena2 instance;
 
-    @Override
-    public void onEnable() {
-        instance = this;
-        System.out.println("[HyArena2] Plugin enabled!");
+    public HyArena2(@NonNullDecl JavaPluginInit init) {
+        super(init);
     }
 
     @Override
-    public void onDisable() {
-        System.out.println("[HyArena2] Plugin disabled!");
-        instance = null;
+    protected void setup() {
+        super.setup();
+        instance = this;
+        System.out.println("[HyArena2] Plugin initialized!");
     }
 
     public static HyArena2 getInstance() {
