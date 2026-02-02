@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Build artifacts
+*.jar
+*.class
+out/
+
+# Properties
+build.properties
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Generated
+src/main/java/de/ragesith/hyarena2/generated/

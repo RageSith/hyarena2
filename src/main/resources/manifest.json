@@ -1,0 +1,7 @@
+{
+  "Group": "de.ragesith",
+  "Name": "HyArena2",
+  "Version": "1.0.0",
+  "Main": "de.ragesith.hyarena2.HyArena2",
+  "IncludesAssetPack": true
+}
