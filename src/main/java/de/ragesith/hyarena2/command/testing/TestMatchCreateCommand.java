@@ -1,4 +1,4 @@
-package de.ragesith.hyarena2.command;
+package de.ragesith.hyarena2.command.testing;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
