@@ -1,0 +1,76 @@
+{
+  "TranslationProperties": {
+    "Name": "items.hyarena_statue_matchmaking.name",
+    "Description": "items.hyarena_statue_matchmaking.description",
+    "InteractionHint": "items.hyarena_statue_matchmaking.interactionHints.open"
+  },
+  "PlayerAnimationsId": "Block",
+  "Categories": [
+    "Blocks.Structural"
+  ],
+  "Set": "Furniture_Temple_Light",
+  "IconProperties": {
+    "Scale": 0.315,
+    "Rotation": [
+      22,
+      43,
+      18
+    ],
+    "Translation": [
+      -4,
+      -43
+    ]
+  },
+  "BlockType": {
+    "BlockParticleSetId": "Stone",
+    "BlockSoundSetId": "Stone",
+    "CustomModel": "Blocks/Decorative_Sets/Temple_Dark/Statue.blockymodel",
+    "CustomModelTexture": [
+      {
+        "Texture": "Blocks/Decorative_Sets/Temple_Dark/Statue_Texture.png",
+        "Weight": 1
+      }
+    ],
+    "DrawType": "Model",
+    "Flags": {},
+    "Gathering": {
+      "Breaking": {
+        "GatherType": "Rocks"
+      }
+    },
+    "HitboxType": "Statue_Full",
+    "Material": "Solid",
+    "Opacity": "Transparent",
+    "Support": {
+      "Down": [
+        {
+          "FaceType": "Full"
+        }
+      ]
+    },
+    "VariantRotation": "NESW",
+    "ParticleColor": "#2e3742",
+    "Interactions": {
+      "Use": {
+        "HintLabel": "Open Arena Menu",
+        "Interactions": [
+          {
+            "Type": "Hyarena_Open_Matchmaking"
+          }
+        ]
+      }
+    }
+  },
+  "Icon": "Icons/ItemsGenerated/Furniture_Temple_Dark_Statue_Gaia.png",
+  "Tags": {
+    "Type": [
+      "Furniture"
+    ],
+    "Family": [
+      "Temple"
+    ]
+  },
+  "Scale": 0.6,
+  "ItemSoundSetId": "ISS_Blocks_Stone",
+  "MaxStack": 1
+}

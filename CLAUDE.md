@@ -4,6 +4,12 @@
 
 HyArena2 is a PvP arena plugin for Hytale servers. This is a complete rewrite with clean architecture designed from scratch.
 
+## Important Guidelines (2026)
+
+1. **We're in 2026** - Hytale is released with real modding/server APIs
+2. **Use internet research** - When unsure about Hytale server/modding implementation details, use web search to find current documentation, forums, or examples. Don't rely on outdated or assumed knowledge.
+3. **Don't fabricate APIs** - If even after internet research you cannot find how to implement something in Hytale, report back to the user and wait for guidance rather than making things up
+
 ## Planning Documents
 
 All design decisions are documented in `/plan/`:
@@ -38,14 +44,14 @@ Key reference files in old project:
 
 ## Current Progress
 
-### Phase 1: Core Foundation - IN PROGRESS
+### Phase 1: Core Foundation - COMPLETE
 - [x] Project setup
-- [ ] `ConfigManager` - load global.json, hub.json
-- [ ] `EventBus` - basic pub/sub
-- [ ] `HubManager` - spawn players in hub
-- [ ] `/arena` command (placeholder UI)
-- [ ] Basic boundary system
-- [ ] `PlayerReadyEvent` handling (world change detection)
+- [x] `ConfigManager` - load global.json, hub.json
+- [x] `EventBus` - basic pub/sub
+- [x] `HubManager` - spawn players in hub
+- [x] `/arena` command (placeholder UI)
+- [x] Basic boundary system
+- [x] `PlayerReadyEvent` handling (world change detection)
 
 ### Phases 2-12: Not Started
 See `plan/03_implementation_plan.md` for full roadmap.
@@ -78,6 +84,36 @@ de.ragesith.hyarena2/
 5. **Teleport Delays** - 1.5s cross-world, 1s post-combat
 6. **Event-Driven** - Components communicate via EventBus
 7. **Pluggable Game Modes** - Easy to add new modes
+8. **Use Permissions Class** - Always use `Permissions.*` constants, never hardcode permission strings
+
+## Permissions Reference
+
+All permissions are defined in `Permissions.java`. Use these constants throughout the codebase:
+
+| Category | Constant | Node | Use When |
+|----------|----------|------|----------|
+| **Player** | `PLAYER` | `hyarena.player` | /arena command access |
+| | `QUEUE` | `hyarena.queue` | Joining queues |
+| | `CHAT` | `hyarena.chat` | Match chat |
+| **Bypass** | `BYPASS_BOUNDARY` | `hyarena.bypass.boundary` | Skip boundary checks |
+| | `BYPASS_COOLDOWN` | `hyarena.bypass.cooldown` | Skip queue cooldowns |
+| | `BYPASS_KIT` | `hyarena.bypass.kit` | Access restricted kits |
+| **Admin** | `ADMIN` | `hyarena.admin` | Admin commands |
+| | `ADMIN_ARENA` | `hyarena.admin.arena` | Arena editing |
+| | `ADMIN_KIT` | `hyarena.admin.kit` | Kit editing |
+| | `ADMIN_HUB` | `hyarena.admin.hub` | Hub settings |
+| | `ADMIN_RELOAD` | `hyarena.admin.reload` | Config reload |
+| | `ADMIN_MATCH` | `hyarena.admin.match` | Force start/end |
+| | `ADMIN_BOT` | `hyarena.admin.bot` | Bot management |
+| **Mod** | `MOD_KICK` | `hyarena.mod.kick` | Kick players |
+| | `MOD_BAN` | `hyarena.mod.ban` | Ban players |
+| | `MOD_STATS` | `hyarena.mod.stats` | View stats |
+| **VIP** | `VIP_PRIORITY` | `hyarena.vip.priority` | Priority queue |
+| | `VIP_ARENA` | `hyarena.vip.arena` | Exclusive arenas |
+| | `VIP_KIT` | `hyarena.vip.kit` | Exclusive kits |
+| **Debug** | `DEBUG` | `hyarena.debug` | Debug info |
+
+**Usage:** `player.hasPermission(Permissions.ADMIN)` - never use raw strings!
 
 ## Build & Deploy
 

@@ -1,0 +1,43 @@
+{
+  "$Comment": "Custom attack for arena bots with NPC-vs-NPC damage enabled",
+  "Interactions": [
+    {
+      "Type": "Simple",
+      "Effects": {
+        "ItemPlayerAnimationsId": "Default",
+        "ItemAnimationId": "SwingLeft"
+      },
+      "RunTime": 0.1,
+      "Next": {
+        "Type": "Selector",
+        "RunTime": 0.25,
+        "Selector": {
+          "Id": "Horizontal",
+          "Direction": "ToLeft",
+          "TestLineOfSight": true,
+          "ExtendTop": 0.5,
+          "ExtendBottom": 0.5,
+          "StartDistance": 0.1,
+          "EndDistance": 3.5,
+          "Length": 30,
+          "RollOffset": 0,
+          "YawStartOffset": -15
+        },
+        "HitEntity": {
+          "Interactions": [
+            "Arena_Bot_Melee_Damage"
+          ]
+        },
+        "Next": {
+          "Type": "Simple",
+          "RunTime": 0.25
+        }
+      }
+    }
+  ],
+  "Tags": {
+    "Attack": [
+      "Melee"
+    ]
+  }
+}

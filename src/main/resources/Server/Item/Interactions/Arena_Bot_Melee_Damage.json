@@ -1,0 +1,26 @@
+{
+  "$Comment": "Custom damage interaction for arena bots - explicitly enables NPC-vs-NPC damage",
+  "Parent": "DamageEntityParent",
+  "DamageCalculator": {
+    "BaseDamage": {
+      "Physical": 10
+    },
+    "RandomPercentageModifier": 0.1
+  },
+  "DamageEffects": {
+    "Knockback": {
+      "Force": 1.5,
+      "RelativeX": 0,
+      "RelativeZ": -1,
+      "VelocityY": 4,
+      "VelocityType": "Set"
+    },
+    "WorldSoundEventId": "SFX_Sword_T2_Impact",
+    "LocalSoundEventId": "SFX_Sword_T2_Impact",
+    "WorldParticles": [
+      {
+        "SystemId": "Impact_Blade_01"
+      }
+    ]
+  }
+}
