@@ -1,0 +1,76 @@
+Group #LobbyHud {
+    Anchor: (Width: 520, Height: 64, Top: 60);
+    Background: #1a2633(0.85);
+
+    Group #Content {
+        Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+        Padding: (Left: 20, Right: 20);
+        LayoutMode: Left;
+
+        Label {
+            Text: "ONLINE";
+            Anchor: (Width: 60, Height: 64);
+            Style: (FontSize: 12, TextColor: #7f8c8d, VerticalAlignment: Center);
+        }
+
+        Label #OnlineCount {
+            Text: "0";
+            Anchor: (Width: 35, Height: 64);
+            Style: (FontSize: 18, TextColor: #2ecc71, VerticalAlignment: Center, RenderBold: true);
+        }
+
+        Label {
+            Text: "|";
+            Anchor: (Width: 20, Height: 64);
+            Style: (FontSize: 14, TextColor: #555555, Alignment: Center, VerticalAlignment: Center);
+        }
+
+        Label {
+            Text: "QUEUE";
+            Anchor: (Width: 58, Height: 64);
+            Style: (FontSize: 12, TextColor: #7f8c8d, VerticalAlignment: Center);
+        }
+
+        Label #QueueCount {
+            Text: "0";
+            Anchor: (Width: 35, Height: 64);
+            Style: (FontSize: 18, TextColor: #7f8c8d, VerticalAlignment: Center, RenderBold: true);
+        }
+
+        Label {
+            Text: "|";
+            Anchor: (Width: 20, Height: 64);
+            Style: (FontSize: 14, TextColor: #555555, Alignment: Center, VerticalAlignment: Center);
+        }
+
+        Label {
+            Text: "IN GAME";
+            Anchor: (Width: 70, Height: 64);
+            Style: (FontSize: 12, TextColor: #7f8c8d, VerticalAlignment: Center);
+        }
+
+        Label #InGameCount {
+            Text: "0";
+            Anchor: (Width: 35, Height: 64);
+            Style: (FontSize: 18, TextColor: #7f8c8d, VerticalAlignment: Center, RenderBold: true);
+        }
+
+        Label {
+            Text: "|";
+            Anchor: (Width: 20, Height: 64);
+            Style: (FontSize: 14, TextColor: #555555, Alignment: Center, VerticalAlignment: Center);
+        }
+
+        Label {
+            Text: "AVG WAIT";
+            Anchor: (Width: 80, Height: 64);
+            Style: (FontSize: 12, TextColor: #7f8c8d, VerticalAlignment: Center);
+        }
+
+        Label #AvgTime {
+            Text: "N/A";
+            Anchor: (Width: 60, Height: 64);
+            Style: (FontSize: 16, TextColor: #3498db, VerticalAlignment: Center, RenderBold: true);
+        }
+    }
+}

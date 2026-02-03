@@ -1,0 +1,112 @@
+Group #QueueHud {
+    Anchor: (Width: 280, Height: 200, Top: 10, Right: 10);
+    Background: #1a2633(0.9);
+
+    Group #Title {
+        Anchor: (Left: 0, Right: 0, Top: 0, Height: 40);
+        Background: #2c3e50;
+
+        Label #ArenaName {
+            Text: "Arena Queue";
+            Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+            Style: (FontSize: 14, TextColor: #e8c872, Alignment: Center, VerticalAlignment: Center, RenderBold: true);
+        }
+    }
+
+    Group #Content {
+        Padding: (Full: 12);
+        Anchor: (Top: 45, Left: 0, Right: 0, Bottom: 0);
+        LayoutMode: Top;
+
+        // Queue Status
+        Label #QueueStatus {
+            Text: "Waiting for players...";
+            Anchor: (Height: 24);
+            Style: (FontSize: 13, TextColor: #3498db, Alignment: Center, RenderBold: true);
+        }
+
+        // Separator
+        Group {
+            Anchor: (Height: 1, Top: 8);
+            Background: #34495e;
+        }
+
+        // Stats Section
+        Group #StatsSection {
+            Anchor: (Top: 12);
+            LayoutMode: Top;
+
+            // Position
+            Group #PositionRow {
+                Anchor: (Height: 22);
+                LayoutMode: Left;
+
+                Label {
+                    Text: "Position";
+                    Anchor: (Width: 80);
+                    Style: (FontSize: 12, TextColor: #96a9be, VerticalAlignment: Center);
+                }
+
+                Label #QueuePosition {
+                    Text: "#1";
+                    FlexWeight: 1;
+                    Style: (FontSize: 13, TextColor: #b7cedd, VerticalAlignment: Center, HorizontalAlignment: End, RenderBold: true);
+                }
+            }
+
+            // Players
+            Group #PlayersRow {
+                Anchor: (Height: 22, Top: 4);
+                LayoutMode: Left;
+
+                Label {
+                    Text: "Players";
+                    Anchor: (Width: 80);
+                    Style: (FontSize: 12, TextColor: #96a9be, VerticalAlignment: Center);
+                }
+
+                Label #QueuePlayers {
+                    Text: "0/4";
+                    FlexWeight: 1;
+                    Style: (FontSize: 13, TextColor: #2ecc71, VerticalAlignment: Center, HorizontalAlignment: End, RenderBold: true);
+                }
+            }
+
+            // Elapsed Time
+            Group #TimeRow {
+                Anchor: (Height: 22, Top: 4);
+                LayoutMode: Left;
+
+                Label {
+                    Text: "Elapsed";
+                    Anchor: (Width: 80);
+                    Style: (FontSize: 12, TextColor: #96a9be, VerticalAlignment: Center);
+                }
+
+                Label #ElapsedTime {
+                    Text: "0:00";
+                    FlexWeight: 1;
+                    Style: (FontSize: 13, TextColor: #e8c872, VerticalAlignment: Center, HorizontalAlignment: End, RenderBold: true);
+                }
+            }
+
+            // Average Wait
+            Group #AvgWaitRow {
+                Anchor: (Height: 22, Top: 4);
+                LayoutMode: Left;
+
+                Label {
+                    Text: "Avg Wait";
+                    Anchor: (Width: 80);
+                    Style: (FontSize: 12, TextColor: #96a9be, VerticalAlignment: Center);
+                }
+
+                Label #QueueTime {
+                    Text: "N/A";
+                    FlexWeight: 1;
+                    Style: (FontSize: 12, TextColor: #96a9be, VerticalAlignment: Center, HorizontalAlignment: End);
+                }
+            }
+        }
+    }
+}

@@ -203,4 +203,40 @@ public class BoundaryManager {
     public int getPlayerCount() {
         return trackedPlayers.size();
     }
+
+    /**
+     * Checks if a player is in a specific world.
+     */
+    public boolean isPlayerInWorld(UUID playerId, String worldName) {
+        try {
+            PlayerRef playerRef = Universe.get().getPlayer(playerId);
+            if (playerRef == null) {
+                return false;
+            }
+
+            Ref<EntityStore> ref = playerRef.getReference();
+            if (ref == null) {
+                return false;
+            }
+
+            Store<EntityStore> store = ref.getStore();
+            if (store == null) {
+                return false;
+            }
+
+            Player player = store.getComponent(ref, Player.getComponentType());
+            if (player == null) {
+                return false;
+            }
+
+            World playerWorld = player.getWorld();
+            if (playerWorld == null) {
+                return false;
+            }
+
+            return worldName.equals(playerWorld.getName());
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

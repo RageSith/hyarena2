@@ -22,13 +22,21 @@ import de.ragesith.hyarena2.command.testing.TestMatchListCommand;
 import de.ragesith.hyarena2.command.testing.TestMatchLeaveCommand;
 import de.ragesith.hyarena2.command.testing.TestMatchCancelCommand;
 import de.ragesith.hyarena2.command.testing.TestMatchStartCommand;
+import de.ragesith.hyarena2.command.testing.TestQueueJoinCommand;
+import de.ragesith.hyarena2.command.testing.TestQueueLeaveCommand;
 import de.ragesith.hyarena2.config.ConfigManager;
 import de.ragesith.hyarena2.config.GlobalConfig;
 import de.ragesith.hyarena2.config.HubConfig;
 import de.ragesith.hyarena2.event.EventBus;
 import de.ragesith.hyarena2.event.PlayerJoinedHubEvent;
+import de.ragesith.hyarena2.event.queue.PlayerLeftQueueEvent;
+import de.ragesith.hyarena2.event.queue.PlayerQueuedEvent;
+import de.ragesith.hyarena2.event.queue.QueueMatchFoundEvent;
 import de.ragesith.hyarena2.generated.BuildInfo;
 import de.ragesith.hyarena2.hub.HubManager;
+import de.ragesith.hyarena2.queue.Matchmaker;
+import de.ragesith.hyarena2.queue.QueueManager;
+import de.ragesith.hyarena2.ui.hud.HudManager;
 import de.ragesith.hyarena2.utils.PlayerMovementControl;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
@@ -52,6 +60,9 @@ public class HyArena2 extends JavaPlugin {
     private BoundaryManager boundaryManager;
     private MatchManager matchManager;
     private KillDetectionSystem killDetectionSystem;
+    private QueueManager queueManager;
+    private Matchmaker matchmaker;
+    private HudManager hudManager;
 
     // Track known players (to detect world changes vs fresh joins)
     private final Map<UUID, String> knownPlayers = new ConcurrentHashMap<>();
@@ -102,6 +113,27 @@ public class HyArena2 extends JavaPlugin {
 
         System.out.println("[HyArena2] KillDetectionSystem registered with EntityStoreRegistry");
 
+        // Create scheduler early so it's available for queue system
+        scheduler = Executors.newScheduledThreadPool(2);
+
+        // Initialize queue system
+        String hubWorldName = configManager.getHubConfig().getEffectiveWorldName();
+        this.queueManager = new QueueManager(eventBus, hubManager, hubWorldName);
+        this.queueManager.setMatchChecker(matchManager::isPlayerInMatch);
+        this.queueManager.setHubWorldChecker(this::isPlayerInHubWorld);
+
+        this.matchmaker = new Matchmaker(queueManager, matchManager, eventBus);
+
+        this.hudManager = new HudManager(
+            queueManager, matchmaker, matchManager,
+            scheduler, this::getOnlinePlayerCount
+        );
+
+        // Subscribe to queue events for HUD management
+        subscribeToQueueEvents();
+
+        System.out.println("[HyArena2] Queue system initialized");
+
         // Register commands
         this.getCommandRegistry().registerCommand(new ArenaCommand(this));
 
@@ -113,6 +145,10 @@ public class HyArena2 extends JavaPlugin {
         this.getCommandRegistry().registerCommand(new TestMatchLeaveCommand(matchManager));
         this.getCommandRegistry().registerCommand(new TestMatchCancelCommand(matchManager));
         this.getCommandRegistry().registerCommand(new TestMatchStartCommand(matchManager));
+
+        // Test queue commands (Phase 3 testing)
+        this.getCommandRegistry().registerCommand(new TestQueueJoinCommand(queueManager, matchManager));
+        this.getCommandRegistry().registerCommand(new TestQueueLeaveCommand(queueManager));
 
         // Register Hytale events
         this.getEventRegistry().registerGlobal(PlayerReadyEvent.class, this::onPlayerReady);
@@ -137,11 +173,10 @@ public class HyArena2 extends JavaPlugin {
     }
 
     /**
-     * Starts scheduled tasks for boundary checking etc.
+     * Starts scheduled tasks for boundary checking, matchmaking, etc.
+     * Note: Scheduler is created early in setup() for HUD support.
      */
     private void startScheduledTasks() {
-        scheduler = Executors.newScheduledThreadPool(1);
-
         // Boundary check task - runs on scheduler, executes on world thread
         int checkIntervalMs = configManager.getGlobalConfig().getBoundaryCheckIntervalMs();
         scheduler.scheduleAtFixedRate(() -> {
@@ -156,7 +191,22 @@ public class HyArena2 extends JavaPlugin {
             }
         }, checkIntervalMs, checkIntervalMs, TimeUnit.MILLISECONDS);
 
-        System.out.println("[HyArena2] Scheduled tasks started (boundary check every " + checkIntervalMs + "ms)");
+        // Matchmaker task - runs every 1 second on hub world thread
+        scheduler.scheduleAtFixedRate(() -> {
+            World hubWorld = hubManager.getHubWorld();
+            if (hubWorld != null) {
+                hubWorld.execute(() -> {
+                    try {
+                        matchmaker.tick();
+                    } catch (Exception e) {
+                        System.err.println("[HyArena2] Error in matchmaker tick: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                });
+            }
+        }, 1000, 1000, TimeUnit.MILLISECONDS);
+
+        System.out.println("[HyArena2] Scheduled tasks started (boundary check every " + checkIntervalMs + "ms, matchmaker every 1s)");
     }
 
     /**
@@ -164,6 +214,10 @@ public class HyArena2 extends JavaPlugin {
      */
     private void cleanup() {
         System.out.println("[HyArena2] Shutting down...");
+
+        if (hudManager != null) {
+            hudManager.shutdown();
+        }
 
         if (matchManager != null) {
             matchManager.shutdown();
@@ -178,6 +232,67 @@ public class HyArena2 extends JavaPlugin {
         }
 
         System.out.println("[HyArena2] Cleanup complete.");
+    }
+
+    /**
+     * Subscribes to queue events for HUD management.
+     */
+    private void subscribeToQueueEvents() {
+        // Show queue HUD when player joins queue
+        eventBus.subscribe(PlayerQueuedEvent.class, event -> {
+            World hubWorld = hubManager.getHubWorld();
+            if (hubWorld != null) {
+                hubWorld.execute(() -> {
+                    hudManager.showQueueHud(event.getPlayerUuid());
+                });
+            }
+        });
+
+        // Hide queue HUD when player leaves queue
+        eventBus.subscribe(PlayerLeftQueueEvent.class, event -> {
+            World hubWorld = hubManager.getHubWorld();
+            if (hubWorld != null) {
+                hubWorld.execute(() -> {
+                    hudManager.hideQueueHud(event.getPlayerUuid());
+                });
+            }
+        });
+
+        // Hide HUDs when match is found (players will be teleported)
+        eventBus.subscribe(QueueMatchFoundEvent.class, event -> {
+            World hubWorld = hubManager.getHubWorld();
+            if (hubWorld != null) {
+                hubWorld.execute(() -> {
+                    for (UUID playerUuid : event.getPlayerUuids()) {
+                        hudManager.hideQueueHud(playerUuid);
+                        hudManager.hideLobbyHud(playerUuid);
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Checks if a player is in the hub world.
+     */
+    private boolean isPlayerInHubWorld(UUID playerUuid) {
+        String hubWorldName = configManager.getHubConfig().getEffectiveWorldName();
+        String currentWorld = knownPlayers.get(playerUuid);
+        // If we don't have tracking info, assume they're in hub (initial state)
+        if (currentWorld == null) {
+            return true;
+        }
+        // Actually need to check their current world - use boundary manager's player tracking
+        // Since we don't store world name in knownPlayers (it stores player name), let's use a different approach
+        // We'll check via the player's world directly
+        return boundaryManager.isPlayerInWorld(playerUuid, hubWorldName);
+    }
+
+    /**
+     * Gets the number of online players.
+     */
+    private int getOnlinePlayerCount() {
+        return knownPlayers.size();
     }
 
     // ========== Event Handlers ==========
@@ -230,8 +345,19 @@ public class HyArena2 extends JavaPlugin {
             // Send welcome message after teleport
             player.sendMessage(Message.raw("Welcome to HyArena2!"));
             player.sendMessage(Message.raw("Use /arena to open the menu."));
+
+            // Show lobby HUD after teleport
+            hudManager.showLobbyHud(playerId);
         });
         boundaryManager.grantTeleportGrace(playerId);
+
+        // Set world thread executor for HudManager
+        if (hudManager != null) {
+            World hubWorld = hubManager.getHubWorld();
+            if (hubWorld != null) {
+                hudManager.setWorldThreadExecutor(hubWorld::execute);
+            }
+        }
 
         // Publish event
         eventBus.publish(new PlayerJoinedHubEvent(playerId, playerName, true));
@@ -247,6 +373,12 @@ public class HyArena2 extends JavaPlugin {
         // Get player name before cleanup
         String playerName = knownPlayers.getOrDefault(playerId, "Unknown");
         System.out.println("[HyArena2] Player " + playerName + " disconnected");
+
+        // Remove from queue if in one
+        queueManager.handlePlayerDisconnect(playerId);
+
+        // Clean up HUDs
+        hudManager.handlePlayerDisconnect(playerId);
 
         // Remove from match if in one
         matchManager.removePlayerFromMatch(playerId, "Disconnected");
@@ -306,5 +438,17 @@ public class HyArena2 extends JavaPlugin {
 
     public MatchManager getMatchManager() {
         return matchManager;
+    }
+
+    public QueueManager getQueueManager() {
+        return queueManager;
+    }
+
+    public Matchmaker getMatchmaker() {
+        return matchmaker;
+    }
+
+    public HudManager getHudManager() {
+        return hudManager;
     }
 }

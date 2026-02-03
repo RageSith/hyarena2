@@ -279,6 +279,18 @@ public class MatchManager {
     }
 
     /**
+     * Checks if an arena is currently in use (has an active non-FINISHED match).
+     */
+    public boolean isArenaInUse(String arenaId) {
+        for (Match match : activeMatches.values()) {
+            if (match.getArena().getId().equals(arenaId) && !match.isFinished()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Starts the match ticker (20 TPS).
      */
     private void startTicker() {

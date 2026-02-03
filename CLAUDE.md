@@ -65,13 +65,31 @@ Key reference files in old project:
 - [x] Thread-safe ticking via world.execute()
 - [x] Test commands: /tmarenas, /tmcreate, /tmjoin, /tmstart, /tmlist, /tmleave, /tmcancel
 
-**Next session TODOs (match polish):**
+**Phase 2 polish TODOs:**
 - [ ] Freeze player movement during STARTING countdown
 - [ ] Respawn immunity period after teleport
 - [ ] Better spawn point assignment (face opponent)
 - [ ] Test full 2-player match flow (kill → winner → teleport back)
 
-### Phases 3-12: Not Started
+### Phase 3: Queue System - COMPLETE
+- [x] Queue events (PlayerQueuedEvent, PlayerLeftQueueEvent, QueueMatchFoundEvent)
+- [x] QueueEntry data class
+- [x] QueueManager - per-arena queues, join/leave, cooldowns, hub-only validation
+- [x] Matchmaker - periodic tick, countdown timers, auto-match creation
+- [x] HUD templates (QueueHud.ui, LobbyHud.ui)
+- [x] QueueHud - shows queue status, auto-refresh
+- [x] LobbyHud - shows server stats (online, queue, in-game, avg wait)
+- [x] HudManager - tracks and manages HUDs per player
+- [x] EmptyHud - placeholder for clearing HUDs
+- [x] Test commands: /tqjoin <arenaId>, /tqleave
+- [x] isArenaInUse() method in MatchManager
+- [x] Integration in HyArena2.java (scheduler, event subscriptions, disconnect cleanup)
+
+**Queue system test commands:**
+- `/tqjoin <arenaId>` - Join queue for an arena (from hub only)
+- `/tqleave` - Leave current queue
+
+### Phases 4-12: Not Started
 See `plan/03_implementation_plan.md` for full roadmap.
 
 ## Package Structure
