@@ -201,8 +201,8 @@ public class Match {
                         }
                     }
 
-                    // Always heal to full health after kit application (or if no kit)
-                    healPlayer(playerUuid, arenaWorld);
+                    // Heal to full health on next tick (armor stats need time to apply)
+                    arenaWorld.execute(() -> healPlayer(playerUuid, arenaWorld));
 
                     // Mark player as arrived in arena
                     arrivedPlayers.add(playerUuid);

@@ -246,10 +246,7 @@ public class KitManager {
             giveOffhand(player, offhand);
         }
 
-        // Set health to maximum on next world tick (armor stats need time to apply)
-        player.getWorld().execute(() -> {
-            healPlayer(player);
-        });
+        // Note: Healing is handled by Match after kit application to ensure armor stats are applied
 
         // Get player UUID for event
         UUID playerUuid = getPlayerUuid(player);
