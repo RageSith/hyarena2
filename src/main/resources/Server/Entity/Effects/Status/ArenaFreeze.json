@@ -1,0 +1,17 @@
+{
+    "Duration": 999999,
+    "ApplicationEffects": {
+        "ScreenEffect": "ScreenEffects/MatchStartingSoon.png",
+        "MovementEffects": {
+            "DisableAll": true
+        },
+        "AbilityEffects": {
+            "Disabled": [
+                "Primary",
+                "Secondary",
+                "Ability1",
+                "Ability3"
+            ]
+        }
+    }
+}

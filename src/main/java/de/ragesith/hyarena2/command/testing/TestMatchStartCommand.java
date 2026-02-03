@@ -42,18 +42,22 @@ public class TestMatchStartCommand extends AbstractPlayerCommand {
         if (player == null) return;
 
         UUID playerUuid = playerRef.getUuid();
+        System.out.println("[TestMatchStartCommand] Player UUID: " + playerUuid);
         Match match = matchManager.getPlayerMatch(playerUuid);
+        System.out.println("[TestMatchStartCommand] Found match: " + (match != null ? match.getMatchId() : "null"));
 
         if (match == null) {
             player.sendMessage(TinyMsg.parse("<color:#e74c3c>You are not in a match.</color>"));
             return;
         }
 
+        System.out.println("[TestMatchStartCommand] Match state: " + match.getState());
         if (match.getState() != MatchState.WAITING) {
             player.sendMessage(TinyMsg.parse("<color:#e74c3c>Match already started or finished.</color>"));
             return;
         }
 
+        System.out.println("[TestMatchStartCommand] Calling match.start()");
         match.start();
         player.sendMessage(TinyMsg.parse("<color:#2ecc71>Match force-started!</color>"));
     }

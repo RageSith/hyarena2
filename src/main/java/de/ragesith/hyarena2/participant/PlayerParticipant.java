@@ -2,10 +2,12 @@ package de.ragesith.hyarena2.participant;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.server.core.Message;
 import fi.sulku.hytale.TinyMsg;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
+import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
 import java.util.UUID;
@@ -117,14 +119,34 @@ public class PlayerParticipant implements Participant {
 
     @Override
     public void sendMessage(String message) {
-        Player player = getPlayer();
-        if (player != null) {
-            player.sendMessage(TinyMsg.parse(message));
+        PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
+        if (playerRef == null) return;
+
+        // Find the player's world by checking all worlds
+        for (World world : Universe.get().getWorlds().values()) {
+            world.execute(() -> {
+                try {
+                    Ref<EntityStore> ref = playerRef.getReference();
+                    if (ref == null) return;
+
+                    Store<EntityStore> store = ref.getStore();
+                    if (store == null) return;
+
+                    Player player = store.getComponent(ref, Player.getComponentType());
+                    if (player != null && player.getWorld() == world) {
+                        player.sendMessage(TinyMsg.parse(message));
+                    }
+                } catch (Exception e) {
+                    // Not on this world, ignore
+                }
+            });
         }
     }
 
     @Override
     public boolean isValid() {
-        return getPlayer() != null;
+        // Check if player is online without accessing entity store (thread-safe)
+        PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
+        return playerRef != null;
     }
 }

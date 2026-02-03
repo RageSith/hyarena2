@@ -2,10 +2,16 @@ package de.ragesith.hyarena2.arena;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.protocol.packets.interface_.NotificationStyle;
+import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
+import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+
+import com.hypixel.hytale.server.core.util.EventTitleUtil;
+import com.hypixel.hytale.server.core.util.NotificationUtil;
 import de.ragesith.hyarena2.config.Position;
 import fi.sulku.hytale.TinyMsg;
 import de.ragesith.hyarena2.event.EventBus;
@@ -22,8 +28,11 @@ import de.ragesith.hyarena2.hub.HubManager;
 import de.ragesith.hyarena2.participant.Participant;
 import de.ragesith.hyarena2.participant.PlayerParticipant;
 
+import de.ragesith.hyarena2.utils.PlayerMovementControl;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Core match class that manages match state, participants, and game flow.
@@ -37,6 +46,7 @@ public class Match {
     private final HubManager hubManager;
 
     private final Map<UUID, Participant> participants;
+    private final Set<UUID> arrivedPlayers; // Players who have completed teleport to arena
     private MatchState state;
     private int tickCount;
     private int countdownTicks;
@@ -53,6 +63,7 @@ public class Match {
         this.eventBus = eventBus;
         this.hubManager = hubManager;
         this.participants = new ConcurrentHashMap<>();
+        this.arrivedPlayers = ConcurrentHashMap.newKeySet();
         this.state = MatchState.WAITING;
         this.tickCount = 0;
         this.countdownTicks = 0;
@@ -132,20 +143,50 @@ public class Match {
                 spawnConfig.getYaw(), spawnConfig.getPitch()
         );
 
-        // Teleport to arena
-        hubManager.teleportPlayerToWorld(player, spawnPos, arena.getWorld(), () -> {
+        // Teleport to arena, then freeze player after a short delay
+        World arenaWorld = arena.getWorld();
+        hubManager.teleportPlayerToWorld(player, spawnPos, arenaWorld, () -> {
             participant.sendMessage("<color:#2ecc71>You have joined the match!</color>");
+            // Wait for player to fully load, then freeze and mark as arrived
+            CompletableFuture.delayedExecutor(500, TimeUnit.MILLISECONDS).execute(() -> {
+                arenaWorld.execute(() -> {
+                    PlayerRef pRef = Universe.get().getPlayer(playerUuid);
+                    if (pRef != null) {
+                        PlayerMovementControl.disableMovementForPlayer(pRef, arenaWorld);
+                        System.out.println("[Match] Froze player after teleport: " + participant.getName());
+                    }
+
+                    // Mark player as arrived in arena
+                    arrivedPlayers.add(playerUuid);
+                    System.out.println("[Match] Player arrived: " + participant.getName() +
+                        " (" + arrivedPlayers.size() + "/" + participants.size() + ")");
+
+                    // Check if all players have arrived and we have enough to start
+                    checkAndStartIfReady();
+                });
+            });
         });
 
         // Fire event
         eventBus.publish(new ParticipantJoinedEvent(matchId, participant));
 
-        // Auto-start if full
-        if (participants.size() >= arena.getMinPlayers()) {
-            start();
+        return true;
+    }
+
+    /**
+     * Checks if all participants have arrived and starts the match if ready.
+     */
+    private void checkAndStartIfReady() {
+        if (state != MatchState.WAITING) {
+            return;
         }
 
-        return true;
+        // Check if we have enough players AND all have arrived
+        if (participants.size() >= arena.getMinPlayers() &&
+            arrivedPlayers.size() >= participants.size()) {
+            System.out.println("[Match] All players arrived, starting match!");
+            start();
+        }
     }
 
     /**
@@ -157,13 +198,23 @@ public class Match {
             return;
         }
 
+        // Remove from arrived tracking
+        arrivedPlayers.remove(uuid);
+
         // Fire event
         eventBus.publish(new ParticipantLeftEvent(matchId, participant, reason));
 
-        // Teleport player back to hub
+        // Teleport player back to hub and unfreeze
         Player player = getPlayerFromUuid(uuid);
         if (player != null) {
-            hubManager.teleportToHub(player, null);
+            hubManager.teleportToHub(player, () -> {
+                // Unfreeze after teleport to hub (runs on hub world thread via HubManager)
+                PlayerRef playerRef = Universe.get().getPlayer(uuid);
+                if (playerRef != null) {
+                    World hubWorld = hubManager.getHubWorld();
+                    PlayerMovementControl.enableMovementForPlayer(playerRef, hubWorld);
+                }
+            });
         }
 
         // Handle state-specific logic
@@ -188,12 +239,18 @@ public class Match {
      * Starts the match (transitions to STARTING state and begins countdown).
      */
     public synchronized void start() {
+        System.out.println("[Match] start() called, current state: " + state);
         if (state != MatchState.WAITING) {
+            System.out.println("[Match] Cannot start - not in WAITING state");
             return;
         }
 
         state = MatchState.STARTING;
         countdownTicks = arena.getWaitTimeSeconds() * TICKS_PER_SECOND;
+        System.out.println("[Match] State changed to STARTING, countdown: " + countdownTicks + " ticks");
+
+        // Freeze all players during countdown
+        freezeAllParticipants();
 
         // Notify game mode
         gameMode.onMatchStart(getParticipants());
@@ -216,6 +273,9 @@ public class Match {
         state = MatchState.IN_PROGRESS;
         tickCount = 0;
 
+        // Unfreeze all players - fight begins!
+        unfreezeAllParticipants();
+
         // Notify game mode
         gameMode.onGameplayBegin(getParticipants());
     }
@@ -230,6 +290,9 @@ public class Match {
 
         state = MatchState.ENDING;
         victoryDelayTicks = VICTORY_DELAY_SECONDS * TICKS_PER_SECOND;
+
+        // Freeze all players (no HUD - let them see the victory message)
+        freezeAllParticipantsNoHud();
 
         // Determine winners
         winners = gameMode.getWinners(getParticipants());
@@ -258,12 +321,19 @@ public class Match {
 
         state = MatchState.FINISHED;
 
-        // Teleport all participants back to hub
+        // Teleport all participants back to hub and unfreeze
         for (Participant participant : getParticipants()) {
             if (participant.isValid()) {
-                Player player = getPlayerFromUuid(participant.getUniqueId());
+                UUID participantUuid = participant.getUniqueId();
+                Player player = getPlayerFromUuid(participantUuid);
                 if (player != null) {
                     hubManager.teleportToHub(player, () -> {
+                        // Unfreeze after teleport to hub (runs on hub world thread via HubManager)
+                        PlayerRef playerRef = Universe.get().getPlayer(participantUuid);
+                        if (playerRef != null) {
+                            World hubWorld = hubManager.getHubWorld();
+                            PlayerMovementControl.enableMovementForPlayer(playerRef, hubWorld);
+                        }
                         participant.sendMessage("<color:#2ecc71>Thanks for playing!</color>");
                     });
                 }
@@ -280,12 +350,20 @@ public class Match {
     public synchronized void cancel(String reason) {
         broadcast("<color:#e74c3c>Match cancelled: " + reason + "</color>");
 
-        // Teleport all participants back to hub
+        // Teleport all participants back to hub and unfreeze
         for (Participant participant : getParticipants()) {
             if (participant.isValid()) {
-                Player player = getPlayerFromUuid(participant.getUniqueId());
+                UUID participantUuid = participant.getUniqueId();
+                Player player = getPlayerFromUuid(participantUuid);
                 if (player != null) {
-                    hubManager.teleportToHub(player, null);
+                    hubManager.teleportToHub(player, () -> {
+                        // Unfreeze after teleport to hub (runs on hub world thread via HubManager)
+                        PlayerRef playerRef = Universe.get().getPlayer(participantUuid);
+                        if (playerRef != null) {
+                            World hubWorld = hubManager.getHubWorld();
+                            PlayerMovementControl.enableMovementForPlayer(playerRef, hubWorld);
+                        }
+                    });
                 }
             }
         }
@@ -368,16 +446,25 @@ public class Match {
     private void tickStarting() {
         countdownTicks--;
 
-        // Broadcast countdown at intervals
+        // Send countdown notifications at intervals
         int secondsLeft = countdownTicks / TICKS_PER_SECOND;
         if (countdownTicks % TICKS_PER_SECOND == 0) {
             if (secondsLeft > 0 && secondsLeft <= 5) {
-                broadcast("<color:#f1c40f><b>" + secondsLeft + "...</b></color>");
+                sendNotificationToAll(
+                    "Match Starting",
+                    secondsLeft + "...",
+                    NotificationStyle.Warning
+                );
             }
         }
 
         // Begin gameplay when countdown expires
         if (countdownTicks <= 0) {
+            sendNotificationToAll(
+                "Fight!",
+                "The match has begun!",
+                NotificationStyle.Success
+            );
             beginGameplay();
         }
     }
@@ -413,6 +500,29 @@ public class Match {
     }
 
     /**
+     * Sends a notification to all participants.
+     */
+    private void sendNotificationToAll(String title, String message, NotificationStyle style) {
+        for (Participant participant : getParticipants()) {
+            PlayerRef playerRef = Universe.get().getPlayer(participant.getUniqueId());
+            if (playerRef != null) {
+                try {
+                    EventTitleUtil.showEventTitleToPlayer(playerRef,Message.raw(message),Message.raw(title),true,null,1,0,0);
+                    NotificationUtil.sendNotification(
+                        playerRef.getPacketHandler(),
+                        Message.raw(title),
+                        Message.raw(message),
+                        style
+                    );
+                } catch (Exception e) {
+                    // Fallback to chat message if notification fails
+                    participant.sendMessage(title + ": " + message);
+                }
+            }
+        }
+    }
+
+    /**
      * Checks if the match is finished and ready for cleanup.
      */
     public boolean isFinished() {
@@ -430,5 +540,50 @@ public class Match {
         Store<EntityStore> store = ref.getStore();
         if (store == null) return null;
         return store.getComponent(ref, Player.getComponentType());
+    }
+
+    /**
+     * Freezes all participants (disables movement).
+     */
+    private void freezeAllParticipants() {
+        System.out.println("[Match] Freezing " + participants.size() + " participants");
+        World world = arena.getWorld();
+        for (Participant participant : getParticipants()) {
+            PlayerRef playerRef = Universe.get().getPlayer(participant.getUniqueId());
+            if (playerRef != null) {
+                PlayerMovementControl.disableMovementForPlayer(playerRef, world);
+                System.out.println("[Match] Froze player: " + participant.getName());
+            }
+        }
+    }
+
+    /**
+     * Freezes all participants without HUD (for match ended).
+     */
+    private void freezeAllParticipantsNoHud() {
+        System.out.println("[Match] Freezing " + participants.size() + " participants (no HUD)");
+        World world = arena.getWorld();
+        for (Participant participant : getParticipants()) {
+            PlayerRef playerRef = Universe.get().getPlayer(participant.getUniqueId());
+            if (playerRef != null) {
+                PlayerMovementControl.disableMovementForPlayerNoHud(playerRef, world);
+                System.out.println("[Match] Froze player (no HUD): " + participant.getName());
+            }
+        }
+    }
+
+    /**
+     * Unfreezes all participants (enables movement).
+     */
+    private void unfreezeAllParticipants() {
+        System.out.println("[Match] Unfreezing " + participants.size() + " participants");
+        World world = arena.getWorld();
+        for (Participant participant : getParticipants()) {
+            PlayerRef playerRef = Universe.get().getPlayer(participant.getUniqueId());
+            if (playerRef != null) {
+                PlayerMovementControl.enableMovementForPlayer(playerRef, world);
+                System.out.println("[Match] Unfroze player: " + participant.getName());
+            }
+        }
     }
 }

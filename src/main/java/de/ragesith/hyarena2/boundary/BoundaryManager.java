@@ -8,6 +8,7 @@ import com.hypixel.hytale.server.core.modules.entity.EntityModule;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
+import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.Permissions;
 import de.ragesith.hyarena2.config.GlobalConfig;
@@ -49,6 +50,13 @@ public class BoundaryManager {
      */
     public void registerPlayer(UUID playerId, Player player) {
         trackedPlayers.add(playerId);
+
+        // Only check initial position if player is in hub world
+        String playerWorld = player.getWorld() != null ? player.getWorld().getName() : null;
+        String hubWorld = hubConfig.getEffectiveWorldName();
+        if (playerWorld == null || !playerWorld.equals(hubWorld)) {
+            return;
+        }
 
         // Check initial position using TransformComponent
         Ref<EntityStore> ref = player.getReference();
@@ -100,29 +108,39 @@ public class BoundaryManager {
         lastCheckMs = now;
 
         for (UUID playerId : trackedPlayers) {
-            PlayerRef playerRef = Universe.get().getPlayer(playerId);
-            if (playerRef != null) {
-                Ref<EntityStore> ref = playerRef.getReference();
-                if (ref != null) {
-                    Store<EntityStore> store = ref.getStore();
-                    if (store != null) {
-                        Player player = store.getComponent(ref, Player.getComponentType());
-                        if (player != null) {
-                            checkPlayer(playerId, player);
+            try {
+                PlayerRef playerRef = Universe.get().getPlayer(playerId);
+                if (playerRef != null) {
+                    Ref<EntityStore> ref = playerRef.getReference();
+                    if (ref != null) {
+                        Store<EntityStore> store = ref.getStore();
+                        if (store != null) {
+                            Player player = store.getComponent(ref, Player.getComponentType());
+                            if (player != null) {
+                                checkPlayer(playerId, player);
+                            }
                         }
                     }
                 }
+            } catch (Exception e) {
+                // Player might be in a different world - skip silently
             }
         }
     }
 
     /**
      * Checks a single player's boundaries.
-     * Note: Players in matches are skipped by MatchManager setting their world
-     * to the arena world, so hub boundaries won't apply.
+     * Only checks players in the hub world - players in arena worlds are skipped.
      */
     private void checkPlayer(UUID playerId, Player player) {
         try {
+            // Skip if player is not in the hub world (they're in an arena)
+            String playerWorld = player.getWorld() != null ? player.getWorld().getName() : null;
+            String hubWorld = hubConfig.getEffectiveWorldName();
+            if (playerWorld == null || !playerWorld.equals(hubWorld)) {
+                return;
+            }
+
             // Skip if player has bypass permission
             if (player.hasPermission(Permissions.BYPASS_BOUNDARY)) {
                 return;
@@ -160,7 +178,7 @@ public class BoundaryManager {
             }
 
         } catch (Exception e) {
-            // Player might have disconnected
+            // Player might have disconnected or be in wrong world
         }
     }
 

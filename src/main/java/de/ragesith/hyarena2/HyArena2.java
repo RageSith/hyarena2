@@ -29,6 +29,7 @@ import de.ragesith.hyarena2.event.EventBus;
 import de.ragesith.hyarena2.event.PlayerJoinedHubEvent;
 import de.ragesith.hyarena2.generated.BuildInfo;
 import de.ragesith.hyarena2.hub.HubManager;
+import de.ragesith.hyarena2.utils.PlayerMovementControl;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 import java.util.Map;
@@ -94,8 +95,12 @@ public class HyArena2 extends JavaPlugin {
         this.matchManager.initialize();
 
         // Initialize kill detection system
+        // Registered via EntityStoreRegistry which should be global
+        // We also track worlds and log when they're first seen for debugging
         this.killDetectionSystem = new KillDetectionSystem(matchManager);
         this.getEntityStoreRegistry().registerSystem(killDetectionSystem);
+
+        System.out.println("[HyArena2] KillDetectionSystem registered with EntityStoreRegistry");
 
         // Register commands
         this.getCommandRegistry().registerCommand(new ArenaCommand(this));
@@ -198,9 +203,16 @@ public class HyArena2 extends JavaPlugin {
         boolean isWorldChange = knownPlayers.containsKey(playerId);
 
         if (isWorldChange) {
-            // World change - just update boundary tracking
+            // World change - update boundary tracking
             boundaryManager.registerPlayer(playerId, player);
             System.out.println("[HyArena2] Player " + playerName + " changed worlds to " + player.getWorld().getName());
+
+            // If entering hub world, clear any arena effects (freeze, etc.)
+            String hubWorldName = configManager.getHubConfig().getEffectiveWorldName();
+            if (player.getWorld().getName().equals(hubWorldName)) {
+                PlayerMovementControl.enableMovementForPlayer(playerRef, player.getWorld());
+                System.out.println("[HyArena2] Cleared arena effects for " + playerName + " entering hub");
+            }
             return;
         }
 

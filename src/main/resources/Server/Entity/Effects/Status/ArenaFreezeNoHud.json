@@ -1,0 +1,16 @@
+{
+    "Duration": 999999,
+    "ApplicationEffects": {
+        "MovementEffects": {
+            "DisableAll": true
+        },
+        "AbilityEffects": {
+            "Disabled": [
+                "Primary",
+                "Secondary",
+                "Ability1",
+                "Ability3"
+            ]
+        }
+    }
+}
