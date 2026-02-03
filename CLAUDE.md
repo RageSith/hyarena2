@@ -152,7 +152,26 @@ Key reference files in old project:
    - Remaining slots filled with bots at configured difficulty
 3. Normal queue behavior still applies (instant start at maxPlayers, countdown at minPlayers)
 
-### Phases 6-12: Not Started
+**Phase 5 polish (completed during testing):**
+- [x] Bot freeze during countdown (teleport-back approach - freeze effects don't work on NPC AI)
+- [x] Bot despawn on death in no-respawn game modes
+- [x] Kit fallback to first allowed kit when player has none selected
+- [x] Damage notifications (attacker sees "-X / VictimName", victim sees "-X / AttackerName")
+- [x] LobbyHud shows after returning from same-world arenas (explicit call in teleport callback)
+- [x] Queue status format: "Waiting for players (Xs)" shows auto-fill timer in parentheses
+- [x] 3-second match ready countdown before teleport (prevents arena overlap race condition)
+- [x] Last hit tracking for environmental deaths (10s window for kill attribution)
+
+### Phase 6: HUDs & UI Polish - NOT STARTED
+Next phase focuses on complete user interface:
+- [ ] `MatchHud` - scoreboard showing kills/deaths, match timer
+- [ ] Victory screen overlay
+- [ ] Full UI page hierarchy (MainMenu → Arena List → Arena Detail → Queue)
+- [ ] Admin pages (arena editor, kit editor, hub settings)
+
+**Milestone**: Full UI flow working, HUDs show all match info.
+
+### Phases 7-12: Not Started
 See `plan/03_implementation_plan.md` for full roadmap.
 
 ## Package Structure
