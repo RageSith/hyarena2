@@ -29,8 +29,6 @@ import de.ragesith.hyarena2.config.GlobalConfig;
 import de.ragesith.hyarena2.config.HubConfig;
 import de.ragesith.hyarena2.event.EventBus;
 import de.ragesith.hyarena2.event.PlayerJoinedHubEvent;
-import de.ragesith.hyarena2.event.queue.PlayerLeftQueueEvent;
-import de.ragesith.hyarena2.event.queue.PlayerQueuedEvent;
 import de.ragesith.hyarena2.event.queue.QueueMatchFoundEvent;
 import de.ragesith.hyarena2.generated.BuildInfo;
 import de.ragesith.hyarena2.hub.HubManager;
@@ -238,33 +236,13 @@ public class HyArena2 extends JavaPlugin {
      * Subscribes to queue events for HUD management.
      */
     private void subscribeToQueueEvents() {
-        // Show queue HUD when player joins queue
-        eventBus.subscribe(PlayerQueuedEvent.class, event -> {
-            World hubWorld = hubManager.getHubWorld();
-            if (hubWorld != null) {
-                hubWorld.execute(() -> {
-                    hudManager.showQueueHud(event.getPlayerUuid());
-                });
-            }
-        });
-
-        // Hide queue HUD when player leaves queue
-        eventBus.subscribe(PlayerLeftQueueEvent.class, event -> {
-            World hubWorld = hubManager.getHubWorld();
-            if (hubWorld != null) {
-                hubWorld.execute(() -> {
-                    hudManager.hideQueueHud(event.getPlayerUuid());
-                });
-            }
-        });
-
-        // Hide HUDs when match is found (players will be teleported)
+        // Hide LobbyHud when match is found (players will be teleported to arena)
+        // Note: Queue panel visibility is handled automatically by LobbyHud's refresh
         eventBus.subscribe(QueueMatchFoundEvent.class, event -> {
             World hubWorld = hubManager.getHubWorld();
             if (hubWorld != null) {
                 hubWorld.execute(() -> {
                     for (UUID playerUuid : event.getPlayerUuids()) {
-                        hudManager.hideQueueHud(playerUuid);
                         hudManager.hideLobbyHud(playerUuid);
                     }
                 });

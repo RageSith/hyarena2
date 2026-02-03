@@ -74,3 +74,87 @@ Group #LobbyHud {
         }
     }
 }
+
+Group #QueuePanel {
+    Anchor: (Width: 800, Height: 64, Top: 124);
+    Background: #1a2633(0.85);
+    Visible: false;
+
+    Group #QueueContent {
+        Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+        Padding: (Left: 24, Right: 24);
+        LayoutMode: Left;
+
+        Label #QueueArenaName {
+            Text: "---";
+            Anchor: (Width: 150, Height: 64);
+            Style: (FontSize: 15, TextColor: #e8c872, VerticalAlignment: Center, RenderBold: true);
+        }
+
+        Label {
+            Text: "|";
+            Anchor: (Width: 20, Height: 64);
+            Style: (FontSize: 14, TextColor: #555555, Alignment: Center, VerticalAlignment: Center);
+        }
+
+        Label {
+            Text: "POSITION";
+            Anchor: (Width: 65, Height: 64);
+            Style: (FontSize: 11, TextColor: #7f8c8d, VerticalAlignment: Center);
+        }
+
+        Label #QueuePosition {
+            Text: "#1";
+            Anchor: (Width: 35, Height: 64);
+            Style: (FontSize: 16, TextColor: #b7cedd, VerticalAlignment: Center, RenderBold: true);
+        }
+
+        Label {
+            Text: "|";
+            Anchor: (Width: 20, Height: 64);
+            Style: (FontSize: 14, TextColor: #555555, Alignment: Center, VerticalAlignment: Center);
+        }
+
+        Label {
+            Text: "PLAYERS";
+            Anchor: (Width: 62, Height: 64);
+            Style: (FontSize: 11, TextColor: #7f8c8d, VerticalAlignment: Center);
+        }
+
+        Label #QueuePlayers {
+            Text: "0/4";
+            Anchor: (Width: 45, Height: 64);
+            Style: (FontSize: 16, TextColor: #2ecc71, VerticalAlignment: Center, RenderBold: true);
+        }
+
+        Label {
+            Text: "|";
+            Anchor: (Width: 20, Height: 64);
+            Style: (FontSize: 14, TextColor: #555555, Alignment: Center, VerticalAlignment: Center);
+        }
+
+        Label {
+            Text: "ELAPSED";
+            Anchor: (Width: 60, Height: 64);
+            Style: (FontSize: 11, TextColor: #7f8c8d, VerticalAlignment: Center);
+        }
+
+        Label #QueueElapsed {
+            Text: "0:00";
+            Anchor: (Width: 50, Height: 64);
+            Style: (FontSize: 16, TextColor: #e8c872, VerticalAlignment: Center, RenderBold: true);
+        }
+
+        Label {
+            Text: "|";
+            Anchor: (Width: 20, Height: 64);
+            Style: (FontSize: 14, TextColor: #555555, Alignment: Center, VerticalAlignment: Center);
+        }
+
+        Label #QueueStatus {
+            Text: "Waiting...";
+            Anchor: (Width: 250, Height: 64);
+            Style: (FontSize: 13, TextColor: #3498db, VerticalAlignment: Center, RenderBold: true);
+        }
+    }
+}
