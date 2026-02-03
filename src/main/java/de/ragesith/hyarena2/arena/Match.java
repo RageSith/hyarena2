@@ -199,10 +199,10 @@ public class Match {
                             kitManager.applyKit(p, selectedKit);
                             System.out.println("[Match] Applied kit '" + selectedKit + "' to " + participant.getName());
                         }
-                    } else {
-                        // No kit available - just heal to full health
-                        healPlayer(playerUuid, arenaWorld);
                     }
+
+                    // Always heal to full health after kit application (or if no kit)
+                    healPlayer(playerUuid, arenaWorld);
 
                     // Mark player as arrived in arena
                     arrivedPlayers.add(playerUuid);
