@@ -1,0 +1,305 @@
+$C = "../Common.ui";
+
+Group #MatchHud {
+    Anchor: (Width: 260, Height: 320, Top: 10, Right: 10);
+
+    // Background panel
+    $C.@Panel {
+        Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+        Padding: (Full: 12);
+        LayoutMode: Top;
+
+        // Arena Name Header
+        Label #ArenaName {
+            Text: "Arena";
+            Anchor: (Height: 24, Top: 0);
+            Style: (FontSize: 16, TextColor: #e8c872, Alignment: Center, RenderBold: true);
+        }
+
+        // Game Mode
+        Label #GameMode {
+            Text: "Duel";
+            Anchor: (Height: 16);
+            Style: (FontSize: 11, TextColor: #96a9be, Alignment: Center, RenderUppercase: true);
+        }
+
+        // Timer Display
+        Label #MatchTime {
+            Text: "0:00";
+            Anchor: (Height: 28, Top: 4);
+            Style: (FontSize: 22, TextColor: #f1c40f, Alignment: Center, RenderBold: true);
+        }
+
+        $C.@ContentSeparator {
+            @Anchor = (Top: 8);
+        }
+
+        // Scoreboard Section
+        Group #ScoreboardSection {
+            Anchor: (Top: 8);
+            FlexWeight: 1;
+            LayoutMode: Top;
+
+            // Table Header (with right padding to account for scrollbar)
+            Group #TableHeader {
+                Anchor: (Height: 20);
+                Padding: (Right: 12);
+                LayoutMode: Left;
+
+                Label {
+                    Text: "Player";
+                    FlexWeight: 3;
+                    Style: (FontSize: 10, TextColor: #96a9be, RenderUppercase: true, RenderBold: true);
+                }
+                Label {
+                    Text: "K";
+                    Anchor: (Width: 28);
+                    Style: (FontSize: 10, TextColor: #96a9be, RenderUppercase: true, RenderBold: true, Alignment: Center);
+                }
+                Label {
+                    Text: "D";
+                    Anchor: (Width: 28);
+                    Style: (FontSize: 10, TextColor: #96a9be, RenderUppercase: true, RenderBold: true, Alignment: Center);
+                }
+            }
+
+            // Player Rows Container
+            Group #PlayerListContainer {
+                Anchor: (Top: 4);
+                FlexWeight: 1;
+                LayoutMode: TopScrolling;
+                ScrollbarStyle: $C.@TranslucentScrollbarStyle;
+
+                // Player Row 0
+                Group #PlayerRow0 {
+                    Anchor: (Height: 20);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #PlayerName0 {
+                        Text: "Player";
+                        FlexWeight: 3;
+                        Style: (FontSize: 12, TextColor: #b7cedd);
+                    }
+                    Label #PlayerKills0 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #2ecc71, Alignment: Center, RenderBold: true);
+                    }
+                    Label #PlayerDeaths0 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #e74c3c, Alignment: Center);
+                    }
+                }
+
+                // Player Row 1
+                Group #PlayerRow1 {
+                    Anchor: (Height: 20);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #PlayerName1 {
+                        Text: "Player";
+                        FlexWeight: 3;
+                        Style: (FontSize: 12, TextColor: #b7cedd);
+                    }
+                    Label #PlayerKills1 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #2ecc71, Alignment: Center, RenderBold: true);
+                    }
+                    Label #PlayerDeaths1 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #e74c3c, Alignment: Center);
+                    }
+                }
+
+                // Player Row 2
+                Group #PlayerRow2 {
+                    Anchor: (Height: 20);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #PlayerName2 {
+                        Text: "Player";
+                        FlexWeight: 3;
+                        Style: (FontSize: 12, TextColor: #b7cedd);
+                    }
+                    Label #PlayerKills2 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #2ecc71, Alignment: Center, RenderBold: true);
+                    }
+                    Label #PlayerDeaths2 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #e74c3c, Alignment: Center);
+                    }
+                }
+
+                // Player Row 3
+                Group #PlayerRow3 {
+                    Anchor: (Height: 20);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #PlayerName3 {
+                        Text: "Player";
+                        FlexWeight: 3;
+                        Style: (FontSize: 12, TextColor: #b7cedd);
+                    }
+                    Label #PlayerKills3 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #2ecc71, Alignment: Center, RenderBold: true);
+                    }
+                    Label #PlayerDeaths3 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #e74c3c, Alignment: Center);
+                    }
+                }
+
+                // Player Row 4
+                Group #PlayerRow4 {
+                    Anchor: (Height: 20);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #PlayerName4 {
+                        Text: "Player";
+                        FlexWeight: 3;
+                        Style: (FontSize: 12, TextColor: #b7cedd);
+                    }
+                    Label #PlayerKills4 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #2ecc71, Alignment: Center, RenderBold: true);
+                    }
+                    Label #PlayerDeaths4 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #e74c3c, Alignment: Center);
+                    }
+                }
+
+                // Player Row 5
+                Group #PlayerRow5 {
+                    Anchor: (Height: 20);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #PlayerName5 {
+                        Text: "Player";
+                        FlexWeight: 3;
+                        Style: (FontSize: 12, TextColor: #b7cedd);
+                    }
+                    Label #PlayerKills5 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #2ecc71, Alignment: Center, RenderBold: true);
+                    }
+                    Label #PlayerDeaths5 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #e74c3c, Alignment: Center);
+                    }
+                }
+
+                // Player Row 6
+                Group #PlayerRow6 {
+                    Anchor: (Height: 20);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #PlayerName6 {
+                        Text: "Player";
+                        FlexWeight: 3;
+                        Style: (FontSize: 12, TextColor: #b7cedd);
+                    }
+                    Label #PlayerKills6 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #2ecc71, Alignment: Center, RenderBold: true);
+                    }
+                    Label #PlayerDeaths6 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #e74c3c, Alignment: Center);
+                    }
+                }
+
+                // Player Row 7
+                Group #PlayerRow7 {
+                    Anchor: (Height: 20);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #PlayerName7 {
+                        Text: "Player";
+                        FlexWeight: 3;
+                        Style: (FontSize: 12, TextColor: #b7cedd);
+                    }
+                    Label #PlayerKills7 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #2ecc71, Alignment: Center, RenderBold: true);
+                    }
+                    Label #PlayerDeaths7 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #e74c3c, Alignment: Center);
+                    }
+                }
+
+                // Player Row 8
+                Group #PlayerRow8 {
+                    Anchor: (Height: 20);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #PlayerName8 {
+                        Text: "Player";
+                        FlexWeight: 3;
+                        Style: (FontSize: 12, TextColor: #b7cedd);
+                    }
+                    Label #PlayerKills8 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #2ecc71, Alignment: Center, RenderBold: true);
+                    }
+                    Label #PlayerDeaths8 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #e74c3c, Alignment: Center);
+                    }
+                }
+
+                // Player Row 9
+                Group #PlayerRow9 {
+                    Anchor: (Height: 20);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #PlayerName9 {
+                        Text: "Player";
+                        FlexWeight: 3;
+                        Style: (FontSize: 12, TextColor: #b7cedd);
+                    }
+                    Label #PlayerKills9 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #2ecc71, Alignment: Center, RenderBold: true);
+                    }
+                    Label #PlayerDeaths9 {
+                        Text: "0";
+                        Anchor: (Width: 28);
+                        Style: (FontSize: 12, TextColor: #e74c3c, Alignment: Center);
+                    }
+                }
+            }
+        }
+    }
+}

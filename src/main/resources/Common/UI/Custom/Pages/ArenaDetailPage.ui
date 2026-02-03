@@ -1,0 +1,162 @@
+$C = "../Common.ui";
+
+Group #ArenaDetailPage {
+    $C.@PageOverlay {}
+
+    $C.@DecoratedContainer {
+        @CloseButton = true;
+        Anchor: (Width: 500, Height: 450);
+
+        Group #Title {
+            $C.@Title #ArenaTitle {
+                @Text = "Arena Name";
+                Anchor: (Top: 12, Height: 24);
+            }
+        }
+
+        Group #Content {
+            Padding: (Full: 20);
+            Anchor: (Top: 35);
+            LayoutMode: Top;
+
+            // Arena Description
+            Label #ArenaDescription {
+                Text: "Duel | 2 Players | Last Standing";
+                Anchor: (Height: 24, Top: 5);
+                Style: (FontSize: 14, TextColor: #96a9be, Alignment: Center);
+            }
+
+            $C.@ContentSeparator {
+                @Anchor = (Top: 12);
+            }
+
+            // Info Section
+            Group #InfoSection {
+                Anchor: (Top: 12);
+                LayoutMode: Top;
+
+                // Game Mode Row
+                Group #GameModeRow {
+                    Anchor: (Height: 24);
+                    LayoutMode: Left;
+
+                    Label {
+                        Text: "Game Mode";
+                        Anchor: (Width: 120);
+                        Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center);
+                    }
+                    Label #GameModeValue {
+                        Text: "Duel";
+                        FlexWeight: 1;
+                        Style: (FontSize: 14, TextColor: #b7cedd, VerticalAlignment: Center, Alignment: End, RenderBold: true);
+                    }
+                }
+
+                // Players Row
+                Group #PlayersRow {
+                    Anchor: (Height: 24, Top: 4);
+                    LayoutMode: Left;
+
+                    Label {
+                        Text: "Players";
+                        Anchor: (Width: 120);
+                        Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center);
+                    }
+                    Label #PlayersValue {
+                        Text: "2-2";
+                        FlexWeight: 1;
+                        Style: (FontSize: 14, TextColor: #b7cedd, VerticalAlignment: Center, Alignment: End, RenderBold: true);
+                    }
+                }
+
+                // Queue Status Row
+                Group #QueueRow {
+                    Anchor: (Height: 24, Top: 4);
+                    LayoutMode: Left;
+
+                    Label {
+                        Text: "In Queue";
+                        Anchor: (Width: 120);
+                        Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center);
+                    }
+                    Label #QueueValue {
+                        Text: "0";
+                        FlexWeight: 1;
+                        Style: (FontSize: 14, TextColor: #3498db, VerticalAlignment: Center, Alignment: End, RenderBold: true);
+                    }
+                }
+
+                // Status Row
+                Group #StatusRow {
+                    Anchor: (Height: 24, Top: 4);
+                    LayoutMode: Left;
+
+                    Label {
+                        Text: "Status";
+                        Anchor: (Width: 120);
+                        Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center);
+                    }
+                    Label #StatusValue {
+                        Text: "Available";
+                        FlexWeight: 1;
+                        Style: (FontSize: 14, TextColor: #2ecc71, VerticalAlignment: Center, Alignment: End, RenderBold: true);
+                    }
+                }
+            }
+
+            $C.@ContentSeparator {
+                @Anchor = (Top: 12);
+            }
+
+            // Kit Selection Section
+            Group #KitSection {
+                Anchor: (Top: 12);
+                LayoutMode: Top;
+
+                $C.@Subtitle {
+                    @Text = "Select Kit";
+                }
+
+                $C.@DropdownBox #KitDropdown {
+                    @Anchor = (Top: 8, Height: 38);
+                }
+
+                // Kit description
+                Label #KitDescription {
+                    Text: "Select a kit to use in this arena";
+                    Anchor: (Height: 20, Top: 8);
+                    Style: (FontSize: 12, TextColor: #7f8c8d, Alignment: Center);
+                }
+            }
+
+            // Button Row
+            Group #ButtonRow {
+                Anchor: (Top: 20);
+                LayoutMode: Left;
+
+                $C.@SecondaryTextButton #BackButton {
+                    @Text = "Back";
+                    @Anchor = (Width: 120);
+                }
+
+                // Spacer
+                Group {
+                    FlexWeight: 1;
+                }
+
+                $C.@TextButton #JoinQueueButton {
+                    @Text = "Join Queue";
+                    @Anchor = (Width: 160);
+                }
+            }
+
+            // Error/Status Message
+            Label #StatusMessage {
+                Text: "";
+                Anchor: (Height: 20, Top: 12);
+                Visible: false;
+                Style: (FontSize: 12, TextColor: #e74c3c, Alignment: Center);
+            }
+        }
+    }
+}

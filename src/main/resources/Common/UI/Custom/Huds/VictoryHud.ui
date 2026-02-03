@@ -1,0 +1,98 @@
+$C = "../Common.ui";
+
+Group #VictoryHud {
+    // Centered overlay
+    Anchor: (Width: 400, Height: 280);
+
+    $C.@Panel {
+        Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+        Padding: (Full: 20);
+        LayoutMode: Top;
+
+        // Victory/Defeat Title
+        Label #ResultTitle {
+            Text: "VICTORY!";
+            Anchor: (Height: 50);
+            Style: (FontSize: 36, TextColor: #f1c40f, Alignment: Center, RenderBold: true, RenderUppercase: true);
+        }
+
+        // Winner Name
+        Label #WinnerName {
+            Text: "PlayerName";
+            Anchor: (Height: 32, Top: 8);
+            Style: (FontSize: 24, TextColor: #2ecc71, Alignment: Center, RenderBold: true);
+        }
+
+        $C.@ContentSeparator {
+            @Anchor = (Top: 12);
+        }
+
+        // Stats Section
+        Group #StatsSection {
+            Anchor: (Top: 12);
+            LayoutMode: Top;
+
+            // Kills Row
+            Group #KillsRow {
+                Anchor: (Height: 24);
+                LayoutMode: Left;
+
+                Label {
+                    Text: "Kills";
+                    Anchor: (Width: 120);
+                    Style: (FontSize: 14, TextColor: #96a9be, VerticalAlignment: Center);
+                }
+                Label #KillsValue {
+                    Text: "0";
+                    FlexWeight: 1;
+                    Style: (FontSize: 16, TextColor: #2ecc71, VerticalAlignment: Center, Alignment: End, RenderBold: true);
+                }
+            }
+
+            // Deaths Row
+            Group #DeathsRow {
+                Anchor: (Height: 24, Top: 4);
+                LayoutMode: Left;
+
+                Label {
+                    Text: "Deaths";
+                    Anchor: (Width: 120);
+                    Style: (FontSize: 14, TextColor: #96a9be, VerticalAlignment: Center);
+                }
+                Label #DeathsValue {
+                    Text: "0";
+                    FlexWeight: 1;
+                    Style: (FontSize: 16, TextColor: #e74c3c, VerticalAlignment: Center, Alignment: End, RenderBold: true);
+                }
+            }
+
+            // Damage Row
+            Group #DamageRow {
+                Anchor: (Height: 24, Top: 4);
+                LayoutMode: Left;
+
+                Label {
+                    Text: "Damage Dealt";
+                    Anchor: (Width: 120);
+                    Style: (FontSize: 14, TextColor: #96a9be, VerticalAlignment: Center);
+                }
+                Label #DamageValue {
+                    Text: "0";
+                    FlexWeight: 1;
+                    Style: (FontSize: 16, TextColor: #e8c872, VerticalAlignment: Center, Alignment: End, RenderBold: true);
+                }
+            }
+        }
+
+        $C.@ContentSeparator {
+            @Anchor = (Top: 12);
+        }
+
+        // Countdown
+        Label #Countdown {
+            Text: "Returning to hub in 3...";
+            Anchor: (Height: 24, Top: 12);
+            Style: (FontSize: 14, TextColor: #3498db, Alignment: Center);
+        }
+    }
+}

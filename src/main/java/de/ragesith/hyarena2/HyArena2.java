@@ -39,12 +39,15 @@ import de.ragesith.hyarena2.event.PlayerJoinedHubEvent;
 import de.ragesith.hyarena2.event.queue.QueueMatchFoundEvent;
 import de.ragesith.hyarena2.generated.BuildInfo;
 import de.ragesith.hyarena2.hub.HubManager;
+import de.ragesith.hyarena2.interaction.OpenLeaderboardInteraction;
+import de.ragesith.hyarena2.interaction.OpenMatchmakingInteraction;
 import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.queue.Matchmaker;
 import de.ragesith.hyarena2.queue.QueueManager;
 import de.ragesith.hyarena2.ui.hud.HudManager;
 import de.ragesith.hyarena2.utils.PlayerMovementControl;
 import de.ragesith.hyarena2.bot.BotManager;
+import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Interaction;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 import java.util.Map;
@@ -184,6 +187,16 @@ public class HyArena2 extends JavaPlugin {
         this.getCommandRegistry().registerCommand(new TestBotSpawnCommand(matchManager, botManager));
         this.getCommandRegistry().registerCommand(new TestBotListCommand(botManager));
         this.getCommandRegistry().registerCommand(new TestBotRemoveCommand(botManager));
+
+        // Register custom interactions for NPC statues
+        OpenMatchmakingInteraction.setPluginInstance(this);
+        OpenLeaderboardInteraction.setPluginInstance(this);
+        this.getCodecRegistry(Interaction.CODEC)
+            .register("Hyarena_Open_Matchmaking", OpenMatchmakingInteraction.class, OpenMatchmakingInteraction.CODEC);
+        this.getCodecRegistry(Interaction.CODEC)
+            .register("Hyarena_Open_Leaderboard", OpenLeaderboardInteraction.class, OpenLeaderboardInteraction.CODEC);
+
+        System.out.println("[HyArena2] Custom interactions registered");
 
         // Register Hytale events
         this.getEventRegistry().registerGlobal(PlayerReadyEvent.class, this::onPlayerReady);
@@ -493,5 +506,9 @@ public class HyArena2 extends JavaPlugin {
 
     public HudManager getHudManager() {
         return hudManager;
+    }
+
+    public ScheduledExecutorService getScheduler() {
+        return scheduler;
     }
 }

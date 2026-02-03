@@ -10,15 +10,14 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.HyArena2;
+import de.ragesith.hyarena2.ui.page.ArenaMenuPage;
+import de.ragesith.hyarena2.ui.page.QueueStatusPage;
 
 import javax.annotation.Nonnull;
 
 /**
  * Command to open the arena UI.
  * Usage: /arena
- *
- * Phase 1: Placeholder implementation - shows message.
- * Phase 6: Will open full UI page.
  */
 public class ArenaCommand extends AbstractPlayerCommand {
 
@@ -42,10 +41,42 @@ public class ArenaCommand extends AbstractPlayerCommand {
             return;
         }
 
-        // Phase 1: Placeholder - show info message
-        // Phase 6: Will open UI page here
-        player.sendMessage(Message.raw("[HyArena2] Arena menu coming soon!"));
-        player.sendMessage(Message.raw("Hub: " + plugin.getHubConfig().getEffectiveWorldName()));
-        player.sendMessage(Message.raw("Spawn: " + plugin.getHubConfig().getSpawnPoint()));
+        // Check if player is in a match - they shouldn't open the menu
+        if (plugin.getMatchManager().isPlayerInMatch(playerRef.getUuid())) {
+            player.sendMessage(Message.raw("<color:#e74c3c>You cannot open the arena menu while in a match.</color>"));
+            return;
+        }
+
+        // Close any existing page first
+        plugin.getHudManager().closeActivePage(playerRef.getUuid());
+
+        // Check if player is already in queue - show queue status page
+        if (plugin.getQueueManager().isInQueue(playerRef.getUuid())) {
+            QueueStatusPage queuePage = new QueueStatusPage(
+                playerRef,
+                playerRef.getUuid(),
+                plugin.getQueueManager(),
+                plugin.getMatchmaker(),
+                plugin.getMatchManager(),
+                plugin.getKitManager(),
+                plugin.getHudManager(),
+                plugin.getScheduler()
+            );
+            player.getPageManager().openCustomPage(ref, store, queuePage);
+            return;
+        }
+
+        // Open the arena selection page
+        ArenaMenuPage page = new ArenaMenuPage(
+            playerRef,
+            playerRef.getUuid(),
+            plugin.getMatchManager(),
+            plugin.getQueueManager(),
+            plugin.getKitManager(),
+            plugin.getHudManager(),
+            plugin.getScheduler()
+        );
+
+        player.getPageManager().openCustomPage(ref, store, page);
     }
 }

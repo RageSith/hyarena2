@@ -397,6 +397,9 @@ public class Match {
         // Unfreeze all players - fight begins!
         unfreezeAllParticipants();
 
+        // Show MatchHud to all player participants
+        showMatchHudToAllPlayers();
+
         // Notify game mode
         gameMode.onGameplayBegin(getParticipants());
     }
@@ -428,6 +431,12 @@ public class Match {
                 .toList();
         String victoryMessage = gameMode.getVictoryMessage(winnerParticipants);
 
+        // Get winner name for VictoryHud
+        String winnerName = winnerParticipants.isEmpty() ? null : winnerParticipants.get(0).getName();
+
+        // Show VictoryHud to all player participants (replaces MatchHud)
+        showVictoryHudToAllPlayers(winnerName);
+
         // Broadcast victory
         broadcast(victoryMessage);
 
@@ -444,6 +453,9 @@ public class Match {
         }
 
         state = MatchState.FINISHED;
+
+        // Hide VictoryHuds before teleporting
+        hideAllVictoryHuds();
 
         // Despawn all bots first
         if (botManager != null) {
@@ -890,5 +902,66 @@ public class Match {
                 }
             }
         });
+    }
+
+    /**
+     * Shows MatchHud to all player participants.
+     */
+    private void showMatchHudToAllPlayers() {
+        if (hudManager == null) {
+            return;
+        }
+
+        World world = arena.getWorld();
+        java.util.function.Consumer<Runnable> worldExecutor = world::execute;
+
+        for (Participant participant : getParticipants()) {
+            if (participant.getType() == ParticipantType.PLAYER) {
+                hudManager.showMatchHud(participant.getUniqueId(), this, worldExecutor);
+            }
+        }
+    }
+
+    /**
+     * Shows VictoryHud to all player participants.
+     * @param winnerName the name of the winner, or null for draw
+     */
+    private void showVictoryHudToAllPlayers(String winnerName) {
+        if (hudManager == null) {
+            return;
+        }
+
+        World world = arena.getWorld();
+        java.util.function.Consumer<Runnable> worldExecutor = world::execute;
+
+        for (Participant participant : getParticipants()) {
+            if (participant.getType() == ParticipantType.PLAYER) {
+                boolean isWinner = winners.contains(participant.getUniqueId());
+                hudManager.showVictoryHud(participant.getUniqueId(), this, isWinner, winnerName, worldExecutor);
+            }
+        }
+    }
+
+    /**
+     * Hides VictoryHud from all player participants.
+     */
+    private void hideAllVictoryHuds() {
+        if (hudManager == null) {
+            return;
+        }
+
+        for (Participant participant : getParticipants()) {
+            if (participant.getType() == ParticipantType.PLAYER) {
+                hudManager.hideVictoryHud(participant.getUniqueId());
+            }
+        }
+    }
+
+    /**
+     * Gets the tick count since IN_PROGRESS started.
+     * Used by MatchHud for elapsed time display.
+     */
+    public int getTickCount() {
+        return tickCount;
     }
 }

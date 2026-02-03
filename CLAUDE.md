@@ -162,12 +162,32 @@ Key reference files in old project:
 - [x] 3-second match ready countdown before teleport (prevents arena overlap race condition)
 - [x] Last hit tracking for environmental deaths (10s window for kill attribution)
 
-### Phase 6: HUDs & UI Polish - NOT STARTED
-Next phase focuses on complete user interface:
-- [ ] `MatchHud` - scoreboard showing kills/deaths, match timer
-- [ ] Victory screen overlay
-- [ ] Full UI page hierarchy (MainMenu → Arena List → Arena Detail → Queue)
-- [ ] Admin pages (arena editor, kit editor, hub settings)
+### Phase 6: HUDs & UI Polish - COMPLETE
+- [x] `MatchHud` - in-match scoreboard showing arena name, game mode, elapsed time, and player list with K/D
+- [x] `VictoryHud` - victory/defeat overlay shown during ENDING state with winner name, stats, and countdown
+- [x] `ArenaMenuPage` - main arena selection page opened by `/arena` command
+- [x] `ArenaDetailPage` - arena detail page with info, kit selection dropdown, and join queue button
+- [x] HudManager updated with `showMatchHud()`, `hideMatchHud()`, `showVictoryHud()`, `hideVictoryHud()` methods
+- [x] Match.java integration - shows MatchHud on IN_PROGRESS, VictoryHud on ENDING, hides on FINISHED
+- [x] ArenaCommand updated to open ArenaMenuPage instead of placeholder message
+- [x] Auto-refresh for queue/game counts in pages
+- [x] Kit dropdown population with locked kit indication
+
+**UI Files Created:**
+- `src/main/resources/Common/UI/Custom/Huds/MatchHud.ui`
+- `src/main/resources/Common/UI/Custom/Huds/VictoryHud.ui`
+- `src/main/resources/Common/UI/Custom/Pages/ArenaMenuPage.ui`
+- `src/main/resources/Common/UI/Custom/Pages/ArenaDetailPage.ui`
+- `src/main/java/de/ragesith/hyarena2/ui/hud/MatchHud.java`
+- `src/main/java/de/ragesith/hyarena2/ui/hud/VictoryHud.java`
+- `src/main/java/de/ragesith/hyarena2/ui/page/ArenaMenuPage.java`
+- `src/main/java/de/ragesith/hyarena2/ui/page/ArenaDetailPage.java`
+
+**Deferred to later phases:**
+- Admin pages (arena editor, kit editor, hub settings) - Phase 12 or as needed
+- Stats page - needs Phase 7 API
+- Shop pages - Phase 8
+- Leaderboard page - Phase 7 API
 
 **Milestone**: Full UI flow working, HUDs show all match info.
 

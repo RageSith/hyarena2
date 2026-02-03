@@ -1,0 +1,113 @@
+$C = "../Common.ui";
+
+Group #QueueStatusPage {
+    $C.@PageOverlay {}
+
+    $C.@DecoratedContainer {
+        @CloseButton = true;
+        Anchor: (Width: 420, Height: 340);
+
+        Group #Title {
+            $C.@Title #TitleLabel {
+                @Text = "In Queue";
+                Anchor: (Top: 12, Height: 24);
+            }
+        }
+
+        Group #Content {
+            Padding: (Full: 20);
+            Anchor: (Top: 35);
+            LayoutMode: Top;
+
+            // Arena info
+            Label #ArenaLabel {
+                Text: "ARENA";
+                Anchor: (Height: 16, Top: 5);
+                Style: (FontSize: 11, TextColor: #888888, Alignment: Center);
+            }
+
+            Label #ArenaName {
+                Text: "Arena Name";
+                Anchor: (Height: 28, Top: 2);
+                Style: (FontSize: 18, TextColor: #ffffff, Alignment: Center, RenderBold: true);
+            }
+
+            $C.@ContentSeparator {
+                @Anchor = (Top: 12);
+            }
+
+            // Queue stats row
+            Group #StatsRow {
+                Anchor: (Height: 70, Top: 12);
+                LayoutMode: Left;
+
+                // Players in queue
+                Group #QueueCountGroup {
+                    FlexWeight: 1;
+                    LayoutMode: Top;
+
+                    Label {
+                        Text: "IN QUEUE";
+                        Anchor: (Height: 16);
+                        Style: (FontSize: 11, TextColor: #888888, Alignment: Center);
+                    }
+                    Label #QueueCount {
+                        Text: "0";
+                        Anchor: (Height: 36, Top: 4);
+                        Style: (FontSize: 28, TextColor: #3498db, Alignment: Center, RenderBold: true);
+                    }
+                }
+
+                // Needed for match
+                Group #NeededGroup {
+                    FlexWeight: 1;
+                    LayoutMode: Top;
+
+                    Label {
+                        Text: "NEEDED";
+                        Anchor: (Height: 16);
+                        Style: (FontSize: 11, TextColor: #888888, Alignment: Center);
+                    }
+                    Label #NeededCount {
+                        Text: "2";
+                        Anchor: (Height: 36, Top: 4);
+                        Style: (FontSize: 28, TextColor: #f39c12, Alignment: Center, RenderBold: true);
+                    }
+                }
+            }
+
+            // Status message
+            Label #StatusMessage {
+                Text: "Waiting for players...";
+                Anchor: (Height: 22, Top: 8);
+                Style: (FontSize: 13, TextColor: #a0a0a0, Alignment: Center);
+            }
+
+            // Kit info
+            Label #KitInfo {
+                Text: "Kit: Warrior";
+                Anchor: (Height: 18, Top: 4);
+                Style: (FontSize: 12, TextColor: #888888, Alignment: Center);
+            }
+
+            // Leave Queue button
+            Group #ButtonRow {
+                Anchor: (Top: 20);
+                LayoutMode: Left;
+
+                Group {
+                    FlexWeight: 1;
+                }
+
+                $C.@CancelTextButton #LeaveQueueButton {
+                    @Text = "Leave Queue";
+                    @Anchor = (Width: 160);
+                }
+
+                Group {
+                    FlexWeight: 1;
+                }
+            }
+        }
+    }
+}
