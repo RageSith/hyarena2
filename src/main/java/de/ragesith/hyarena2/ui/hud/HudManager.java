@@ -54,11 +54,18 @@ public class HudManager {
 
     /**
      * Shows the lobby HUD for a player.
+     * Stops any existing QueueHud since LobbyHud will replace it.
      */
     public void showLobbyHud(UUID playerUuid) {
         // Don't show if already has one
         if (lobbyHuds.containsKey(playerUuid)) {
             return;
+        }
+
+        // Stop QueueHud if running (it's being replaced)
+        QueueHud queueHud = queueHuds.remove(playerUuid);
+        if (queueHud != null) {
+            queueHud.shutdown();
         }
 
         PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
@@ -89,34 +96,49 @@ public class HudManager {
 
     /**
      * Hides the lobby HUD for a player.
+     * Also stops QueueHud if running (player leaving hub).
      */
     public void hideLobbyHud(UUID playerUuid) {
+        // Stop QueueHud too (player is leaving hub, shouldn't be in queue display)
+        QueueHud queueHud = queueHuds.remove(playerUuid);
+        if (queueHud != null) {
+            queueHud.shutdown();
+        }
+
         LobbyHud hud = lobbyHuds.remove(playerUuid);
         if (hud != null) {
             hud.shutdown();
+            System.out.println("[HudManager] Hid LobbyHud for " + playerUuid);
+        }
 
-            PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
-            if (playerRef != null) {
-                Player player = getPlayer(playerRef);
-                if (player != null) {
-                    try {
-                        player.getHudManager().setCustomHud(playerRef, new EmptyHud(playerRef));
-                    } catch (Exception e) {
-                        // Player might have disconnected
-                    }
+        // Set empty HUD
+        PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
+        if (playerRef != null) {
+            Player player = getPlayer(playerRef);
+            if (player != null) {
+                try {
+                    player.getHudManager().setCustomHud(playerRef, new EmptyHud(playerRef));
+                } catch (Exception e) {
+                    // Player might have disconnected
                 }
             }
-            System.out.println("[HudManager] Hid LobbyHud for " + playerUuid);
         }
     }
 
     /**
      * Shows the queue HUD for a player.
+     * Stops LobbyHud refresh task since it will be replaced.
      */
     public void showQueueHud(UUID playerUuid) {
         // Don't show if already has one
         if (queueHuds.containsKey(playerUuid)) {
             return;
+        }
+
+        // Stop LobbyHud refresh task (it's being replaced, don't let it keep updating)
+        LobbyHud lobbyHud = lobbyHuds.remove(playerUuid);
+        if (lobbyHud != null) {
+            lobbyHud.shutdown();
         }
 
         PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
@@ -147,30 +169,16 @@ public class HudManager {
 
     /**
      * Hides the queue HUD for a player.
+     * Re-shows the LobbyHud if player is still in hub.
      */
     public void hideQueueHud(UUID playerUuid) {
         QueueHud hud = queueHuds.remove(playerUuid);
         if (hud != null) {
             hud.shutdown();
-
-            PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
-            if (playerRef != null) {
-                Player player = getPlayer(playerRef);
-                if (player != null) {
-                    try {
-                        // If player has a lobby HUD, show that instead
-                        LobbyHud lobbyHud = lobbyHuds.get(playerUuid);
-                        if (lobbyHud != null) {
-                            player.getHudManager().setCustomHud(playerRef, lobbyHud);
-                        } else {
-                            player.getHudManager().setCustomHud(playerRef, new EmptyHud(playerRef));
-                        }
-                    } catch (Exception e) {
-                        // Player might have disconnected
-                    }
-                }
-            }
             System.out.println("[HudManager] Hid QueueHud for " + playerUuid);
+
+            // Re-show LobbyHud (it was shutdown when QueueHud was shown)
+            showLobbyHud(playerUuid);
         }
     }
 

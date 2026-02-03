@@ -322,11 +322,19 @@ public class HyArena2 extends JavaPlugin {
             boundaryManager.registerPlayer(playerId, player);
             System.out.println("[HyArena2] Player " + playerName + " changed worlds to " + player.getWorld().getName());
 
-            // If entering hub world, clear any arena effects (freeze, etc.)
             String hubWorldName = configManager.getHubConfig().getEffectiveWorldName();
-            if (player.getWorld().getName().equals(hubWorldName)) {
+            boolean enteringHub = player.getWorld().getName().equals(hubWorldName);
+
+            if (enteringHub) {
+                // Entering hub world - clear any arena effects (freeze, etc.)
                 PlayerMovementControl.enableMovementForPlayer(playerRef, player.getWorld());
                 System.out.println("[HyArena2] Cleared arena effects for " + playerName + " entering hub");
+
+                // Show lobby HUD when entering hub
+                hudManager.showLobbyHud(playerId);
+            } else {
+                // Leaving hub world (entering arena) - hide lobby HUD
+                hudManager.hideLobbyHud(playerId);
             }
             return;
         }
@@ -340,14 +348,21 @@ public class HyArena2 extends JavaPlugin {
         // Register for boundary checking
         boundaryManager.registerPlayer(playerId, player);
 
+        // Check if player is already in hub world (same-world teleport won't trigger world change event)
+        String hubWorldName = configManager.getHubConfig().getEffectiveWorldName();
+        boolean alreadyInHub = player.getWorld().getName().equals(hubWorldName);
+
         // Teleport to hub
         hubManager.teleportToHub(player, () -> {
             // Send welcome message after teleport
             player.sendMessage(Message.raw("Welcome to HyArena2!"));
             player.sendMessage(Message.raw("Use /arena to open the menu."));
 
-            // Show lobby HUD after teleport
-            hudManager.showLobbyHud(playerId);
+            // If player was already in hub, show LobbyHud now (no world change event will fire)
+            if (alreadyInHub) {
+                hudManager.showLobbyHud(playerId);
+            }
+            // Otherwise, LobbyHud will be shown when world change event fires
         });
         boundaryManager.grantTeleportGrace(playerId);
 
