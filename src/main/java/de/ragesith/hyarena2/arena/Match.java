@@ -5,6 +5,10 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.NotificationStyle;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap;
+import com.hypixel.hytale.server.core.modules.entitystats.EntityStatValue;
+import com.hypixel.hytale.server.core.modules.entitystats.EntityStatsModule;
+import com.hypixel.hytale.server.core.modules.entitystats.asset.EntityStatType;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
@@ -156,6 +160,9 @@ public class Match {
                         System.out.println("[Match] Froze player after teleport: " + participant.getName());
                     }
 
+                    // Heal player to full health on arena entry
+                    healPlayer(playerUuid, arenaWorld);
+
                     // Mark player as arrived in arena
                     arrivedPlayers.add(playerUuid);
                     System.out.println("[Match] Player arrived: " + participant.getName() +
@@ -293,6 +300,9 @@ public class Match {
 
         // Freeze all players (no HUD - let them see the victory message)
         freezeAllParticipantsNoHud();
+
+        // Heal all alive players
+        healAllAliveParticipants();
 
         // Determine winners
         winners = gameMode.getWinners(getParticipants());
@@ -585,5 +595,49 @@ public class Match {
                 System.out.println("[Match] Unfroze player: " + participant.getName());
             }
         }
+    }
+
+    /**
+     * Heals a player to full health.
+     * Must be called on the correct world thread.
+     */
+    private void healPlayer(UUID playerUuid, World world) {
+        try {
+            PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
+            if (playerRef == null) return;
+
+            Ref<EntityStore> ref = playerRef.getReference();
+            if (ref == null) return;
+
+            Store<EntityStore> store = ref.getStore();
+            if (store == null) return;
+
+            EntityStatMap stats = store.getComponent(ref,
+                EntityStatsModule.get().getEntityStatMapComponentType());
+            if (stats == null) return;
+
+            int healthIndex = EntityStatType.getAssetMap().getIndex("health");
+            EntityStatValue healthStat = stats.get(healthIndex);
+            if (healthStat == null) return;
+
+            float maxHealth = healthStat.getMax();
+            stats.setStatValue(healthIndex, maxHealth);
+        } catch (Exception e) {
+            System.err.println("[Match] Error healing player " + playerUuid + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Heals all alive participants to full health.
+     */
+    private void healAllAliveParticipants() {
+        World world = arena.getWorld();
+        world.execute(() -> {
+            for (Participant participant : getParticipants()) {
+                if (participant.isAlive()) {
+                    healPlayer(participant.getUniqueId(), world);
+                }
+            }
+        });
     }
 }
