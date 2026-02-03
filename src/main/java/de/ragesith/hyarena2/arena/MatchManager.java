@@ -31,6 +31,7 @@ public class MatchManager {
     private final HubManager hubManager;
     private KitManager kitManager;
     private BotManager botManager;
+    private de.ragesith.hyarena2.ui.hud.HudManager hudManager;
 
     private final Map<String, Arena> arenas;
     private final Map<UUID, Match> activeMatches;
@@ -72,6 +73,13 @@ public class MatchManager {
      */
     public BotManager getBotManager() {
         return botManager;
+    }
+
+    /**
+     * Sets the HUD manager for showing LobbyHud when players return to hub.
+     */
+    public void setHudManager(de.ragesith.hyarena2.ui.hud.HudManager hudManager) {
+        this.hudManager = hudManager;
     }
 
     /**
@@ -211,6 +219,7 @@ public class MatchManager {
         // Create match
         Match match = new Match(arena, gameMode, eventBus, hubManager, kitManager);
         match.setBotManager(botManager);
+        match.setHudManager(hudManager);
         activeMatches.put(match.getMatchId(), match);
 
         System.out.println("Created match " + match.getMatchId() + " on arena " + arenaId + " (world: " + arena.getConfig().getWorldName() + ")");

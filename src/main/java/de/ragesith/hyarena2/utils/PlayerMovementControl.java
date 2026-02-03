@@ -140,4 +140,87 @@ public class PlayerMovementControl {
             }
         }
     }
+
+    // === Entity-based methods for NPCs/Bots ===
+
+    /**
+     * Disables movement for an entity (NPC/Bot) with freeze effect.
+     * Must be called on the world thread.
+     */
+    public static void disableMovementForEntity(Ref<EntityStore> entityRef, Store<EntityStore> store) {
+        applyFreezeEffectToEntity(entityRef, store, true);
+    }
+
+    /**
+     * Enables movement for an entity (NPC/Bot) by clearing effects.
+     * Must be called on the world thread.
+     */
+    public static void enableMovementForEntity(Ref<EntityStore> entityRef, Store<EntityStore> store) {
+        clearEffectsFromEntity(entityRef, store);
+    }
+
+    /**
+     * Applies freeze effect to an entity (must be called on world thread).
+     */
+    private static void applyFreezeEffectToEntity(Ref<EntityStore> ref, Store<EntityStore> store, boolean withHud) {
+        if (ref == null || !ref.isValid() || store == null) return;
+
+        EffectControllerComponent effectController = store.getComponent(ref,
+                EffectControllerComponent.getComponentType());
+
+        if (effectController == null) {
+            System.out.println("[PlayerMovementControl] No EffectControllerComponent found for entity");
+            return;
+        }
+
+        // Try primary effect names first
+        String[] primaryNames = withHud ? FREEZE_WITH_HUD_NAMES : FREEZE_NO_HUD_NAMES;
+        for (String effectName : primaryNames) {
+            try {
+                EntityEffect freezeEffect = EntityEffect.getAssetMap().getAsset(effectName);
+                if (freezeEffect != null) {
+                    effectController.addEffect(ref, freezeEffect, store);
+                    System.out.println("[PlayerMovementControl] Applied freeze effect to entity: " + effectName);
+                    return;
+                }
+            } catch (Exception e) {
+                // Try next name
+            }
+        }
+
+        // Fallback to Stun
+        for (String effectName : STUN_FALLBACK_NAMES) {
+            try {
+                EntityEffect freezeEffect = EntityEffect.getAssetMap().getAsset(effectName);
+                if (freezeEffect != null) {
+                    effectController.addEffect(ref, freezeEffect, store);
+                    System.out.println("[PlayerMovementControl] Applied fallback stun to entity: " + effectName);
+                    return;
+                }
+            } catch (Exception e) {
+                // Try next name
+            }
+        }
+
+        System.out.println("[PlayerMovementControl] Could not find any freeze effect for entity");
+    }
+
+    /**
+     * Clears all effects from an entity (must be called on world thread).
+     */
+    private static void clearEffectsFromEntity(Ref<EntityStore> ref, Store<EntityStore> store) {
+        if (ref == null || !ref.isValid() || store == null) return;
+
+        EffectControllerComponent effectController = store.getComponent(ref,
+                EffectControllerComponent.getComponentType());
+
+        if (effectController != null) {
+            try {
+                effectController.clearEffects(ref, store);
+                System.out.println("[PlayerMovementControl] Cleared all effects from entity");
+            } catch (Exception e) {
+                System.err.println("[PlayerMovementControl] Failed to clear entity effects: " + e.getMessage());
+            }
+        }
+    }
 }

@@ -25,6 +25,7 @@ import com.hypixel.hytale.server.npc.role.support.MarkedEntitySupport;
 import com.hypixel.hytale.server.npc.role.support.WorldSupport;
 import de.ragesith.hyarena2.arena.Arena;
 import de.ragesith.hyarena2.arena.Match;
+import de.ragesith.hyarena2.arena.MatchState;
 import de.ragesith.hyarena2.config.Position;
 import de.ragesith.hyarena2.event.EventBus;
 import de.ragesith.hyarena2.participant.Participant;
@@ -333,6 +334,13 @@ public class BotManager {
         // Sync position from entity
         syncBotPosition(bot, store);
 
+        // During WAITING or STARTING phases, freeze bot at spawn (like players)
+        MatchState state = match.getState();
+        if (state == MatchState.WAITING || state == MatchState.STARTING) {
+            freezeBotAtSpawn(bot, store);
+            return;
+        }
+
         // Update AI state
         BotAI ai = bot.getAI();
         if (ai != null) {
@@ -341,6 +349,47 @@ public class BotManager {
 
         // Update NPC targeting
         updateBotTarget(bot, match, store);
+    }
+
+    /**
+     * Freezes a bot at its spawn position during countdown.
+     * Teleports bot back to spawn if it moves and clears its target.
+     */
+    private void freezeBotAtSpawn(BotParticipant bot, Store<EntityStore> store) {
+        Ref<EntityStore> entityRef = bot.getEntityRef();
+        Position spawn = bot.getSpawnPosition();
+        if (entityRef == null || !entityRef.isValid() || spawn == null) {
+            return;
+        }
+
+        try {
+            TransformComponent transform = store.getComponent(entityRef, TransformComponent.getComponentType());
+            if (transform != null) {
+                Vector3d spawnVec = new Vector3d(spawn.getX(), spawn.getY(), spawn.getZ());
+                Vector3d currentPos = transform.getPosition();
+
+                // Teleport back if bot moved too far from spawn
+                double distance = currentPos.distanceTo(spawnVec);
+                if (distance > 0.5) {
+                    transform.setPosition(spawnVec);
+                    bot.setCurrentPosition(spawn.copy());
+                }
+            }
+
+            // Clear target to prevent NPC from trying to move
+            NPCEntity npcEntity = bot.getNpcEntity();
+            if (npcEntity != null) {
+                Role role = npcEntity.getRole();
+                if (role != null) {
+                    MarkedEntitySupport markedSupport = role.getMarkedEntitySupport();
+                    if (markedSupport != null) {
+                        markedSupport.setMarkedEntity(MarkedEntitySupport.DEFAULT_TARGET_SLOT, null);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Ignore freeze errors
+        }
     }
 
     /**

@@ -54,6 +54,7 @@ public class Match {
     private final HubManager hubManager;
     private final KitManager kitManager;
     private BotManager botManager;
+    private de.ragesith.hyarena2.ui.hud.HudManager hudManager;
 
     private final Map<UUID, Participant> participants;
     private final Set<UUID> arrivedPlayers; // Players who have completed teleport to arena
@@ -181,9 +182,17 @@ public class Match {
                         System.out.println("[Match] Froze player after teleport: " + participant.getName());
                     }
 
-                    // Apply kit if selected (KitManager heals after armor is applied)
-                    // Otherwise just heal the player
+                    // Apply kit if selected, otherwise fallback to first allowed kit
                     String selectedKit = participant.getSelectedKitId();
+
+                    // Fallback to first allowed kit if none selected
+                    if (selectedKit == null && arena.getConfig().getAllowedKits() != null
+                            && !arena.getConfig().getAllowedKits().isEmpty()) {
+                        selectedKit = arena.getConfig().getAllowedKits().get(0);
+                        participant.setSelectedKitId(selectedKit);
+                        System.out.println("[Match] No kit selected, using default: " + selectedKit);
+                    }
+
                     if (selectedKit != null && kitManager != null) {
                         Player p = getPlayerFromUuid(playerUuid);
                         if (p != null) {
@@ -191,7 +200,7 @@ public class Match {
                             System.out.println("[Match] Applied kit '" + selectedKit + "' to " + participant.getName());
                         }
                     } else {
-                        // No kit - just heal to full health
+                        // No kit available - just heal to full health
                         healPlayer(playerUuid, arenaWorld);
                     }
 
@@ -270,6 +279,13 @@ public class Match {
     }
 
     /**
+     * Sets the HUD manager for showing LobbyHud on hub return.
+     */
+    public void setHudManager(de.ragesith.hyarena2.ui.hud.HudManager hudManager) {
+        this.hudManager = hudManager;
+    }
+
+    /**
      * Checks if all participants have arrived and starts the match if ready.
      */
     private void checkAndStartIfReady() {
@@ -309,6 +325,10 @@ public class Match {
                 if (playerRef != null) {
                     World hubWorld = hubManager.getHubWorld();
                     PlayerMovementControl.enableMovementForPlayer(playerRef, hubWorld);
+                }
+                // Show LobbyHud (handles same-world arenas where no world change event fires)
+                if (hudManager != null) {
+                    hudManager.showLobbyHud(uuid);
                 }
             });
         }
@@ -450,6 +470,10 @@ public class Match {
                             World hubWorld = hubManager.getHubWorld();
                             PlayerMovementControl.enableMovementForPlayer(playerRef, hubWorld);
                         }
+                        // Show LobbyHud (handles same-world arenas where no world change event fires)
+                        if (hudManager != null) {
+                            hudManager.showLobbyHud(participantUuid);
+                        }
                         participant.sendMessage("<color:#2ecc71>Thanks for playing!</color>");
                     });
                 }
@@ -491,6 +515,10 @@ public class Match {
                             World hubWorld = hubManager.getHubWorld();
                             PlayerMovementControl.enableMovementForPlayer(playerRef, hubWorld);
                         }
+                        // Show LobbyHud (handles same-world arenas where no world change event fires)
+                        if (hudManager != null) {
+                            hudManager.showLobbyHud(participantUuid);
+                        }
                     });
                 }
             }
@@ -523,6 +551,28 @@ public class Match {
         // Fire damage event
         eventBus.publish(new ParticipantDamagedEvent(matchId, victim, attacker, damage));
 
+        // Send damage notifications
+        int dmg = (int) Math.round(damage);
+        if (attacker != null) {
+            // Notify attacker they dealt damage
+            sendNotificationToPlayer(attacker.getUniqueId(),
+                "-" + dmg,
+                victim.getName(),
+                NotificationStyle.Success);
+
+            // Notify victim they took damage
+            sendNotificationToPlayer(victimUuid,
+                "-" + dmg,
+                attacker.getName(),
+                NotificationStyle.Warning);
+        } else {
+            // Environmental damage - notify victim only
+            sendNotificationToPlayer(victimUuid,
+                "-" + dmg,
+                "Damage taken",
+                NotificationStyle.Warning);
+        }
+
         return false;
     }
 
@@ -549,6 +599,17 @@ public class Match {
             broadcast("<color:#e74c3c>" + victim.getName() + "</color> <color:#7f8c8d>was killed by</color> <color:#2ecc71>" + killer.getName() + "</color>");
         } else {
             broadcast("<color:#e74c3c>" + victim.getName() + "</color> <color:#7f8c8d>died</color>");
+        }
+
+        // If victim is a bot and no respawn allowed, despawn the bot entity
+        if (victim.getType() == ParticipantType.BOT && !gameMode.shouldRespawn(victim)) {
+            if (botManager != null) {
+                BotParticipant bot = botManager.getBot(victimUuid);
+                if (bot != null) {
+                    System.out.println("[Match] Despawning dead bot: " + victim.getName());
+                    botManager.despawnBot(bot);
+                }
+            }
         }
 
         return shouldEnd;
@@ -651,6 +712,25 @@ public class Match {
     }
 
     /**
+     * Sends a notification to a specific player (no event title, just notification popup).
+     */
+    private void sendNotificationToPlayer(UUID playerUuid, String title, String message, NotificationStyle style) {
+        PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
+        if (playerRef != null) {
+            try {
+                NotificationUtil.sendNotification(
+                    playerRef.getPacketHandler(),
+                    Message.raw(title),
+                    Message.raw(message),
+                    style
+                );
+            } catch (Exception e) {
+                // Ignore notification errors for damage
+            }
+        }
+    }
+
+    /**
      * Checks if the match is finished and ready for cleanup.
      */
     public boolean isFinished() {
@@ -677,10 +757,22 @@ public class Match {
         System.out.println("[Match] Freezing " + participants.size() + " participants");
         World world = arena.getWorld();
         for (Participant participant : getParticipants()) {
-            PlayerRef playerRef = Universe.get().getPlayer(participant.getUniqueId());
-            if (playerRef != null) {
-                PlayerMovementControl.disableMovementForPlayer(playerRef, world);
-                System.out.println("[Match] Froze player: " + participant.getName());
+            if (participant.getType() == ParticipantType.PLAYER) {
+                PlayerRef playerRef = Universe.get().getPlayer(participant.getUniqueId());
+                if (playerRef != null) {
+                    PlayerMovementControl.disableMovementForPlayer(playerRef, world);
+                    System.out.println("[Match] Froze player: " + participant.getName());
+                }
+            } else if (participant.getType() == ParticipantType.BOT && botManager != null) {
+                BotParticipant bot = botManager.getBot(participant.getUniqueId());
+                if (bot != null && bot.getEntityRef() != null && bot.getEntityRef().isValid()) {
+                    Ref<EntityStore> entityRef = bot.getEntityRef();
+                    world.execute(() -> {
+                        Store<EntityStore> store = world.getEntityStore().getStore();
+                        PlayerMovementControl.disableMovementForEntity(entityRef, store);
+                        System.out.println("[Match] Froze bot: " + participant.getName());
+                    });
+                }
             }
         }
     }
@@ -692,10 +784,22 @@ public class Match {
         System.out.println("[Match] Freezing " + participants.size() + " participants (no HUD)");
         World world = arena.getWorld();
         for (Participant participant : getParticipants()) {
-            PlayerRef playerRef = Universe.get().getPlayer(participant.getUniqueId());
-            if (playerRef != null) {
-                PlayerMovementControl.disableMovementForPlayerNoHud(playerRef, world);
-                System.out.println("[Match] Froze player (no HUD): " + participant.getName());
+            if (participant.getType() == ParticipantType.PLAYER) {
+                PlayerRef playerRef = Universe.get().getPlayer(participant.getUniqueId());
+                if (playerRef != null) {
+                    PlayerMovementControl.disableMovementForPlayerNoHud(playerRef, world);
+                    System.out.println("[Match] Froze player (no HUD): " + participant.getName());
+                }
+            } else if (participant.getType() == ParticipantType.BOT && botManager != null) {
+                BotParticipant bot = botManager.getBot(participant.getUniqueId());
+                if (bot != null && bot.getEntityRef() != null && bot.getEntityRef().isValid()) {
+                    Ref<EntityStore> entityRef = bot.getEntityRef();
+                    world.execute(() -> {
+                        Store<EntityStore> store = world.getEntityStore().getStore();
+                        PlayerMovementControl.disableMovementForEntity(entityRef, store);
+                        System.out.println("[Match] Froze bot (no HUD): " + participant.getName());
+                    });
+                }
             }
         }
     }
@@ -707,10 +811,22 @@ public class Match {
         System.out.println("[Match] Unfreezing " + participants.size() + " participants");
         World world = arena.getWorld();
         for (Participant participant : getParticipants()) {
-            PlayerRef playerRef = Universe.get().getPlayer(participant.getUniqueId());
-            if (playerRef != null) {
-                PlayerMovementControl.enableMovementForPlayer(playerRef, world);
-                System.out.println("[Match] Unfroze player: " + participant.getName());
+            if (participant.getType() == ParticipantType.PLAYER) {
+                PlayerRef playerRef = Universe.get().getPlayer(participant.getUniqueId());
+                if (playerRef != null) {
+                    PlayerMovementControl.enableMovementForPlayer(playerRef, world);
+                    System.out.println("[Match] Unfroze player: " + participant.getName());
+                }
+            } else if (participant.getType() == ParticipantType.BOT && botManager != null) {
+                BotParticipant bot = botManager.getBot(participant.getUniqueId());
+                if (bot != null && bot.getEntityRef() != null && bot.getEntityRef().isValid()) {
+                    Ref<EntityStore> entityRef = bot.getEntityRef();
+                    world.execute(() -> {
+                        Store<EntityStore> store = world.getEntityStore().getStore();
+                        PlayerMovementControl.enableMovementForEntity(entityRef, store);
+                        System.out.println("[Match] Unfroze bot: " + participant.getName());
+                    });
+                }
             }
         }
     }
