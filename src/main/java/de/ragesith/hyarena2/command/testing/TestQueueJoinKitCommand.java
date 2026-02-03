@@ -14,28 +14,35 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.Permissions;
 import de.ragesith.hyarena2.arena.Arena;
 import de.ragesith.hyarena2.arena.MatchManager;
+import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.queue.QueueManager;
 
 import javax.annotation.Nonnull;
+import java.util.List;
 import java.util.UUID;
 
 /**
- * Join a queue for an arena (no kit selection).
- * Usage: /tqjoin <arenaId>
+ * Join a queue for an arena with kit selection.
+ * Usage: /tqjoinkit <arenaId> <kitId>
  */
-public class TestQueueJoinCommand extends AbstractPlayerCommand {
+public class TestQueueJoinKitCommand extends AbstractPlayerCommand {
 
     private final QueueManager queueManager;
     private final MatchManager matchManager;
+    private final KitManager kitManager;
 
     private final RequiredArg<String> arenaIdArg =
         withRequiredArg("arenaId", "The arena ID to queue for", ArgTypes.STRING);
 
-    public TestQueueJoinCommand(QueueManager queueManager, MatchManager matchManager) {
-        super("tqjoin", "Join a queue for an arena");
+    private final RequiredArg<String> kitIdArg =
+        withRequiredArg("kitId", "The kit ID to use", ArgTypes.STRING);
+
+    public TestQueueJoinKitCommand(QueueManager queueManager, MatchManager matchManager, KitManager kitManager) {
+        super("tqjoinkit", "Join a queue for an arena with a kit");
         requirePermission(Permissions.QUEUE);
         this.queueManager = queueManager;
         this.matchManager = matchManager;
+        this.kitManager = kitManager;
     }
 
     @Override
@@ -50,6 +57,7 @@ public class TestQueueJoinCommand extends AbstractPlayerCommand {
         if (player == null) return;
 
         String arenaId = arenaIdArg.get(context);
+        String kitId = kitIdArg.get(context);
         UUID playerUuid = playerRef.getUuid();
         String playerName = player.getDisplayName();
 
@@ -64,8 +72,28 @@ public class TestQueueJoinCommand extends AbstractPlayerCommand {
             return;
         }
 
-        // Try to join queue (no kit)
-        QueueManager.JoinResult result = queueManager.joinQueue(playerUuid, playerName, arenaId);
+        // Validate kit exists
+        if (!kitManager.kitExists(kitId)) {
+            player.sendMessage(TinyMsg.parse("<color:#e74c3c>Kit not found: " + kitId + "</color>"));
+            showAvailableKits(player, arenaId);
+            return;
+        }
+
+        // Validate kit is allowed in arena
+        if (!kitManager.isKitInArena(kitId, arenaId)) {
+            player.sendMessage(TinyMsg.parse("<color:#e74c3c>Kit '" + kitId + "' is not allowed in this arena.</color>"));
+            showAvailableKits(player, arenaId);
+            return;
+        }
+
+        // Validate player has permission for kit
+        if (!kitManager.canPlayerUseKit(player, kitId)) {
+            player.sendMessage(TinyMsg.parse("<color:#e74c3c>You don't have permission to use kit: " + kitId + "</color>"));
+            return;
+        }
+
+        // Try to join queue with kit
+        QueueManager.JoinResult result = queueManager.joinQueue(playerUuid, playerName, arenaId, kitId);
 
         switch (result) {
             case SUCCESS:
@@ -73,6 +101,7 @@ public class TestQueueJoinCommand extends AbstractPlayerCommand {
                 int queueSize = queueManager.getQueueSize(arenaId);
                 player.sendMessage(TinyMsg.parse(
                     "<color:#2ecc71>Joined queue for </color><color:#e8c872>" + arena.getDisplayName() + "</color>" +
+                    "<color:#2ecc71> with kit </color><color:#e8c872>" + kitId + "</color>" +
                     "<color:#2ecc71>! Position: #" + position + " (" + queueSize + "/" + arena.getConfig().getMaxPlayers() + ")</color>"
                 ));
                 break;
@@ -96,7 +125,27 @@ public class TestQueueJoinCommand extends AbstractPlayerCommand {
 
             case INVALID_KIT:
                 player.sendMessage(TinyMsg.parse("<color:#e74c3c>Invalid kit selection.</color>"));
+                showAvailableKits(player, arenaId);
                 break;
+        }
+    }
+
+    private void showAvailableKits(Player player, String arenaId) {
+        Arena arena = matchManager.getArena(arenaId);
+        if (arena == null) return;
+
+        List<String> allowedKits = arena.getConfig().getAllowedKits();
+        if (allowedKits == null || allowedKits.isEmpty()) {
+            player.sendMessage(TinyMsg.parse("<color:#7f8c8d>No kits configured for this arena.</color>"));
+            return;
+        }
+
+        player.sendMessage(TinyMsg.parse("<color:#7f8c8d>Available kits for this arena:</color>"));
+        for (String kit : allowedKits) {
+            boolean hasAccess = kitManager.canPlayerUseKit(player, kit);
+            String color = hasAccess ? "#2ecc71" : "#e74c3c";
+            String status = hasAccess ? "" : " (locked)";
+            player.sendMessage(TinyMsg.parse("<color:" + color + ">  - " + kit + "</color><color:#7f8c8d>" + status + "</color>"));
         }
     }
 }

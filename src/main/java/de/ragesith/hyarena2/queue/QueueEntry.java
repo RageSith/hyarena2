@@ -9,13 +9,19 @@ public class QueueEntry {
     private final UUID playerUuid;
     private final String playerName;
     private final String arenaId;
+    private final String selectedKitId;
     private final long joinTime;
     private volatile int cachedPosition;
 
     public QueueEntry(UUID playerUuid, String playerName, String arenaId) {
+        this(playerUuid, playerName, arenaId, null);
+    }
+
+    public QueueEntry(UUID playerUuid, String playerName, String arenaId, String selectedKitId) {
         this.playerUuid = playerUuid;
         this.playerName = playerName;
         this.arenaId = arenaId;
+        this.selectedKitId = selectedKitId;
         this.joinTime = System.currentTimeMillis();
         this.cachedPosition = 1;
     }
@@ -30,6 +36,13 @@ public class QueueEntry {
 
     public String getArenaId() {
         return arenaId;
+    }
+
+    /**
+     * Gets the selected kit ID, or null if no kit was selected.
+     */
+    public String getSelectedKitId() {
+        return selectedKitId;
     }
 
     public long getJoinTime() {

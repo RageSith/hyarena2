@@ -68,7 +68,7 @@ Key reference files in old project:
 **Phase 2 polish TODOs:**
 - [x] Freeze player movement during STARTING countdown
 - [x] Spawn immunity period (3s) when match begins
-- [ ] Better spawn point assignment (face opponent)
+- [x] Spawn point rotation (yaw/pitch already saved in config, applied on teleport)
 - [x] Test full 2-player match flow (kill → winner → teleport back)
 
 ### Phase 3: Queue System - COMPLETE
@@ -84,10 +84,29 @@ Key reference files in old project:
 - [x] Integration in HyArena2.java (scheduler, event subscriptions, disconnect cleanup)
 
 **Queue system test commands:**
-- `/tqjoin <arenaId>` - Join queue for an arena (from hub only)
+- `/tqjoin <arenaId> [kitId]` - Join queue for an arena with optional kit selection (from hub only)
 - `/tqleave` - Leave current queue
 
-### Phases 4-12: Not Started
+### Phase 4: Kits & Combat - COMPLETE
+- [x] KitConfig data class (id, displayName, description, permission, items, armor, offhand)
+- [x] KitManager - load kits from config/kits/*.json, apply/clear kits
+- [x] KitAccessInfo helper class for UI (kit + isUnlocked flag)
+- [x] Kit events (KitSelectedEvent, KitAppliedEvent)
+- [x] QueueEntry - added selectedKitId field
+- [x] Participant interface - added getSelectedKitId(), setSelectedKitId()
+- [x] QueueManager - kit validation on queue join, INVALID_KIT result
+- [x] Matchmaker - passes kit from queue entry to participant
+- [x] Match - applies kit after teleport/heal, clears kit before return to hub
+- [x] MatchManager - passes KitManager to Match for kit operations
+- [x] Sample kit configs: warrior.json, archer.json, rogue.json
+- [x] Test commands: /tkits, /tkit <kitId>, updated /tqjoin
+
+**Kit system test commands:**
+- `/tkits` - List all available kits
+- `/tkit <kitId>` - Apply a kit to yourself (for testing)
+- `/tqjoin <arenaId> [kitId]` - Queue with optional kit selection
+
+### Phases 5-12: Not Started
 See `plan/03_implementation_plan.md` for full roadmap.
 
 ## Package Structure

@@ -156,9 +156,11 @@ public class Matchmaker {
                 continue;
             }
 
-            // Add player to match via MatchManager
-            if (matchManager.addPlayerToMatch(match.getMatchId(), player)) {
-                System.out.println("[Matchmaker] Added " + entry.getPlayerName() + " to match " + match.getMatchId());
+            // Add player to match via MatchManager (with kit from queue entry)
+            String kitId = entry.getSelectedKitId();
+            if (matchManager.addPlayerToMatch(match.getMatchId(), player, kitId)) {
+                System.out.println("[Matchmaker] Added " + entry.getPlayerName() + " to match " + match.getMatchId() +
+                    (kitId != null ? " with kit: " + kitId : ""));
             } else {
                 System.err.println("[Matchmaker] Failed to add " + entry.getPlayerName() + " to match");
             }

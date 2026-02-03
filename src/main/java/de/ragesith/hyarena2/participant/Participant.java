@@ -94,4 +94,16 @@ public interface Participant {
      * @return true if immune to damage
      */
     boolean isImmune();
+
+    /**
+     * Gets the selected kit ID for this participant.
+     * @return kit ID, or null if no kit selected
+     */
+    String getSelectedKitId();
+
+    /**
+     * Sets the selected kit ID for this participant.
+     * @param kitId the kit ID to set
+     */
+    void setSelectedKitId(String kitId);
 }

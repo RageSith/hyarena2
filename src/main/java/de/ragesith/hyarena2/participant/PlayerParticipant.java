@@ -25,6 +25,7 @@ public class PlayerParticipant implements Participant {
     private double damageDealt;
     private double damageTaken;
     private volatile long immunityEndTime = 0;
+    private String selectedKitId;
 
     public PlayerParticipant(UUID playerUuid, String playerName) {
         this.playerUuid = playerUuid;
@@ -159,5 +160,15 @@ public class PlayerParticipant implements Participant {
     @Override
     public boolean isImmune() {
         return System.currentTimeMillis() < immunityEndTime;
+    }
+
+    @Override
+    public String getSelectedKitId() {
+        return selectedKitId;
+    }
+
+    @Override
+    public void setSelectedKitId(String kitId) {
+        this.selectedKitId = kitId;
     }
 }

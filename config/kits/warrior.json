@@ -1,0 +1,17 @@
+{
+  "id": "warrior",
+  "displayName": "Warrior",
+  "description": "Heavy armor melee fighter with sword and shield",
+  "permission": null,
+  "items": [
+    "Weapon_Longsword_Iron",
+    "Weapon_Axe_Iron"
+  ],
+  "armor": {
+    "helmet": "Armor_Iron_Head",
+    "chest": "Armor_Iron_Chest",
+    "hands": "Armor_Iron_Hands",
+    "legs": "Armor_Iron_Legs"
+  },
+  "offhand": "Equipment_Shield_Iron"
+}

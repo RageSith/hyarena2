@@ -29,6 +29,7 @@ import de.ragesith.hyarena2.event.participant.ParticipantKilledEvent;
 import de.ragesith.hyarena2.event.participant.ParticipantLeftEvent;
 import de.ragesith.hyarena2.gamemode.GameMode;
 import de.ragesith.hyarena2.hub.HubManager;
+import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.participant.Participant;
 import de.ragesith.hyarena2.participant.PlayerParticipant;
 
@@ -48,6 +49,7 @@ public class Match {
     private final GameMode gameMode;
     private final EventBus eventBus;
     private final HubManager hubManager;
+    private final KitManager kitManager;
 
     private final Map<UUID, Participant> participants;
     private final Set<UUID> arrivedPlayers; // Players who have completed teleport to arena
@@ -61,12 +63,13 @@ public class Match {
     private static final int VICTORY_DELAY_SECONDS = 3;
     private static final int SPAWN_IMMUNITY_MS = 3000; // 3 seconds immunity after spawn
 
-    public Match(Arena arena, GameMode gameMode, EventBus eventBus, HubManager hubManager) {
+    public Match(Arena arena, GameMode gameMode, EventBus eventBus, HubManager hubManager, KitManager kitManager) {
         this.matchId = UUID.randomUUID();
         this.arena = arena;
         this.gameMode = gameMode;
         this.eventBus = eventBus;
         this.hubManager = hubManager;
+        this.kitManager = kitManager;
         this.participants = new ConcurrentHashMap<>();
         this.arrivedPlayers = ConcurrentHashMap.newKeySet();
         this.state = MatchState.WAITING;
@@ -108,10 +111,20 @@ public class Match {
     }
 
     /**
-     * Adds a player to the match and teleports them to a spawn point.
+     * Adds a player to the match without kit selection.
      * @return true if successfully added
      */
     public synchronized boolean addPlayer(Player player) {
+        return addPlayer(player, null);
+    }
+
+    /**
+     * Adds a player to the match with kit selection and teleports them to a spawn point.
+     * @param player the player to add
+     * @param kitId the kit to apply, or null for no kit
+     * @return true if successfully added
+     */
+    public synchronized boolean addPlayer(Player player, String kitId) {
         if (state != MatchState.WAITING) {
             return false;
         }
@@ -134,8 +147,11 @@ public class Match {
             return false;
         }
 
-        // Create participant
+        // Create participant and set kit
         Participant participant = new PlayerParticipant(playerUuid, player.getDisplayName());
+        if (kitId != null) {
+            participant.setSelectedKitId(kitId);
+        }
         participants.put(playerUuid, participant);
 
         // Get spawn point
@@ -152,7 +168,7 @@ public class Match {
         World arenaWorld = arena.getWorld();
         hubManager.teleportPlayerToWorld(player, spawnPos, arenaWorld, () -> {
             participant.sendMessage("<color:#2ecc71>You have joined the match!</color>");
-            // Wait for player to fully load, then freeze and mark as arrived
+            // Wait for player to fully load, then freeze, apply kit, and mark as arrived
             CompletableFuture.delayedExecutor(500, TimeUnit.MILLISECONDS).execute(() -> {
                 arenaWorld.execute(() -> {
                     PlayerRef pRef = Universe.get().getPlayer(playerUuid);
@@ -161,8 +177,19 @@ public class Match {
                         System.out.println("[Match] Froze player after teleport: " + participant.getName());
                     }
 
-                    // Heal player to full health on arena entry
-                    healPlayer(playerUuid, arenaWorld);
+                    // Apply kit if selected (KitManager heals after armor is applied)
+                    // Otherwise just heal the player
+                    String selectedKit = participant.getSelectedKitId();
+                    if (selectedKit != null && kitManager != null) {
+                        Player p = getPlayerFromUuid(playerUuid);
+                        if (p != null) {
+                            kitManager.applyKit(p, selectedKit);
+                            System.out.println("[Match] Applied kit '" + selectedKit + "' to " + participant.getName());
+                        }
+                    } else {
+                        // No kit - just heal to full health
+                        healPlayer(playerUuid, arenaWorld);
+                    }
 
                     // Mark player as arrived in arena
                     arrivedPlayers.add(playerUuid);
@@ -343,6 +370,10 @@ public class Match {
                 UUID participantUuid = participant.getUniqueId();
                 Player player = getPlayerFromUuid(participantUuid);
                 if (player != null) {
+                    // Clear kit before teleporting back to hub
+                    if (kitManager != null) {
+                        kitManager.clearKit(player);
+                    }
                     hubManager.teleportToHub(player, () -> {
                         // Unfreeze after teleport to hub (runs on hub world thread via HubManager)
                         PlayerRef playerRef = Universe.get().getPlayer(participantUuid);
@@ -372,6 +403,10 @@ public class Match {
                 UUID participantUuid = participant.getUniqueId();
                 Player player = getPlayerFromUuid(participantUuid);
                 if (player != null) {
+                    // Clear kit before teleporting back to hub
+                    if (kitManager != null) {
+                        kitManager.clearKit(player);
+                    }
                     hubManager.teleportToHub(player, () -> {
                         // Unfreeze after teleport to hub (runs on hub world thread via HubManager)
                         PlayerRef playerRef = Universe.get().getPlayer(participantUuid);

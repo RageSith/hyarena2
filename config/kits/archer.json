@@ -1,0 +1,18 @@
+{
+  "id": "archer",
+  "displayName": "Archer",
+  "description": "Ranged fighter with bow and light armor",
+  "permission": null,
+  "items": [
+    "Weapon_Bow_Wood",
+    "Ammo_Arrow:64",
+    "Weapon_Dagger_Iron"
+  ],
+  "armor": {
+    "helmet": "Armor_Leather_Head",
+    "chest": "Armor_Leather_Chest",
+    "hands": "Armor_Leather_Hands",
+    "legs": "Armor_Leather_Legs"
+  },
+  "offhand": null
+}

@@ -12,6 +12,7 @@ import de.ragesith.hyarena2.event.EventBus;
 import de.ragesith.hyarena2.gamemode.DuelGameMode;
 import de.ragesith.hyarena2.gamemode.GameMode;
 import de.ragesith.hyarena2.hub.HubManager;
+import de.ragesith.hyarena2.kit.KitManager;
 
 import java.io.File;
 import java.util.*;
@@ -26,6 +27,7 @@ public class MatchManager {
     private final ConfigManager configManager;
     private final EventBus eventBus;
     private final HubManager hubManager;
+    private KitManager kitManager;
 
     private final Map<String, Arena> arenas;
     private final Map<UUID, Match> activeMatches;
@@ -46,6 +48,13 @@ public class MatchManager {
 
         // Register game modes
         registerGameMode(new DuelGameMode());
+    }
+
+    /**
+     * Sets the kit manager for kit application in matches.
+     */
+    public void setKitManager(KitManager kitManager) {
+        this.kitManager = kitManager;
     }
 
     /**
@@ -183,7 +192,7 @@ public class MatchManager {
         }
 
         // Create match
-        Match match = new Match(arena, gameMode, eventBus, hubManager);
+        Match match = new Match(arena, gameMode, eventBus, hubManager, kitManager);
         activeMatches.put(match.getMatchId(), match);
 
         System.out.println("Created match " + match.getMatchId() + " on arena " + arenaId + " (world: " + arena.getConfig().getWorldName() + ")");
@@ -226,9 +235,16 @@ public class MatchManager {
     }
 
     /**
-     * Adds a player to a match.
+     * Adds a player to a match without kit selection.
      */
     public boolean addPlayerToMatch(UUID matchId, Player player) {
+        return addPlayerToMatch(matchId, player, null);
+    }
+
+    /**
+     * Adds a player to a match with kit selection.
+     */
+    public boolean addPlayerToMatch(UUID matchId, Player player, String kitId) {
         Match match = activeMatches.get(matchId);
         if (match == null) {
             return false;
@@ -250,7 +266,7 @@ public class MatchManager {
         }
 
         // Add player to match
-        if (match.addPlayer(player)) {
+        if (match.addPlayer(player, kitId)) {
             playerToMatch.put(playerUuid, matchId);
             return true;
         }

@@ -23,7 +23,11 @@ import de.ragesith.hyarena2.command.testing.TestMatchLeaveCommand;
 import de.ragesith.hyarena2.command.testing.TestMatchCancelCommand;
 import de.ragesith.hyarena2.command.testing.TestMatchStartCommand;
 import de.ragesith.hyarena2.command.testing.TestQueueJoinCommand;
+import de.ragesith.hyarena2.command.testing.TestQueueJoinKitCommand;
 import de.ragesith.hyarena2.command.testing.TestQueueLeaveCommand;
+import de.ragesith.hyarena2.command.testing.TestKitListCommand;
+import de.ragesith.hyarena2.command.testing.TestKitApplyCommand;
+import de.ragesith.hyarena2.command.testing.TestKitClearCommand;
 import de.ragesith.hyarena2.config.ConfigManager;
 import de.ragesith.hyarena2.config.GlobalConfig;
 import de.ragesith.hyarena2.config.HubConfig;
@@ -32,6 +36,7 @@ import de.ragesith.hyarena2.event.PlayerJoinedHubEvent;
 import de.ragesith.hyarena2.event.queue.QueueMatchFoundEvent;
 import de.ragesith.hyarena2.generated.BuildInfo;
 import de.ragesith.hyarena2.hub.HubManager;
+import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.queue.Matchmaker;
 import de.ragesith.hyarena2.queue.QueueManager;
 import de.ragesith.hyarena2.ui.hud.HudManager;
@@ -58,6 +63,7 @@ public class HyArena2 extends JavaPlugin {
     private BoundaryManager boundaryManager;
     private MatchManager matchManager;
     private KillDetectionSystem killDetectionSystem;
+    private KitManager kitManager;
     private QueueManager queueManager;
     private Matchmaker matchmaker;
     private HudManager hudManager;
@@ -103,6 +109,12 @@ public class HyArena2 extends JavaPlugin {
         this.matchManager = new MatchManager(configManager, eventBus, hubManager);
         this.matchManager.initialize();
 
+        // Initialize kit manager
+        this.kitManager = new KitManager(configManager.getConfigRoot(), eventBus);
+        this.kitManager.loadKits();
+        this.kitManager.setMatchManager(matchManager);
+        this.matchManager.setKitManager(kitManager);
+
         // Initialize kill detection system
         // Registered via EntityStoreRegistry which should be global
         // We also track worlds and log when they're first seen for debugging
@@ -119,6 +131,7 @@ public class HyArena2 extends JavaPlugin {
         this.queueManager = new QueueManager(eventBus, hubManager, hubWorldName);
         this.queueManager.setMatchChecker(matchManager::isPlayerInMatch);
         this.queueManager.setHubWorldChecker(this::isPlayerInHubWorld);
+        this.queueManager.setKitManager(kitManager);
 
         this.matchmaker = new Matchmaker(queueManager, matchManager, eventBus);
 
@@ -146,7 +159,13 @@ public class HyArena2 extends JavaPlugin {
 
         // Test queue commands (Phase 3 testing)
         this.getCommandRegistry().registerCommand(new TestQueueJoinCommand(queueManager, matchManager));
+        this.getCommandRegistry().registerCommand(new TestQueueJoinKitCommand(queueManager, matchManager, kitManager));
         this.getCommandRegistry().registerCommand(new TestQueueLeaveCommand(queueManager));
+
+        // Test kit commands (Phase 4 testing)
+        this.getCommandRegistry().registerCommand(new TestKitListCommand(kitManager));
+        this.getCommandRegistry().registerCommand(new TestKitApplyCommand(kitManager));
+        this.getCommandRegistry().registerCommand(new TestKitClearCommand(kitManager));
 
         // Register Hytale events
         this.getEventRegistry().registerGlobal(PlayerReadyEvent.class, this::onPlayerReady);
@@ -423,6 +442,10 @@ public class HyArena2 extends JavaPlugin {
 
     public MatchManager getMatchManager() {
         return matchManager;
+    }
+
+    public KitManager getKitManager() {
+        return kitManager;
     }
 
     public QueueManager getQueueManager() {

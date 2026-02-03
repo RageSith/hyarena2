@@ -1,0 +1,18 @@
+{
+  "id": "rogue",
+  "displayName": "Rogue",
+  "description": "Fast and deadly with dual daggers",
+  "permission": null,
+  "items": [
+    "Weapon_Dagger_Iron",
+    "Weapon_Dagger_Iron",
+    "Consumable_Potion_Speed"
+  ],
+  "armor": {
+    "helmet": null,
+    "chest": "Armor_Leather_Chest",
+    "hands": "Armor_Leather_Hands",
+    "legs": "Armor_Leather_Legs"
+  },
+  "offhand": "Weapon_Dagger_Stone"
+}

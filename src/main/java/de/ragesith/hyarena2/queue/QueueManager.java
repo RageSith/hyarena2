@@ -1,9 +1,11 @@
 package de.ragesith.hyarena2.queue;
 
 import de.ragesith.hyarena2.event.EventBus;
+import de.ragesith.hyarena2.event.kit.KitSelectedEvent;
 import de.ragesith.hyarena2.event.queue.PlayerLeftQueueEvent;
 import de.ragesith.hyarena2.event.queue.PlayerQueuedEvent;
 import de.ragesith.hyarena2.hub.HubManager;
+import de.ragesith.hyarena2.kit.KitManager;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,6 +46,9 @@ public class QueueManager {
     // Function to check if player is in hub world
     private java.util.function.Predicate<UUID> hubWorldChecker;
 
+    // Kit manager reference for kit validation
+    private KitManager kitManager;
+
     public QueueManager(EventBus eventBus, HubManager hubManager, String hubWorldName) {
         this.eventBus = eventBus;
         this.hubManager = hubManager;
@@ -65,11 +70,31 @@ public class QueueManager {
     }
 
     /**
-     * Attempts to add a player to a queue.
+     * Sets the kit manager for kit validation.
+     */
+    public void setKitManager(KitManager kitManager) {
+        this.kitManager = kitManager;
+    }
+
+    /**
+     * Attempts to add a player to a queue without kit selection.
      *
      * @return JoinResult indicating success or failure reason
      */
     public JoinResult joinQueue(UUID playerUuid, String playerName, String arenaId) {
+        return joinQueue(playerUuid, playerName, arenaId, null);
+    }
+
+    /**
+     * Attempts to add a player to a queue with optional kit selection.
+     *
+     * @param playerUuid  the player's UUID
+     * @param playerName  the player's display name
+     * @param arenaId     the arena to queue for
+     * @param kitId       the selected kit ID, or null for default/none
+     * @return JoinResult indicating success or failure reason
+     */
+    public JoinResult joinQueue(UUID playerUuid, String playerName, String arenaId, String kitId) {
         // Check if already in a queue
         if (playerQueues.containsKey(playerUuid)) {
             return JoinResult.ALREADY_IN_QUEUE;
@@ -90,7 +115,18 @@ public class QueueManager {
             return JoinResult.NOT_IN_HUB;
         }
 
-        QueueEntry entry = new QueueEntry(playerUuid, playerName, arenaId);
+        // Validate kit if specified and kit manager is available
+        if (kitId != null && kitManager != null) {
+            if (!kitManager.kitExists(kitId)) {
+                return JoinResult.INVALID_KIT;
+            }
+            if (!kitManager.isKitInArena(kitId, arenaId)) {
+                return JoinResult.INVALID_KIT;
+            }
+            // Note: Permission check requires Player object, done at command level
+        }
+
+        QueueEntry entry = new QueueEntry(playerUuid, playerName, arenaId, kitId);
         Queue<QueueEntry> queue = queues.computeIfAbsent(arenaId, k -> new ConcurrentLinkedQueue<>());
         queue.add(entry);
         playerQueues.put(playerUuid, entry);
@@ -101,8 +137,13 @@ public class QueueManager {
         // Update positions for this queue
         updateQueuePositions(arenaId);
 
-        // Publish event
+        // Publish queue event
         eventBus.publish(new PlayerQueuedEvent(playerUuid, playerName, arenaId, entry.getJoinTime()));
+
+        // Publish kit selected event if kit was specified
+        if (kitId != null) {
+            eventBus.publish(new KitSelectedEvent(playerUuid, kitId, arenaId));
+        }
 
         return JoinResult.SUCCESS;
     }
@@ -329,6 +370,7 @@ public class QueueManager {
         ALREADY_IN_QUEUE,
         IN_MATCH,
         ON_COOLDOWN,
-        NOT_IN_HUB
+        NOT_IN_HUB,
+        INVALID_KIT
     }
 }
