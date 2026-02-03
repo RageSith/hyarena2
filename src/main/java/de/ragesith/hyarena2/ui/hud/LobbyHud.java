@@ -10,7 +10,6 @@ import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -26,7 +25,6 @@ public class LobbyHud extends CustomUIHud {
 
     // Shared scheduler for auto-refresh
     private final ScheduledExecutorService sharedScheduler;
-    private final Consumer<Runnable> worldThreadExecutor;
     private ScheduledFuture<?> refreshTask;
 
     // Flag to prevent updates after shutdown
@@ -34,15 +32,13 @@ public class LobbyHud extends CustomUIHud {
 
     public LobbyHud(PlayerRef playerRef, UUID playerUuid, QueueManager queueManager,
                     MatchManager matchManager, Supplier<Integer> onlinePlayerCountSupplier,
-                    ScheduledExecutorService sharedScheduler,
-                    Consumer<Runnable> worldThreadExecutor) {
+                    ScheduledExecutorService scheduler) {
         super(playerRef);
         this.playerUuid = playerUuid;
         this.queueManager = queueManager;
         this.matchManager = matchManager;
         this.onlinePlayerCountSupplier = onlinePlayerCountSupplier;
-        this.sharedScheduler = sharedScheduler;
-        this.worldThreadExecutor = worldThreadExecutor;
+        this.sharedScheduler = scheduler;
     }
 
     @Override
@@ -145,6 +141,7 @@ public class LobbyHud extends CustomUIHud {
 
     /**
      * Starts the auto-refresh task.
+     * TEST: Running directly on scheduler thread without world.execute()
      */
     private void startAutoRefresh() {
         if (refreshTask != null || sharedScheduler == null) {
@@ -153,38 +150,23 @@ public class LobbyHud extends CustomUIHud {
 
         // Use longer initial delay (2 seconds) to let UI load on client
         refreshTask = sharedScheduler.scheduleAtFixedRate(() -> {
+            // TEST: Direct update without world thread
+            if (!active) {
+                return;
+            }
+
+            // Stop if player is in a match (they'll have a different HUD)
+            if (matchManager.isPlayerInMatch(playerUuid)) {
+                stopAutoRefresh();
+                return;
+            }
+
             try {
-                if (!active) {
-                    return;
-                }
-
-                // Stop if player is in a match (they'll have a different HUD)
-                if (matchManager.isPlayerInMatch(playerUuid)) {
-                    stopAutoRefresh();
-                    return;
-                }
-
-                // Update content on world thread
-                if (active && worldThreadExecutor != null) {
-                    worldThreadExecutor.accept(() -> {
-                        // Double-check active flag before update
-                        if (!active) {
-                            return;
-                        }
-                        if (matchManager.isPlayerInMatch(playerUuid)) {
-                            return;
-                        }
-                        try {
-                            UICommandBuilder cmd = new UICommandBuilder();
-                            updateContent(cmd);
-                            update(false, cmd);
-                        } catch (Exception e) {
-                            // UI might not be ready yet, skip this update
-                        }
-                    });
-                }
+                UICommandBuilder cmd = new UICommandBuilder();
+                updateContent(cmd);
+                update(false, cmd);
             } catch (Exception e) {
-                // HUD might be closed, ignore errors
+                // UI might not be ready yet, skip this update
             }
         }, 2, 1, TimeUnit.SECONDS);
     }

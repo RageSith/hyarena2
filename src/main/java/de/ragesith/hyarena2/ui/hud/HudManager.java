@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -33,9 +32,6 @@ public class HudManager {
     private final Map<UUID, LobbyHud> lobbyHuds = new ConcurrentHashMap<>();
     private final Map<UUID, QueueHud> queueHuds = new ConcurrentHashMap<>();
 
-    // World thread executor for HUD updates
-    private Consumer<Runnable> worldThreadExecutor;
-
     public HudManager(QueueManager queueManager, Matchmaker matchmaker, MatchManager matchManager,
                       ScheduledExecutorService scheduler, Supplier<Integer> onlinePlayerCountSupplier) {
         this.queueManager = queueManager;
@@ -43,13 +39,6 @@ public class HudManager {
         this.matchManager = matchManager;
         this.scheduler = scheduler;
         this.onlinePlayerCountSupplier = onlinePlayerCountSupplier;
-    }
-
-    /**
-     * Sets the world thread executor for HUD updates.
-     */
-    public void setWorldThreadExecutor(Consumer<Runnable> executor) {
-        this.worldThreadExecutor = executor;
     }
 
     /**
@@ -80,7 +69,7 @@ public class HudManager {
 
         LobbyHud hud = new LobbyHud(
             playerRef, playerUuid, queueManager, matchManager,
-            onlinePlayerCountSupplier, scheduler, worldThreadExecutor
+            onlinePlayerCountSupplier, scheduler
         );
 
         lobbyHuds.put(playerUuid, hud);
@@ -153,7 +142,7 @@ public class HudManager {
 
         QueueHud hud = new QueueHud(
             playerRef, playerUuid, queueManager, matchmaker, matchManager,
-            scheduler, worldThreadExecutor
+            scheduler
         );
 
         queueHuds.put(playerUuid, hud);

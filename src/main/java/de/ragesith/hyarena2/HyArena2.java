@@ -366,14 +366,6 @@ public class HyArena2 extends JavaPlugin {
         });
         boundaryManager.grantTeleportGrace(playerId);
 
-        // Set world thread executor for HudManager
-        if (hudManager != null) {
-            World hubWorld = hubManager.getHubWorld();
-            if (hubWorld != null) {
-                hudManager.setWorldThreadExecutor(hubWorld::execute);
-            }
-        }
-
         // Publish event
         eventBus.publish(new PlayerJoinedHubEvent(playerId, playerName, true));
     }
