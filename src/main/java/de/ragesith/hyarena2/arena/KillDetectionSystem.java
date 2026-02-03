@@ -165,6 +165,9 @@ public class KillDetectionSystem extends DamageEventSystem {
                 effectController.clearEffects(victimRef, store);
             }
 
+            // Record the fatal damage (only the actual HP removed, not overkill)
+            match.recordDamage(victimUuid, attackerUuid, currentHealth);
+
             // Record the kill - this will update stats and check if match should end
             boolean shouldEnd = match.recordKill(victimUuid, attackerUuid);
 
@@ -208,6 +211,9 @@ public class KillDetectionSystem extends DamageEventSystem {
 
         float damageAmount = damage.getAmount();
 
+        // Capture current health BEFORE applying damage (for accurate fatal damage tracking)
+        double healthBeforeDamage = botVictim.getHealth();
+
         // Apply damage to bot's internal health
         boolean died = botVictim.takeDamage(damageAmount);
 
@@ -219,6 +225,10 @@ public class KillDetectionSystem extends DamageEventSystem {
         // Cancel the actual Hytale damage (we handle it internally)
         damage.setCancelled(true);
 
+        // Record damage - use actual HP removed for fatal hits (not overkill damage)
+        double actualDamage = died ? healthBeforeDamage : damageAmount;
+        match.recordDamage(botVictim.getUniqueId(), attackerUuid, actualDamage);
+
         if (died) {
             // Record the kill
             boolean shouldEnd = match.recordKill(botVictim.getUniqueId(), attackerUuid);
@@ -226,9 +236,6 @@ public class KillDetectionSystem extends DamageEventSystem {
             if (shouldEnd) {
                 match.end();
             }
-        } else {
-            // Record damage
-            match.recordDamage(botVictim.getUniqueId(), attackerUuid, damageAmount);
         }
     }
 
