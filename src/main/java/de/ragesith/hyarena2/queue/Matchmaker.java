@@ -404,16 +404,15 @@ public class Matchmaker {
             if (isWaitingForMorePlayers()) {
                 return "Starting in " + remainingWaitSeconds + "s";
             }
-            if (isAutoFillCountdown()) {
-                return "Bot fill in " + autoFillRemainingSeconds + "s";
-            }
             if (canStartMatch()) {
                 return "Match starting soon!";
             }
-            if (autoFillEnabled && playersNeeded > 0) {
-                return "Waiting... (bots will fill)";
+            // Show waiting message with optional auto-fill timer
+            String waitingMsg = "Waiting for " + playersNeeded + " more player" + (playersNeeded == 1 ? "" : "s");
+            if (isAutoFillCountdown()) {
+                return waitingMsg + " (" + autoFillRemainingSeconds + "s)";
             }
-            return "Waiting for " + playersNeeded + " more player" + (playersNeeded == 1 ? "" : "s");
+            return waitingMsg;
         }
     }
 }
