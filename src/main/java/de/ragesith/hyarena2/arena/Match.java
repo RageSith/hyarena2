@@ -63,10 +63,12 @@ public class Match {
     private int countdownTicks;
     private int victoryDelayTicks;
     private List<UUID> winners;
+    private final Set<Integer> sentTimeWarnings = new HashSet<>(); // Track which warnings have been sent
 
     private static final int TICKS_PER_SECOND = 20;
     private static final int VICTORY_DELAY_SECONDS = 3;
     private static final int SPAWN_IMMUNITY_MS = 3000; // 3 seconds immunity after spawn
+    private static final int[] TIME_WARNINGS = {60, 30, 10, 5, 4, 3, 2, 1}; // Seconds remaining for warnings
 
     public Match(Arena arena, GameMode gameMode, EventBus eventBus, HubManager hubManager, KitManager kitManager) {
         this.matchId = UUID.randomUUID();
@@ -445,6 +447,74 @@ public class Match {
     }
 
     /**
+     * Ends the match due to timeout - determines winner by most kills.
+     */
+    private synchronized void endByTimeout() {
+        if (state != MatchState.IN_PROGRESS) {
+            return;
+        }
+
+        state = MatchState.ENDING;
+        victoryDelayTicks = VICTORY_DELAY_SECONDS * TICKS_PER_SECOND;
+
+        // Freeze all players
+        freezeAllParticipantsNoHud();
+
+        // Heal all alive players
+        healAllAliveParticipants();
+
+        // Determine winner by most kills
+        List<Participant> aliveParticipants = getParticipants().stream()
+                .filter(Participant::isAlive)
+                .toList();
+
+        if (aliveParticipants.isEmpty()) {
+            // Everyone dead - draw
+            winners = new ArrayList<>();
+        } else {
+            // Find participant(s) with most kills
+            int maxKills = aliveParticipants.stream()
+                    .mapToInt(Participant::getKills)
+                    .max()
+                    .orElse(0);
+
+            List<Participant> topKillers = aliveParticipants.stream()
+                    .filter(p -> p.getKills() == maxKills)
+                    .toList();
+
+            if (topKillers.size() == 1) {
+                // Single winner
+                winners = List.of(topKillers.get(0).getUniqueId());
+            } else {
+                // Tie - draw (no winners)
+                winners = new ArrayList<>();
+            }
+        }
+
+        // Get victory message
+        String victoryMessage;
+        String winnerName = null;
+
+        if (winners.isEmpty()) {
+            victoryMessage = "<color:#f39c12>Time's up! It's a draw!</color>";
+        } else {
+            Participant winner = participants.get(winners.get(0));
+            winnerName = winner != null ? winner.getName() : "Unknown";
+            victoryMessage = "<color:#2ecc71>" + winnerName + " wins with " +
+                           (winner != null ? winner.getKills() : 0) + " kills!</color>";
+        }
+
+        // Show VictoryHud to all player participants
+        showVictoryHudToAllPlayers(winnerName);
+
+        // Broadcast victory
+        broadcast(victoryMessage);
+
+        // Fire event
+        eventBus.publish(new MatchEndedEvent(matchId, winners, victoryMessage));
+    }
+
+    /**
      * Finishes the match (transitions to FINISHED state).
      */
     private synchronized void finish() {
@@ -693,9 +763,30 @@ public class Match {
         // Let game mode tick
         gameMode.onTick(getParticipants(), tickCount);
 
-        // Check if match should end
+        // Check if match should end (normal game mode condition)
         if (gameMode.shouldMatchEnd(getParticipants())) {
             end();
+            return;
+        }
+
+        // Check match duration timeout
+        int matchDurationTicks = arena.getConfig().getMatchDurationSeconds() * TICKS_PER_SECOND;
+        int remainingTicks = matchDurationTicks - tickCount;
+        int remainingSeconds = remainingTicks / TICKS_PER_SECOND;
+
+        // Send time warnings
+        for (int warningTime : TIME_WARNINGS) {
+            if (remainingSeconds == warningTime && !sentTimeWarnings.contains(warningTime)) {
+                sentTimeWarnings.add(warningTime);
+                String timeText = warningTime >= 60 ? (warningTime / 60) + " minute" + (warningTime >= 120 ? "s" : "")
+                                                    : warningTime + " second" + (warningTime > 1 ? "s" : "");
+                broadcast("<color:#f39c12>" + timeText + " remaining!</color>");
+            }
+        }
+
+        // End match if time has run out
+        if (remainingTicks <= 0) {
+            endByTimeout();
         }
     }
 
@@ -963,5 +1054,22 @@ public class Match {
      */
     public int getTickCount() {
         return tickCount;
+    }
+
+    /**
+     * Gets the remaining match time in seconds.
+     * Used by MatchHud for countdown display.
+     */
+    public int getRemainingSeconds() {
+        int matchDurationTicks = arena.getConfig().getMatchDurationSeconds() * TICKS_PER_SECOND;
+        int remainingTicks = Math.max(0, matchDurationTicks - tickCount);
+        return remainingTicks / TICKS_PER_SECOND;
+    }
+
+    /**
+     * Gets the match duration in seconds from config.
+     */
+    public int getMatchDurationSeconds() {
+        return arena.getConfig().getMatchDurationSeconds();
     }
 }

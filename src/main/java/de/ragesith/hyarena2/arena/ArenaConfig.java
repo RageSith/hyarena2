@@ -18,6 +18,7 @@ public class ArenaConfig {
     private boolean autoFillEnabled;
     private int autoFillDelaySeconds = 30;
     private int minRealPlayers = 1;
+    private int matchDurationSeconds = 300; // Default 5 minutes
     private List<String> allowedKits;
     private List<SpawnPoint> spawnPoints;
     private Bounds bounds;
@@ -35,6 +36,7 @@ public class ArenaConfig {
     public boolean isAutoFillEnabled() { return autoFillEnabled; }
     public int getAutoFillDelaySeconds() { return autoFillDelaySeconds; }
     public int getMinRealPlayers() { return minRealPlayers; }
+    public int getMatchDurationSeconds() { return matchDurationSeconds; }
     public List<String> getAllowedKits() { return allowedKits; }
     public List<SpawnPoint> getSpawnPoints() { return spawnPoints; }
     public Bounds getBounds() { return bounds; }

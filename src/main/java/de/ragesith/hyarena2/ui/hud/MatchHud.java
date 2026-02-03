@@ -63,13 +63,21 @@ public class MatchHud extends CustomUIHud {
         String gameMode = match.getGameMode().getDisplayName();
         cmd.set("#GameMode.Text", gameMode);
 
-        // Match time (elapsed)
-        int elapsedTicks = getElapsedTicks();
-        int elapsedSeconds = elapsedTicks / 20;
-        int minutes = elapsedSeconds / 60;
-        int seconds = elapsedSeconds % 60;
+        // Match time (countdown)
+        int remainingSeconds = match.getRemainingSeconds();
+        int minutes = remainingSeconds / 60;
+        int seconds = remainingSeconds % 60;
         String timeDisplay = String.format("%d:%02d", minutes, seconds);
         cmd.set("#MatchTime.Text", timeDisplay);
+
+        // Color timer based on remaining time (red when low)
+        if (remainingSeconds <= 10) {
+            cmd.set("#MatchTime.Style.TextColor", "#e74c3c"); // Red - critical
+        } else if (remainingSeconds <= 30) {
+            cmd.set("#MatchTime.Style.TextColor", "#f39c12"); // Orange - warning
+        } else {
+            cmd.set("#MatchTime.Style.TextColor", "#f1c40f"); // Yellow - normal
+        }
 
         // Build participant list sorted by kills descending
         List<ParticipantInfo> participantList = new ArrayList<>();
@@ -126,13 +134,6 @@ public class MatchHud extends CustomUIHud {
         for (int i = rowIndex; i < MAX_PLAYER_ROWS; i++) {
             cmd.set("#PlayerRow" + i + ".Visible", false);
         }
-    }
-
-    /**
-     * Gets the elapsed ticks from match start.
-     */
-    private int getElapsedTicks() {
-        return match.getTickCount();
     }
 
     /**
