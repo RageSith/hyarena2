@@ -31,7 +31,10 @@ import de.ragesith.hyarena2.gamemode.GameMode;
 import de.ragesith.hyarena2.hub.HubManager;
 import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.participant.Participant;
+import de.ragesith.hyarena2.participant.ParticipantType;
 import de.ragesith.hyarena2.participant.PlayerParticipant;
+import de.ragesith.hyarena2.bot.BotManager;
+import de.ragesith.hyarena2.bot.BotParticipant;
 
 import de.ragesith.hyarena2.utils.PlayerMovementControl;
 import java.util.*;
@@ -50,6 +53,7 @@ public class Match {
     private final EventBus eventBus;
     private final HubManager hubManager;
     private final KitManager kitManager;
+    private BotManager botManager;
 
     private final Map<UUID, Participant> participants;
     private final Set<UUID> arrivedPlayers; // Players who have completed teleport to arena
@@ -209,6 +213,63 @@ public class Match {
     }
 
     /**
+     * Adds a bot to the match.
+     * Bot is already spawned by BotManager, this just registers it as a participant.
+     *
+     * @param bot the bot participant to add
+     * @return true if successfully added
+     */
+    public synchronized boolean addBot(BotParticipant bot) {
+        if (state != MatchState.WAITING && state != MatchState.STARTING && state != MatchState.IN_PROGRESS) {
+            return false;
+        }
+
+        if (participants.containsKey(bot.getUniqueId())) {
+            return false;
+        }
+
+        // Check capacity
+        if (participants.size() >= arena.getMaxPlayers()) {
+            return false;
+        }
+
+        // Add bot to participants
+        participants.put(bot.getUniqueId(), bot);
+
+        // Bots are considered "arrived" immediately since they're spawned in place
+        arrivedPlayers.add(bot.getUniqueId());
+
+        // Grant spawn immunity
+        bot.grantImmunity(SPAWN_IMMUNITY_MS);
+
+        System.out.println("[Match] Added bot " + bot.getName() + " to match " + matchId);
+
+        // Fire event
+        eventBus.publish(new ParticipantJoinedEvent(matchId, bot));
+
+        // If match is in WAITING state, check if we can start
+        if (state == MatchState.WAITING) {
+            checkAndStartIfReady();
+        }
+
+        return true;
+    }
+
+    /**
+     * Sets the bot manager for bot cleanup.
+     */
+    public void setBotManager(BotManager botManager) {
+        this.botManager = botManager;
+    }
+
+    /**
+     * Gets the bot manager.
+     */
+    public BotManager getBotManager() {
+        return botManager;
+    }
+
+    /**
      * Checks if all participants have arrived and starts the match if ready.
      */
     private void checkAndStartIfReady() {
@@ -364,8 +425,16 @@ public class Match {
 
         state = MatchState.FINISHED;
 
-        // Teleport all participants back to hub and unfreeze
+        // Despawn all bots first
+        if (botManager != null) {
+            botManager.despawnAllBotsInMatch(this);
+        }
+
+        // Teleport all player participants back to hub and unfreeze
         for (Participant participant : getParticipants()) {
+            if (participant.getType() == ParticipantType.BOT) {
+                continue; // Bots handled above
+            }
             if (participant.isValid()) {
                 UUID participantUuid = participant.getUniqueId();
                 Player player = getPlayerFromUuid(participantUuid);
@@ -397,8 +466,16 @@ public class Match {
     public synchronized void cancel(String reason) {
         broadcast("<color:#e74c3c>Match cancelled: " + reason + "</color>");
 
-        // Teleport all participants back to hub and unfreeze
+        // Despawn all bots first
+        if (botManager != null) {
+            botManager.despawnAllBotsInMatch(this);
+        }
+
+        // Teleport all player participants back to hub and unfreeze
         for (Participant participant : getParticipants()) {
+            if (participant.getType() == ParticipantType.BOT) {
+                continue; // Bots handled above
+            }
             if (participant.isValid()) {
                 UUID participantUuid = participant.getUniqueId();
                 Player player = getPlayerFromUuid(participantUuid);

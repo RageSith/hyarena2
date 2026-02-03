@@ -45,11 +45,14 @@ public class HudManager {
 
     /**
      * Shows the lobby HUD for a player.
+     * If an old HUD exists, it will be shut down and replaced with a fresh one.
      */
     public void showLobbyHud(UUID playerUuid) {
-        // Don't show if already has one
-        if (lobbyHuds.containsKey(playerUuid)) {
-            return;
+        // Shut down existing HUD if any (might have stale refresh task)
+        LobbyHud oldHud = lobbyHuds.remove(playerUuid);
+        if (oldHud != null) {
+            oldHud.shutdown();
+            System.out.println("[HudManager] Replaced old LobbyHud for " + playerUuid);
         }
 
         PlayerRef playerRef = Universe.get().getPlayer(playerUuid);

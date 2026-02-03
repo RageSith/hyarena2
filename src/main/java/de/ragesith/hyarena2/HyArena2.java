@@ -28,6 +28,9 @@ import de.ragesith.hyarena2.command.testing.TestQueueLeaveCommand;
 import de.ragesith.hyarena2.command.testing.TestKitListCommand;
 import de.ragesith.hyarena2.command.testing.TestKitApplyCommand;
 import de.ragesith.hyarena2.command.testing.TestKitClearCommand;
+import de.ragesith.hyarena2.command.testing.TestBotSpawnCommand;
+import de.ragesith.hyarena2.command.testing.TestBotListCommand;
+import de.ragesith.hyarena2.command.testing.TestBotRemoveCommand;
 import de.ragesith.hyarena2.config.ConfigManager;
 import de.ragesith.hyarena2.config.GlobalConfig;
 import de.ragesith.hyarena2.config.HubConfig;
@@ -41,6 +44,7 @@ import de.ragesith.hyarena2.queue.Matchmaker;
 import de.ragesith.hyarena2.queue.QueueManager;
 import de.ragesith.hyarena2.ui.hud.HudManager;
 import de.ragesith.hyarena2.utils.PlayerMovementControl;
+import de.ragesith.hyarena2.bot.BotManager;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
 import java.util.Map;
@@ -64,6 +68,7 @@ public class HyArena2 extends JavaPlugin {
     private MatchManager matchManager;
     private KillDetectionSystem killDetectionSystem;
     private KitManager kitManager;
+    private BotManager botManager;
     private QueueManager queueManager;
     private Matchmaker matchmaker;
     private HudManager hudManager;
@@ -115,10 +120,16 @@ public class HyArena2 extends JavaPlugin {
         this.kitManager.setMatchManager(matchManager);
         this.matchManager.setKitManager(kitManager);
 
+        // Initialize bot manager
+        this.botManager = new BotManager(eventBus);
+        this.matchManager.setBotManager(botManager);
+        System.out.println("[HyArena2] BotManager initialized");
+
         // Initialize kill detection system
         // Registered via EntityStoreRegistry which should be global
         // We also track worlds and log when they're first seen for debugging
         this.killDetectionSystem = new KillDetectionSystem(matchManager);
+        this.killDetectionSystem.setBotManager(botManager);
         this.getEntityStoreRegistry().registerSystem(killDetectionSystem);
 
         System.out.println("[HyArena2] KillDetectionSystem registered with EntityStoreRegistry");
@@ -134,6 +145,7 @@ public class HyArena2 extends JavaPlugin {
         this.queueManager.setKitManager(kitManager);
 
         this.matchmaker = new Matchmaker(queueManager, matchManager, eventBus);
+        this.matchmaker.setBotManager(botManager);
 
         this.hudManager = new HudManager(
             queueManager, matchmaker, matchManager,
@@ -166,6 +178,11 @@ public class HyArena2 extends JavaPlugin {
         this.getCommandRegistry().registerCommand(new TestKitListCommand(kitManager));
         this.getCommandRegistry().registerCommand(new TestKitApplyCommand(kitManager));
         this.getCommandRegistry().registerCommand(new TestKitClearCommand(kitManager));
+
+        // Test bot commands (Phase 5 testing)
+        this.getCommandRegistry().registerCommand(new TestBotSpawnCommand(matchManager, botManager));
+        this.getCommandRegistry().registerCommand(new TestBotListCommand(botManager));
+        this.getCommandRegistry().registerCommand(new TestBotRemoveCommand(botManager));
 
         // Register Hytale events
         this.getEventRegistry().registerGlobal(PlayerReadyEvent.class, this::onPlayerReady);
@@ -223,7 +240,20 @@ public class HyArena2 extends JavaPlugin {
             }
         }, 1000, 1000, TimeUnit.MILLISECONDS);
 
-        System.out.println("[HyArena2] Scheduled tasks started (boundary check every " + checkIntervalMs + "ms, matchmaker every 1s)");
+        // Bot ticker task - runs based on config interval
+        int botTickIntervalMs = configManager.getGlobalConfig().getBotTickIntervalMs();
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                if (botManager != null) {
+                    botManager.tickAllBots();
+                }
+            } catch (Exception e) {
+                System.err.println("[HyArena2] Error in bot tick: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }, botTickIntervalMs, botTickIntervalMs, TimeUnit.MILLISECONDS);
+
+        System.out.println("[HyArena2] Scheduled tasks started (boundary check every " + checkIntervalMs + "ms, matchmaker every 1s, bot tick every " + botTickIntervalMs + "ms)");
     }
 
     /**
@@ -446,6 +476,10 @@ public class HyArena2 extends JavaPlugin {
 
     public KitManager getKitManager() {
         return kitManager;
+    }
+
+    public BotManager getBotManager() {
+        return botManager;
     }
 
     public QueueManager getQueueManager() {

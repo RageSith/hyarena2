@@ -4,6 +4,7 @@ import com.hypixel.hytale.server.core.entity.entities.player.hud.CustomUIHud;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import de.ragesith.hyarena2.arena.Arena;
+import de.ragesith.hyarena2.arena.Match;
 import de.ragesith.hyarena2.arena.MatchManager;
 import de.ragesith.hyarena2.queue.Matchmaker;
 import de.ragesith.hyarena2.queue.QueueEntry;
@@ -92,6 +93,17 @@ public class LobbyHud extends CustomUIHud {
             cmd.set("#InGameCount.Style.TextColor", "#7f8c8d"); // Gray when no games
         }
 
+        // Active matches count (excludes finished matches)
+        int matchCount = getActiveMatchCount();
+        cmd.set("#MatchCount.Text", String.valueOf(matchCount));
+
+        // Color match count
+        if (matchCount > 0) {
+            cmd.set("#MatchCount.Style.TextColor", "#9b59b6"); // Purple when active matches
+        } else {
+            cmd.set("#MatchCount.Style.TextColor", "#7f8c8d"); // Gray when no matches
+        }
+
         // Average queue time
         String avgTime = getOverallAverageQueueTime();
         cmd.set("#AvgTime.Text", avgTime);
@@ -169,14 +181,29 @@ public class LobbyHud extends CustomUIHud {
     }
 
     /**
-     * Gets the total players across all matches.
+     * Gets the total players across all active (non-finished) matches.
      */
     private int getTotalPlayersInMatches() {
         int total = 0;
-        for (var match : matchManager.getActiveMatches()) {
-            total += match.getParticipants().size();
+        for (Match match : matchManager.getActiveMatches()) {
+            if (!match.isFinished()) {
+                total += match.getParticipants().size();
+            }
         }
         return total;
+    }
+
+    /**
+     * Gets the count of active (non-finished) matches.
+     */
+    private int getActiveMatchCount() {
+        int count = 0;
+        for (Match match : matchManager.getActiveMatches()) {
+            if (!match.isFinished()) {
+                count++;
+            }
+        }
+        return count;
     }
 
     /**
@@ -230,15 +257,9 @@ public class LobbyHud extends CustomUIHud {
             return;
         }
 
-        // Use longer initial delay (2 seconds) to let UI load on client
+        // Short initial delay, then refresh every second
         refreshTask = sharedScheduler.scheduleAtFixedRate(() -> {
             if (!active) {
-                return;
-            }
-
-            // Stop if player is in a match (they'll have a different HUD)
-            if (matchManager.isPlayerInMatch(playerUuid)) {
-                stopAutoRefresh();
                 return;
             }
 
@@ -249,7 +270,12 @@ public class LobbyHud extends CustomUIHud {
             } catch (Exception e) {
                 // UI might not be ready yet, skip this update
             }
-        }, 2, 1, TimeUnit.SECONDS);
+
+            // Stop refreshing if player joined a match (they'll be teleported to arena)
+            if (matchManager.isPlayerInMatch(playerUuid)) {
+                stopAutoRefresh();
+            }
+        }, 500, 1000, TimeUnit.MILLISECONDS);
     }
 
     /**

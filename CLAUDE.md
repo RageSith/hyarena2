@@ -106,7 +106,53 @@ Key reference files in old project:
 - `/tkit <kitId>` - Apply a kit to yourself (for testing)
 - `/tqjoin <arenaId> [kitId]` - Queue with optional kit selection
 
-### Phases 5-12: Not Started
+### Phase 5: Bots - COMPLETE
+- [x] BotDifficulty enum (EASY, MEDIUM, HARD with parameters: reaction time, accuracy, ranges, health multiplier, etc.)
+- [x] BotParticipant class implementing Participant interface
+- [x] BotAI state machine (IDLE, PATROL, CHASE, ATTACK, RETREAT, DEAD)
+- [x] BotManager - spawn/despawn/tick lifecycle, entity UUID tracking, damage handling
+- [x] Match.java - addBot() method, bot cleanup in finish/cancel
+- [x] MatchManager - setBotManager(), addBotToMatch()
+- [x] KillDetectionSystem - handles both player and bot victims/attackers
+- [x] ArenaConfig - added botModelId, autoFillEnabled, autoFillDelaySeconds, minRealPlayers
+- [x] Matchmaker - auto-fill logic with configurable delay, fills remaining slots with bots
+- [x] HyArena2.java - BotManager initialization, bot ticker, test commands
+- [x] Test commands: /tbot, /tbotlist, /tbotremove
+
+**Bot system test commands:**
+- `/tbot [difficulty] [kitId]` - Spawn a bot in your current match
+- `/tbotlist` - List all active bots with health/status
+- `/tbotremove <botName>` - Remove a specific bot
+
+**Bot difficulty parameters:**
+| Parameter | EASY | MEDIUM | HARD |
+|-----------|------|--------|------|
+| Reaction Time | 1500ms | 800ms | 300ms |
+| Aim Accuracy | 40% | 65% | 90% |
+| Attack Range | 3.0 | 4.0 | 5.0 |
+| Chase Range | 15.0 | 25.0 | 40.0 |
+| Movement Speed | 0.8x | 1.0x | 1.2x |
+| Health Multiplier | 0.8x | 1.0x | 1.4x |
+| Attack Cooldown | 1000ms | 900ms | 600ms |
+| Retreat Threshold | 30% | 25% | 15% |
+
+**Auto-fill configuration (per arena):**
+| Field | Default | Description |
+|-------|---------|-------------|
+| `autoFillEnabled` | false | Enable bot auto-fill for this arena |
+| `autoFillDelaySeconds` | 30 | Wait time before filling with bots |
+| `minRealPlayers` | 1 | Minimum real players needed before auto-fill |
+| `botDifficulty` | MEDIUM | Difficulty level for auto-filled bots |
+| `botModelId` | null | NPC model for bots (required for bot spawning) |
+
+**Auto-fill flow:**
+1. Player joins queue → auto-fill timer starts
+2. After `autoFillDelaySeconds`, if `>= minRealPlayers` in queue:
+   - Match is created with queued players
+   - Remaining slots filled with bots at configured difficulty
+3. Normal queue behavior still applies (instant start at maxPlayers, countdown at minPlayers)
+
+### Phases 6-12: Not Started
 See `plan/03_implementation_plan.md` for full roadmap.
 
 ## Package Structure
@@ -114,6 +160,7 @@ See `plan/03_implementation_plan.md` for full roadmap.
 ```
 de.ragesith.hyarena2/
   arena/          # Arena, Match, Spawn points
+  bot/            # Bot AI, BotParticipant, BotManager
   gamemode/       # GameMode interface + implementations
   queue/          # Queue, Matchmaker
   hub/            # Hub management, boundaries

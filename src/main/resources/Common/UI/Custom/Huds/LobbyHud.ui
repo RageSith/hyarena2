@@ -1,5 +1,5 @@
 Group #LobbyHud {
-    Anchor: (Width: 520, Height: 64, Top: 60);
+    Anchor: (Width: 640, Height: 64, Top: 60);
     Background: #1a2633(0.85);
 
     Group #Content {
@@ -50,6 +50,24 @@ Group #LobbyHud {
         }
 
         Label #InGameCount {
+            Text: "0";
+            Anchor: (Width: 35, Height: 64);
+            Style: (FontSize: 18, TextColor: #7f8c8d, VerticalAlignment: Center, RenderBold: true);
+        }
+
+        Label {
+            Text: "|";
+            Anchor: (Width: 20, Height: 64);
+            Style: (FontSize: 14, TextColor: #555555, Alignment: Center, VerticalAlignment: Center);
+        }
+
+        Label {
+            Text: "MATCHES";
+            Anchor: (Width: 70, Height: 64);
+            Style: (FontSize: 12, TextColor: #7f8c8d, VerticalAlignment: Center);
+        }
+
+        Label #MatchCount {
             Text: "0";
             Anchor: (Width: 35, Height: 64);
             Style: (FontSize: 18, TextColor: #7f8c8d, VerticalAlignment: Center, RenderBold: true);

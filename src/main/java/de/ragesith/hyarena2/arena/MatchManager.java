@@ -13,6 +13,8 @@ import de.ragesith.hyarena2.gamemode.DuelGameMode;
 import de.ragesith.hyarena2.gamemode.GameMode;
 import de.ragesith.hyarena2.hub.HubManager;
 import de.ragesith.hyarena2.kit.KitManager;
+import de.ragesith.hyarena2.bot.BotManager;
+import de.ragesith.hyarena2.bot.BotParticipant;
 
 import java.io.File;
 import java.util.*;
@@ -28,6 +30,7 @@ public class MatchManager {
     private final EventBus eventBus;
     private final HubManager hubManager;
     private KitManager kitManager;
+    private BotManager botManager;
 
     private final Map<String, Arena> arenas;
     private final Map<UUID, Match> activeMatches;
@@ -55,6 +58,20 @@ public class MatchManager {
      */
     public void setKitManager(KitManager kitManager) {
         this.kitManager = kitManager;
+    }
+
+    /**
+     * Sets the bot manager for bot support in matches.
+     */
+    public void setBotManager(BotManager botManager) {
+        this.botManager = botManager;
+    }
+
+    /**
+     * Gets the bot manager.
+     */
+    public BotManager getBotManager() {
+        return botManager;
     }
 
     /**
@@ -193,10 +210,25 @@ public class MatchManager {
 
         // Create match
         Match match = new Match(arena, gameMode, eventBus, hubManager, kitManager);
+        match.setBotManager(botManager);
         activeMatches.put(match.getMatchId(), match);
 
         System.out.println("Created match " + match.getMatchId() + " on arena " + arenaId + " (world: " + arena.getConfig().getWorldName() + ")");
         return match;
+    }
+
+    /**
+     * Adds a bot to a match.
+     * @param matchId the match ID
+     * @param bot the bot participant
+     * @return true if successfully added
+     */
+    public boolean addBotToMatch(UUID matchId, BotParticipant bot) {
+        Match match = activeMatches.get(matchId);
+        if (match == null) {
+            return false;
+        }
+        return match.addBot(bot);
     }
 
     /**

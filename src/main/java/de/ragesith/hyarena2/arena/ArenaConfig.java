@@ -14,6 +14,10 @@ public class ArenaConfig {
     private int maxPlayers;
     private int waitTimeSeconds;
     private String botDifficulty;
+    private String botModelId;
+    private boolean autoFillEnabled;
+    private int autoFillDelaySeconds = 30;
+    private int minRealPlayers = 1;
     private List<String> allowedKits;
     private List<SpawnPoint> spawnPoints;
     private Bounds bounds;
@@ -27,6 +31,10 @@ public class ArenaConfig {
     public int getMaxPlayers() { return maxPlayers; }
     public int getWaitTimeSeconds() { return waitTimeSeconds; }
     public String getBotDifficulty() { return botDifficulty; }
+    public String getBotModelId() { return botModelId; }
+    public boolean isAutoFillEnabled() { return autoFillEnabled; }
+    public int getAutoFillDelaySeconds() { return autoFillDelaySeconds; }
+    public int getMinRealPlayers() { return minRealPlayers; }
     public List<String> getAllowedKits() { return allowedKits; }
     public List<SpawnPoint> getSpawnPoints() { return spawnPoints; }
     public Bounds getBounds() { return bounds; }

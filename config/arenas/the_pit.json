@@ -7,6 +7,10 @@
   "maxPlayers": 2,
   "waitTimeSeconds": 5,
   "botDifficulty": "MEDIUM",
+  "botModelId": "Blook_Skeleton_Pirate_Gunner_Blunderbuss",
+  "autoFillEnabled": true,
+  "autoFillDelaySeconds": 30,
+  "minRealPlayers": 1,
   "allowedKits": ["warrior"],
   "spawnPoints": [
     {
