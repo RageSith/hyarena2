@@ -54,6 +54,10 @@ public class BotParticipant implements Participant {
     // Combat timing
     private long lastAttackTime = 0;
 
+    // Last attacker tracking for kill attribution on environmental deaths
+    private UUID lastAttackerUuid;
+    private long lastDamageTimestamp;
+
     public BotParticipant(String name, BotDifficulty difficulty) {
         this.botUuid = UUID.randomUUID();
         this.botName = name;
@@ -163,6 +167,22 @@ public class BotParticipant implements Participant {
     @Override
     public void setSelectedKitId(String kitId) {
         this.selectedKitId = kitId;
+    }
+
+    @Override
+    public UUID getLastAttackerUuid() {
+        return lastAttackerUuid;
+    }
+
+    @Override
+    public long getLastDamageTimestamp() {
+        return lastDamageTimestamp;
+    }
+
+    @Override
+    public void setLastAttacker(UUID attackerUuid) {
+        this.lastAttackerUuid = attackerUuid;
+        this.lastDamageTimestamp = System.currentTimeMillis();
     }
 
     // ========== Bot-Specific Methods ==========

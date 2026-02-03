@@ -545,6 +545,11 @@ public class Match {
 
         Participant attacker = attackerUuid != null ? participants.get(attackerUuid) : null;
 
+        // Track last attacker for kill attribution on environmental deaths
+        if (attackerUuid != null) {
+            victim.setLastAttacker(attackerUuid);
+        }
+
         // Notify game mode
         gameMode.onParticipantDamaged(victim, attacker, damage);
 
@@ -576,6 +581,8 @@ public class Match {
         return false;
     }
 
+    private static final long LAST_HIT_ATTRIBUTION_WINDOW_MS = 10_000; // 10 seconds
+
     /**
      * Records a kill.
      * @return true if the match should end
@@ -584,6 +591,16 @@ public class Match {
         Participant victim = participants.get(victimUuid);
         if (victim == null) {
             return false;
+        }
+
+        // If no direct killer, check for last hit attribution (environmental death within 10s of last damage)
+        if (killerUuid == null) {
+            UUID lastAttacker = victim.getLastAttackerUuid();
+            long lastDamageTime = victim.getLastDamageTimestamp();
+            if (lastAttacker != null && (System.currentTimeMillis() - lastDamageTime) < LAST_HIT_ATTRIBUTION_WINDOW_MS) {
+                killerUuid = lastAttacker;
+                System.out.println("[Match] Kill attributed to last attacker: " + lastAttacker + " (environmental death)");
+            }
         }
 
         Participant killer = killerUuid != null ? participants.get(killerUuid) : null;

@@ -106,4 +106,23 @@ public interface Participant {
      * @param kitId the kit ID to set
      */
     void setSelectedKitId(String kitId);
+
+    /**
+     * Gets the UUID of the last attacker who damaged this participant.
+     * Used for kill attribution on environmental deaths.
+     * @return UUID of last attacker, or null if none
+     */
+    UUID getLastAttackerUuid();
+
+    /**
+     * Gets the timestamp of the last damage received.
+     * @return timestamp in milliseconds, or 0 if never damaged
+     */
+    long getLastDamageTimestamp();
+
+    /**
+     * Records damage from an attacker for kill attribution.
+     * @param attackerUuid UUID of the attacker (can be null for environmental)
+     */
+    void setLastAttacker(UUID attackerUuid);
 }

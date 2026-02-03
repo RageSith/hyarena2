@@ -26,6 +26,8 @@ public class PlayerParticipant implements Participant {
     private double damageTaken;
     private volatile long immunityEndTime = 0;
     private String selectedKitId;
+    private UUID lastAttackerUuid;
+    private long lastDamageTimestamp;
 
     public PlayerParticipant(UUID playerUuid, String playerName) {
         this.playerUuid = playerUuid;
@@ -170,5 +172,21 @@ public class PlayerParticipant implements Participant {
     @Override
     public void setSelectedKitId(String kitId) {
         this.selectedKitId = kitId;
+    }
+
+    @Override
+    public UUID getLastAttackerUuid() {
+        return lastAttackerUuid;
+    }
+
+    @Override
+    public long getLastDamageTimestamp() {
+        return lastDamageTimestamp;
+    }
+
+    @Override
+    public void setLastAttacker(UUID attackerUuid) {
+        this.lastAttackerUuid = attackerUuid;
+        this.lastDamageTimestamp = System.currentTimeMillis();
     }
 }
