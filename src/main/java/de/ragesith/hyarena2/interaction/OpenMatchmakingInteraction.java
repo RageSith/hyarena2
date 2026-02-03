@@ -74,31 +74,51 @@ public class OpenMatchmakingInteraction extends SimpleInstantInteraction {
 
         // Check if player is already in queue - show queue status page
         if (pluginInstance.getQueueManager().isInQueue(playerRef.getUuid())) {
-            QueueStatusPage queuePage = new QueueStatusPage(
-                playerRef,
-                playerRef.getUuid(),
-                pluginInstance.getQueueManager(),
-                pluginInstance.getMatchmaker(),
-                pluginInstance.getMatchManager(),
-                pluginInstance.getKitManager(),
-                pluginInstance.getHudManager(),
-                pluginInstance.getScheduler()
-            );
-            player.getPageManager().openCustomPage(ref, store, queuePage);
+            // Check if a match is about to start - don't open page during transition
+            var queueEntry = pluginInstance.getQueueManager().getQueueEntry(playerRef.getUuid());
+            if (queueEntry != null) {
+                var matchInfo = pluginInstance.getMatchmaker().getMatchmakingInfo(queueEntry.getArenaId());
+                if (matchInfo != null && matchInfo.isMatchReady()) {
+                    // Match is starting soon, don't open UI to avoid race condition
+                    player.sendMessage(Message.raw("<color:#f1c40f>Match is starting...</color>"));
+                    return;
+                }
+            }
+
+            try {
+                QueueStatusPage queuePage = new QueueStatusPage(
+                    playerRef,
+                    playerRef.getUuid(),
+                    pluginInstance.getQueueManager(),
+                    pluginInstance.getMatchmaker(),
+                    pluginInstance.getMatchManager(),
+                    pluginInstance.getKitManager(),
+                    pluginInstance.getHudManager(),
+                    pluginInstance.getScheduler()
+                );
+                player.getPageManager().openCustomPage(ref, store, queuePage);
+            } catch (Exception e) {
+                System.err.println("[OpenMatchmakingInteraction] Failed to open QueueStatusPage: " + e.getMessage());
+                // Player might be transitioning to match - don't crash
+            }
             return;
         }
 
         // Open the arena selection page
-        ArenaMenuPage page = new ArenaMenuPage(
-            playerRef,
-            playerRef.getUuid(),
-            pluginInstance.getMatchManager(),
-            pluginInstance.getQueueManager(),
-            pluginInstance.getKitManager(),
-            pluginInstance.getHudManager(),
-            pluginInstance.getScheduler()
-        );
+        try {
+            ArenaMenuPage page = new ArenaMenuPage(
+                playerRef,
+                playerRef.getUuid(),
+                pluginInstance.getMatchManager(),
+                pluginInstance.getQueueManager(),
+                pluginInstance.getKitManager(),
+                pluginInstance.getHudManager(),
+                pluginInstance.getScheduler()
+            );
 
-        player.getPageManager().openCustomPage(ref, store, page);
+            player.getPageManager().openCustomPage(ref, store, page);
+        } catch (Exception e) {
+            System.err.println("[OpenMatchmakingInteraction] Failed to open ArenaMenuPage: " + e.getMessage());
+        }
     }
 }

@@ -17,6 +17,8 @@ import de.ragesith.hyarena2.bot.BotParticipant;
 import de.ragesith.hyarena2.config.Position;
 import de.ragesith.hyarena2.event.EventBus;
 import de.ragesith.hyarena2.event.queue.QueueMatchFoundEvent;
+import de.ragesith.hyarena2.ui.hud.HudManager;
+import com.hypixel.hytale.protocol.packets.interface_.Page;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +37,7 @@ public class Matchmaker {
     private final MatchManager matchManager;
     private final EventBus eventBus;
     private BotManager botManager;
+    private HudManager hudManager;
 
     // Track when each arena started waiting for additional players (minPlayers reached)
     // Key: arenaId, Value: timestamp when minPlayers was first reached
@@ -62,6 +65,13 @@ public class Matchmaker {
      */
     public void setBotManager(BotManager botManager) {
         this.botManager = botManager;
+    }
+
+    /**
+     * Sets the HUD manager for closing pages when match starts.
+     */
+    public void setHudManager(HudManager hudManager) {
+        this.hudManager = hudManager;
     }
 
     /**
@@ -249,6 +259,17 @@ public class Matchmaker {
             if (player == null) {
                 System.err.println("[Matchmaker] Player " + entry.getPlayerName() + " component not found");
                 continue;
+            }
+
+            // Close any active page (like QueueStatusPage) before adding to match
+            if (hudManager != null) {
+                hudManager.closeActivePage(playerUuid);
+            }
+            // Also clear the page UI itself
+            try {
+                player.getPageManager().setPage(entityRef, store, Page.None);
+            } catch (Exception e) {
+                // Page might already be closed
             }
 
             // Add player to match via MatchManager (with kit from queue entry)

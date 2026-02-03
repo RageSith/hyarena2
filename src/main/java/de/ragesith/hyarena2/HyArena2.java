@@ -155,6 +155,7 @@ public class HyArena2 extends JavaPlugin {
             scheduler, this::getOnlinePlayerCount
         );
         this.matchManager.setHudManager(hudManager);
+        this.matchmaker.setHudManager(hudManager);
 
         // Subscribe to queue events for HUD management
         subscribeToQueueEvents();

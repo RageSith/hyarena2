@@ -60,6 +60,7 @@ public class Match {
     private final Set<UUID> arrivedPlayers; // Players who have completed teleport to arena
     private MatchState state;
     private int tickCount;
+    private int waitingTicks; // Ticks spent in WAITING state
     private int countdownTicks;
     private int victoryDelayTicks;
     private List<UUID> winners;
@@ -69,6 +70,7 @@ public class Match {
     private static final int VICTORY_DELAY_SECONDS = 3;
     private static final int SPAWN_IMMUNITY_MS = 3000; // 3 seconds immunity after spawn
     private static final int[] TIME_WARNINGS = {60, 30, 10, 5, 4, 3, 2, 1}; // Seconds remaining for warnings
+    private static final int WAITING_TIMEOUT_SECONDS = 30; // Cancel match if stuck in WAITING for too long
 
     public Match(Arena arena, GameMode gameMode, EventBus eventBus, HubManager hubManager, KitManager kitManager) {
         this.matchId = UUID.randomUUID();
@@ -81,6 +83,7 @@ public class Match {
         this.arrivedPlayers = ConcurrentHashMap.newKeySet();
         this.state = MatchState.WAITING;
         this.tickCount = 0;
+        this.waitingTicks = 0;
         this.countdownTicks = 0;
         this.victoryDelayTicks = 0;
         this.winners = new ArrayList<>();
@@ -719,6 +722,9 @@ public class Match {
      */
     public void tick() {
         switch (state) {
+            case WAITING:
+                tickWaiting();
+                break;
             case STARTING:
                 tickStarting();
                 break;
@@ -728,6 +734,16 @@ public class Match {
             case ENDING:
                 tickEnding();
                 break;
+        }
+    }
+
+    private void tickWaiting() {
+        waitingTicks++;
+
+        // Cancel if waiting too long (e.g., player disconnect during teleport)
+        if (waitingTicks >= WAITING_TIMEOUT_SECONDS * TICKS_PER_SECOND) {
+            System.out.println("[Match] Waiting timeout - cancelling match " + matchId);
+            cancel("Timed out waiting for players");
         }
     }
 
