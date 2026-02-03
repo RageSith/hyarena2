@@ -44,6 +44,13 @@ public class Matchmaker {
     // Key: arenaId, Value: timestamp when first player queued
     private final Map<String, Long> autoFillStartTimes = new ConcurrentHashMap<>();
 
+    // Track when match became ready (3 second countdown before teleport)
+    // Key: arenaId, Value: timestamp when match ready countdown started
+    private final Map<String, Long> matchReadyStartTimes = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> matchReadyUseAutoFill = new ConcurrentHashMap<>();
+
+    private static final int MATCH_READY_DELAY_SECONDS = 3;
+
     public Matchmaker(QueueManager queueManager, MatchManager matchManager, EventBus eventBus) {
         this.queueManager = queueManager;
         this.matchManager = matchManager;
@@ -69,7 +76,7 @@ public class Matchmaker {
 
     /**
      * Checks a specific arena and creates a match if possible.
-     * Implements wait-for-players logic and auto-fill with bots.
+     * Implements wait-for-players logic, auto-fill with bots, and match ready countdown.
      */
     private void checkAndCreateMatch(Arena arena) {
         String arenaId = arena.getId();
@@ -84,6 +91,8 @@ public class Matchmaker {
             // Arena busy - clear waiting states since we can't start anyway
             waitingStartTimes.remove(arenaId);
             autoFillStartTimes.remove(arenaId);
+            matchReadyStartTimes.remove(arenaId);
+            matchReadyUseAutoFill.remove(arenaId);
             return;
         }
 
@@ -91,6 +100,23 @@ public class Matchmaker {
         if (queueSize == 0) {
             waitingStartTimes.remove(arenaId);
             autoFillStartTimes.remove(arenaId);
+            matchReadyStartTimes.remove(arenaId);
+            matchReadyUseAutoFill.remove(arenaId);
+            return;
+        }
+
+        // Check if we're in match ready countdown
+        Long matchReadyStart = matchReadyStartTimes.get(arenaId);
+        if (matchReadyStart != null) {
+            long elapsedMs = System.currentTimeMillis() - matchReadyStart;
+            if (elapsedMs >= MATCH_READY_DELAY_SECONDS * 1000L) {
+                // Match ready countdown finished - create the match
+                boolean useAutoFill = matchReadyUseAutoFill.getOrDefault(arenaId, false);
+                matchReadyStartTimes.remove(arenaId);
+                matchReadyUseAutoFill.remove(arenaId);
+                createMatchWithPlayers(arena, useAutoFill);
+            }
+            // Still in countdown, don't process further
             return;
         }
 
@@ -157,8 +183,10 @@ public class Matchmaker {
             return;
         }
 
-        // Create the match
-        createMatchWithPlayers(arena, useAutoFill);
+        // Start the match ready countdown (3 seconds before teleport)
+        matchReadyStartTimes.put(arenaId, System.currentTimeMillis());
+        matchReadyUseAutoFill.put(arenaId, useAutoFill);
+        System.out.println("[Matchmaker] Arena " + arenaId + ": match ready countdown started (" + MATCH_READY_DELAY_SECONDS + "s)");
     }
 
     /**
@@ -326,8 +354,17 @@ public class Matchmaker {
             }
         }
 
+        // Calculate match ready countdown
+        int matchReadyCountdown = -1;
+        Long matchReadyStart = matchReadyStartTimes.get(arenaId);
+        if (matchReadyStart != null) {
+            long elapsedMs = System.currentTimeMillis() - matchReadyStart;
+            long remainingMs = (MATCH_READY_DELAY_SECONDS * 1000L) - elapsedMs;
+            matchReadyCountdown = Math.max(0, (int) Math.ceil(remainingMs / 1000.0));
+        }
+
         return new MatchmakingInfo(queueSize, minPlayers, maxPlayers, playersNeeded, avgTime,
-            remainingWaitSeconds, autoFillRemainingSeconds, config.isAutoFillEnabled());
+            remainingWaitSeconds, autoFillRemainingSeconds, config.isAutoFillEnabled(), matchReadyCountdown);
     }
 
     /**
@@ -342,10 +379,11 @@ public class Matchmaker {
         private final int remainingWaitSeconds; // -1 if not in waiting phase
         private final int autoFillRemainingSeconds; // -1 if not in auto-fill countdown
         private final boolean autoFillEnabled;
+        private final int matchReadyCountdown; // -1 if not in match ready countdown
 
         public MatchmakingInfo(int queueSize, int minPlayers, int maxPlayers, int playersNeeded,
                                String averageQueueTime, int remainingWaitSeconds,
-                               int autoFillRemainingSeconds, boolean autoFillEnabled) {
+                               int autoFillRemainingSeconds, boolean autoFillEnabled, int matchReadyCountdown) {
             this.queueSize = queueSize;
             this.minPlayers = minPlayers;
             this.maxPlayers = maxPlayers;
@@ -354,6 +392,7 @@ public class Matchmaker {
             this.remainingWaitSeconds = remainingWaitSeconds;
             this.autoFillRemainingSeconds = autoFillRemainingSeconds;
             this.autoFillEnabled = autoFillEnabled;
+            this.matchReadyCountdown = matchReadyCountdown;
         }
 
         public int getQueueSize() {
@@ -400,7 +439,19 @@ public class Matchmaker {
             return playersNeeded <= 0;
         }
 
+        public int getMatchReadyCountdown() {
+            return matchReadyCountdown;
+        }
+
+        public boolean isMatchReady() {
+            return matchReadyCountdown >= 0;
+        }
+
         public String getStatusMessage() {
+            // Highest priority: match ready countdown
+            if (isMatchReady()) {
+                return "Match ready in " + matchReadyCountdown + "...";
+            }
             if (isWaitingForMorePlayers()) {
                 return "Starting in " + remainingWaitSeconds + "s";
             }
