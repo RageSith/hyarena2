@@ -72,8 +72,17 @@ public class KillDetectionSystem extends DamageEventSystem {
                 return;
             }
 
+            // Get participant
+            var participant = match.getParticipant(victimUuid);
+
             // Check if victim is alive in match
-            if (!match.getParticipant(victimUuid).isAlive()) {
+            if (!participant.isAlive()) {
+                damage.setCancelled(true);
+                return;
+            }
+
+            // Check immunity (respawn protection)
+            if (participant.isImmune()) {
                 damage.setCancelled(true);
                 return;
             }

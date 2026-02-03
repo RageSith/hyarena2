@@ -24,6 +24,7 @@ public class PlayerParticipant implements Participant {
     private int deaths;
     private double damageDealt;
     private double damageTaken;
+    private volatile long immunityEndTime = 0;
 
     public PlayerParticipant(UUID playerUuid, String playerName) {
         this.playerUuid = playerUuid;
@@ -148,5 +149,15 @@ public class PlayerParticipant implements Participant {
         // Check if player is online without accessing entity store (thread-safe)
         PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
         return playerRef != null;
+    }
+
+    @Override
+    public void grantImmunity(long durationMs) {
+        this.immunityEndTime = System.currentTimeMillis() + durationMs;
+    }
+
+    @Override
+    public boolean isImmune() {
+        return System.currentTimeMillis() < immunityEndTime;
     }
 }

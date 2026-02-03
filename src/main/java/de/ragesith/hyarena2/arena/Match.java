@@ -59,6 +59,7 @@ public class Match {
 
     private static final int TICKS_PER_SECOND = 20;
     private static final int VICTORY_DELAY_SECONDS = 3;
+    private static final int SPAWN_IMMUNITY_MS = 3000; // 3 seconds immunity after spawn
 
     public Match(Arena arena, GameMode gameMode, EventBus eventBus, HubManager hubManager) {
         this.matchId = UUID.randomUUID();
@@ -279,6 +280,11 @@ public class Match {
 
         state = MatchState.IN_PROGRESS;
         tickCount = 0;
+
+        // Grant spawn immunity to all participants
+        for (Participant participant : getParticipants()) {
+            participant.grantImmunity(SPAWN_IMMUNITY_MS);
+        }
 
         // Unfreeze all players - fight begins!
         unfreezeAllParticipants();

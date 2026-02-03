@@ -82,4 +82,16 @@ public interface Participant {
      * @return true if the participant is still valid (player online or bot active)
      */
     boolean isValid();
+
+    /**
+     * Grants temporary immunity from damage.
+     * @param durationMs Duration of immunity in milliseconds
+     */
+    void grantImmunity(long durationMs);
+
+    /**
+     * Checks if this participant currently has immunity.
+     * @return true if immune to damage
+     */
+    boolean isImmune();
 }
