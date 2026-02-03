@@ -206,8 +206,11 @@ public class Match {
                         }
                     }
 
-                    // Heal to full health on next tick (armor stats need time to apply)
-                    arenaWorld.execute(() -> healPlayer(playerUuid, arenaWorld));
+                    // Heal to full health after a short delay (armor stats need time to apply)
+                    // Using 200ms delay to ensure all armor stats are computed
+                    CompletableFuture.delayedExecutor(200, TimeUnit.MILLISECONDS).execute(() -> {
+                        arenaWorld.execute(() -> healPlayer(playerUuid, arenaWorld));
+                    });
 
                     // Mark player as arrived in arena
                     arrivedPlayers.add(playerUuid);
