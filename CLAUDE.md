@@ -66,20 +66,18 @@ Key reference files in old project:
 - [x] Test commands: /tmarenas, /tmcreate, /tmjoin, /tmstart, /tmlist, /tmleave, /tmcancel
 
 **Phase 2 polish TODOs:**
-- [ ] Freeze player movement during STARTING countdown
-- [ ] Respawn immunity period after teleport
+- [x] Freeze player movement during STARTING countdown
+- [x] Spawn immunity period (3s) when match begins
 - [ ] Better spawn point assignment (face opponent)
-- [ ] Test full 2-player match flow (kill → winner → teleport back)
+- [x] Test full 2-player match flow (kill → winner → teleport back)
 
 ### Phase 3: Queue System - COMPLETE
 - [x] Queue events (PlayerQueuedEvent, PlayerLeftQueueEvent, QueueMatchFoundEvent)
 - [x] QueueEntry data class
 - [x] QueueManager - per-arena queues, join/leave, cooldowns, hub-only validation
 - [x] Matchmaker - periodic tick, countdown timers, auto-match creation
-- [x] HUD templates (QueueHud.ui, LobbyHud.ui)
-- [x] QueueHud - shows queue status, auto-refresh
-- [x] LobbyHud - shows server stats (online, queue, in-game, avg wait)
-- [x] HudManager - tracks and manages HUDs per player
+- [x] Combined LobbyHud - top bar (server stats) + bottom bar (queue info, auto-shown when in queue)
+- [x] HudManager - tracks LobbyHud lifecycle
 - [x] EmptyHud - placeholder for clearing HUDs
 - [x] Test commands: /tqjoin <arenaId>, /tqleave
 - [x] isArenaInUse() method in MatchManager
