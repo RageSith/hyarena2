@@ -1,0 +1,12 @@
+{
+  "Groups": {
+    "Hostile": [
+      "Player",
+      "Arena_Bot",
+      "Blook_Skeleton_Pirate_Gunner_Blunderbuss",
+      "Blook_Skeleton_Pirate_Gunner",
+      "Blook_Skeleton_Pirate_Sailor",
+      "Blook_Skeleton_Pirate_Captain"
+    ]
+  }
+}

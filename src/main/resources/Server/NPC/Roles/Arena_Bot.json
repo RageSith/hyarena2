@@ -1,0 +1,56 @@
+{
+  "Type": "Variant",
+  "Reference": "Template_Intelligent",
+  "DefaultNPCAttitude": "Hostile",
+  "DisableDamageGroups": ["Self"],
+  "Modify": {
+    "Appearance": "Arena_Bot",
+    "MaxHealth": 100,
+    "DefaultPlayerAttitude": "Hostile",
+    "HearingRange": 100,
+    "ViewRange": 100,
+    "ViewSector": 360,
+    "DropList": "Empty",
+    "Weapons": [
+      "Weapon_Sword_Stone_Trork"
+    ],
+    "Attack": "Root_NPC_Attack_Melee",
+    "AttackDistance": 3,
+    "DesiredAttackDistanceRange": [
+      1.5,
+      2.5
+    ],
+    "IsMemory": false,
+    "BreathesInWater": false
+  },
+  "Parameters": {
+    "SmellRange": {
+      "Value": 100,
+      "Description": "Extended detection range for arena"
+    },
+    "AlertedRange": {
+      "Value": 150,
+      "Description": "Extended pursuit range for arena"
+    },
+    "LeashDistance": {
+      "Value": 500,
+      "Description": "Large leash - don't return to spawn"
+    },
+    "LeashMinPlayerDistance": {
+      "Value": 1,
+      "Description": "Never give up chase"
+    },
+    "LeashTimer": {
+      "Value": [ 60, 60 ],
+      "Description": "Long timer before giving up"
+    },
+    "AlertedTime": {
+      "Value": [ 0.5, 1 ],
+      "Description": "Quick reaction for arena"
+    },
+    "NameTranslationKey": {
+      "Value": "server.npcRoles.Arena_Bot.name",
+      "Description": "Translation key for arena bot name"
+    }
+  }
+}

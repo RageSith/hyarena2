@@ -1,0 +1,23 @@
+{
+  "Type": "Variant",
+  "Reference": "Template_Goblin_Lobber",
+  "DefaultNPCAttitude": "Hostile",
+  "DisableDamageGroups": ["Self"],
+  "Modify": {
+    "Appearance": "Blook_Human_Pirate_Gunner",
+    "_CombatConfig": "CAE_Goblin_Lobber",
+    "MaxHealth": 44,
+    "IsMemory": false,
+    "MemoriesCategory": "Other",
+    "MemoriesNameOverride": "Goblin_Lobber",
+    "NameTranslationKey": {
+      "Compute": "NameTranslationKey"
+    }
+  },
+  "Parameters": {
+    "NameTranslationKey": {
+      "Value": "BlooksPirates.npcRoles.Blook_Human_Pirate_Gunner.name",
+      "Description": "Translation key for NPC name display"
+    }
+  }
+}

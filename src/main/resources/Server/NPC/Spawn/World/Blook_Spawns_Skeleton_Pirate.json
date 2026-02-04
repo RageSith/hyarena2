@@ -1,0 +1,45 @@
+{
+  "Environments": [
+    "Env_Zone3_Shores"
+  ],
+  "NPCs": [
+    {
+      "Weight": 4,
+      "SpawnBlockSet": "Blook_BlockSet_Pebbles",
+      "Id": "Blook_Skeleton_Pirate_Captain",
+      "Flock": {
+        "Size": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "Weight": 7,
+      "SpawnBlockSet": "Blook_BlockSet_Pebbles",
+      "Id": "Blook_Skeleton_Pirate_Sailor",
+      "Flock": {
+        "Size": [
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "Weight": 2,
+      "SpawnBlockSet": "Blook_BlockSet_Pebbles",
+      "Id": "Blook_Skeleton_Pirate_Gunner_Blunderbuss",
+      "Flock": {
+        "Size": [
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "Id": "Blook_Skeleton_Pirate_Gunner",
+      "Weight": 3,
+      "SpawnBlockSet": "Blook_BlockSet_Pebbles"
+    }
+  ]
+}

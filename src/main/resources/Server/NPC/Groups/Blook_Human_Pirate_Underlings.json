@@ -1,0 +1,8 @@
+{
+  "IncludeGroups": [
+    "Blook_Human_Pirate"
+  ],
+  "ExcludeGroups": [
+    "Blook_Human_Pirate_Captain"
+  ]
+}

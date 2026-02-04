@@ -1,0 +1,84 @@
+{
+  "Type": "Variant",
+  "Reference": "Template_Intelligent",
+  "DefaultNPCAttitude": "Hostile",
+  "DisableDamageGroups": ["Self"],
+  "Parameters": {
+    "WanderRadius": {
+      "Value": 4,
+      "Description": "General wander radius for idle wander and wander on the break."
+    },
+    "FollowPatrolPath": {
+      "Value": false,
+      "Description": "Whether this NPC will follow patrol paths at all."
+    },
+    "Patrol": {
+      "Value": false,
+      "Description": "Whether or not this NPC will patrol during its waking hours, either alone or as part of a group."
+    },
+    "FlockArray": {
+      "Value": [
+        "Blook_Human_Pirate_Captain",
+        "Blook_Human_Pirate_Sailor",
+        "Blook_Human_Pirate_Gunner_Blunderbuss"
+      ],
+      "TypeHint": "String",
+      "Description": "Array containing NPCs for this flock type."
+    },
+    "ApplySeparation": {
+      "Value": true,
+      "Description": "When set to false, NPCs wont try to avoid each other or player, it can lead to them stacking together, but can help to avoid jerky-like movemenet in enclosed space."
+    },
+    "NameTranslationKey": {
+      "Value": "BlooksPirates.npcRoles.Blook_Human_Pirate_Gunner.name",
+      "Description": "Translation key for NPC name display"
+    }
+  },
+  "Modify": {
+    "MaxHealth": 40,
+    "HearingRange": 8,
+    "ViewSector": 270,
+    "WakingPeriod": [
+      0,
+      24
+    ],
+    "DropList": "Blook_Drop_Human_Pirate_Main",
+    "Appearance": "Blook_Human_Pirate_Sailor_Blue",
+    "Weapons": [
+      "Weapon_Gun_Blunderbuss"
+    ],
+    "FlockArray": {
+      "Compute": "FlockArray"
+    },
+    "FollowPatrolPath": {
+      "Compute": "FollowPatrolPath"
+    },
+    "Patrol": {
+      "Compute": "Patrol"
+    },
+    "WanderRadius": {
+      "Compute": "WanderRadius"
+    },
+    "Attack": "Skeleton_Pirate_Gunner_Gun_Shoot",
+    "CombatBackOffAfterAttack": false,
+    "AttackDistance": 15,
+    "CombatFleeIfTooCloseDistance": 4,
+    "DesiredAttackDistanceRange": [
+      5,
+      14.5
+    ],
+    "CombatBehaviorDistance": 15,
+    "TargetRange": 15,
+    "LeashMinPlayerDistance": 18,
+    "ApplySeparation": {
+      "Compute": "ApplySeparation"
+    },
+    "IsMemory": false,
+    "MemoriesCategory": "Other",
+    "MemoriesNameOverride": "Skeleton_Pirate_Gunner",
+    "BreathesInWater": false,
+    "NameTranslationKey": {
+      "Compute": "NameTranslationKey"
+    }
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "Parent": "Player",
+  "Model": "NPC/Intelligent/Trork/Models/Model.blockymodel",
+  "Texture": "NPC/Intelligent/Trork/Models/Model_Textures/Turquoise.png",
+  "EyeHeight": 1.7,
+  "HitBox": {
+    "Max": {
+      "X": 0.5,
+      "Y": 1.9,
+      "Z": 0.5
+    },
+    "Min": {
+      "X": -0.5,
+      "Y": 0,
+      "Z": -0.5
+    }
+  },
+  "DefaultAttachments": [
+    {
+      "Model": "NPC/Intelligent/Trork/Models/Attachments/Eyes/Eyes.blockymodel",
+      "Texture": "NPC/Intelligent/Trork/Models/Attachments/Eyes/Eyes_Textures/Orange.png"
+    },
+    {
+      "Model": "NPC/Intelligent/Trork/Models/Attachments/Eyebrows/Eyebrows.blockymodel",
+      "Texture": "NPC/Intelligent/Trork/Models/Attachments/Eyebrows/Eyebrows_Textures/Brown.png"
+    },
+    {
+      "Model": "NPC/Intelligent/Trork/Models/Attachments/Haircuts/Samurai.blockymodel",
+      "Texture": "NPC/Intelligent/Trork/Models/Attachments/Haircuts/Samurai_Textures/Brown.png"
+    },
+    {
+      "Model": "NPC/Intelligent/Trork/Models/Attachments/Sentry/Chest.blockymodel",
+      "Texture": "NPC/Intelligent/Trork/Models/Attachments/Sentry/Chest_Texture.png"
+    }
+  ],
+  "AnimationSets": {
+    "Idle": {
+      "Animations": [
+        {
+          "Animation": "NPC/Intelligent/Trork/Animations/Default/Idle.blockyanim",
+          "Speed": 0.5
+        }
+      ]
+    },
+    "Walk": {
+      "Animations": [
+        {
+          "Animation": "NPC/Intelligent/Trork/Animations/Default/Walk.blockyanim"
+        }
+      ]
+    },
+    "Run": {
+      "Animations": [
+        {
+          "Animation": "NPC/Intelligent/Trork/Animations/Default/Run.blockyanim"
+        }
+      ]
+    },
+    "Hurt": {
+      "Animations": [
+        {
+          "Animation": "NPC/Intelligent/Trork/Animations/Damage/Hurt.blockyanim",
+          "BlendingDuration": 0.1,
+          "Looping": false
+        }
+      ]
+    },
+    "Death": {
+      "Animations": [
+        {
+          "Animation": "NPC/Intelligent/Trork/Animations/Damage/Death.blockyanim",
+          "Looping": false
+        }
+      ]
+    },
+    "Alerted": {
+      "Animations": [
+        {
+          "Animation": "NPC/Intelligent/Trork/Animations/Default/Alerted.blockyanim",
+          "Looping": false
+        }
+      ]
+    }
+  },
+  "MinScale": 1.0,
+  "MaxScale": 1.0
+}

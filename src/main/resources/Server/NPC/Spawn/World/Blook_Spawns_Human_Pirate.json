@@ -1,0 +1,43 @@
+{
+  "Environments": [
+    "Env_Zone2_Shores"
+  ],
+  "NPCs": [
+    {
+      "Id": "Crab",
+      "Weight": 12,
+      "SpawnBlockSet": "Sand"
+    },
+    {
+      "Weight": 7,
+      "SpawnBlockSet": "Sand",
+      "Id": "Blook_Human_Pirate_Sailor",
+      "Flock": {
+        "Size": [
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "Weight": 3,
+      "SpawnBlockSet": "Sand",
+      "Id": "Blook_Human_Pirate_Gunner_Blunderbuss",
+      "Flock": {
+        "Size": [
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "Id": "Blook_Human_Pirate_Gunner",
+      "Weight": 3,
+      "SpawnBlockSet": "Sand"
+    }
+  ],
+  "DayTimeRange": [
+    7,
+    18
+  ]
+}
