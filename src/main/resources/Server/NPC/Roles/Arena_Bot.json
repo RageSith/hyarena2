@@ -1,12 +1,9 @@
 {
   "Type": "Variant",
   "Reference": "Template_Intelligent",
-  "DefaultNPCAttitude": "Hostile",
-  "DisableDamageGroups": ["Self"],
   "Modify": {
     "Appearance": "Arena_Bot",
     "MaxHealth": 100,
-    "DefaultPlayerAttitude": "Hostile",
     "HearingRange": 100,
     "ViewRange": 100,
     "ViewSector": 360,

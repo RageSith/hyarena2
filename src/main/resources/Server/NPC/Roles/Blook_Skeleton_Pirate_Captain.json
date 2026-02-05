@@ -1,8 +1,6 @@
 {
   "Type": "Variant",
   "Reference": "Template_Intelligent",
-  "DefaultNPCAttitude": "Hostile",
-  "DisableDamageGroups": ["Self"],
   "Parameters": {
     "WanderRadius": {
       "Value": 4,
