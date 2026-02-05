@@ -75,6 +75,14 @@ public class QueueStatusPage extends InteractiveCustomUIPage<QueueStatusPage.Pag
         // Populate initial content
         updateContent(cmd);
 
+        // Bind close button
+        events.addEventBinding(
+            CustomUIEventBindingType.Activating,
+            "#CloseButton",
+            EventData.of("Action", "close"),
+            false
+        );
+
         // Bind leave queue button
         events.addEventBinding(
             CustomUIEventBindingType.Activating,
@@ -215,14 +223,21 @@ public class QueueStatusPage extends InteractiveCustomUIPage<QueueStatusPage.Pag
             return;
         }
 
-        if ("leave".equals(data.action)) {
+        Player player = store.getComponent(ref, Player.getComponentType());
+
+        if ("close".equals(data.action)) {
+            // Just close the page without leaving queue
+            shutdown();
+            if (player != null) {
+                player.getPageManager().setPage(ref, store, Page.None);
+            }
+        } else if ("leave".equals(data.action)) {
             // Leave the queue
             queueManager.leaveQueue(playerUuid, "Player left via UI");
 
             // Close the page
             shutdown();
 
-            Player player = store.getComponent(ref, Player.getComponentType());
             if (player != null) {
                 player.getPageManager().setPage(ref, store, Page.None);
             }

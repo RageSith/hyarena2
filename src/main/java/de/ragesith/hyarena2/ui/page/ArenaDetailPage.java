@@ -107,6 +107,13 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
         // Event bindings
         events.addEventBinding(
             CustomUIEventBindingType.Activating,
+            "#CloseButton",
+            EventData.of("Action", "close"),
+            false
+        );
+
+        events.addEventBinding(
+            CustomUIEventBindingType.Activating,
             "#BackButton",
             EventData.of("Action", "back"),
             false
@@ -288,6 +295,13 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
         // Handle actions
         if (data.action != null) {
             switch (data.action) {
+                case "close":
+                    stopAutoRefresh();
+                    if (player != null) {
+                        player.getPageManager().setPage(ref, store, Page.None);
+                    }
+                    break;
+
                 case "back":
                     stopAutoRefresh();
                     if (onBack != null) {

@@ -84,6 +84,14 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
         // Populate arena list
         populateArenas(cmd);
 
+        // Bind close button event
+        events.addEventBinding(
+            CustomUIEventBindingType.Activating,
+            "#CloseButton",
+            EventData.of("Action", "close"),
+            false
+        );
+
         // Bind arena button events
         for (int i = 0; i < MAX_ARENAS && i < arenaList.size(); i++) {
             Arena arena = arenaList.get(i);
@@ -242,6 +250,17 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
             return;
         }
 
+        Player player = store.getComponent(ref, Player.getComponentType());
+
+        // Handle close action
+        if ("close".equals(data.action)) {
+            stopAutoRefresh();
+            if (player != null) {
+                player.getPageManager().setPage(ref, store, Page.None);
+            }
+            return;
+        }
+
         // Handle arena selection
         if (data.arena != null) {
             stopAutoRefresh();
@@ -252,7 +271,6 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
             }
 
             // Open arena detail page
-            Player player = store.getComponent(ref, Player.getComponentType());
             if (player != null) {
                 ArenaDetailPage detailPage = new ArenaDetailPage(
                     playerRef, playerUuid, arena,
@@ -290,10 +308,13 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
     }
 
     public static class PageEventData {
+        public String action;
         public String arena;
 
         public static final BuilderCodec<PageEventData> CODEC =
             BuilderCodec.builder(PageEventData.class, PageEventData::new)
+                .append(new KeyedCodec<>("Action", Codec.STRING),
+                    (d, v) -> d.action = v, d -> d.action).add()
                 .append(new KeyedCodec<>("Arena", Codec.STRING),
                     (d, v) -> d.arena = v, d -> d.arena).add()
                 .build();
