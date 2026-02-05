@@ -27,13 +27,31 @@ import java.util.UUID;
  * - Cancels all damage outside matches (prevents hub PvP, countdown damage, etc.)
  * - Detects kills and notifies the match
  * - Handles both player and bot victims/attackers
+ * - Grants SignatureEnergy to attackers when damage is cancelled (compensates for bypassed weapon mechanics)
  */
 public class KillDetectionSystem extends DamageEventSystem {
     private final MatchManager matchManager;
     private BotManager botManager;
 
+    // Signature Energy amount to add when hitting a bot or dealing fatal damage
+    // This compensates for cancelled damage not triggering normal weapon signature charge
+    private static final float SIGNATURE_ENERGY_PER_HIT = 2.5f;
+
+    // Cache the SignatureEnergy stat index
+    private int signatureEnergyIndex = -1;
+
     public KillDetectionSystem(MatchManager matchManager) {
         this.matchManager = matchManager;
+    }
+
+    /**
+     * Gets the SignatureEnergy stat index, caching it on first use.
+     */
+    private int getSignatureEnergyIndex() {
+        if (signatureEnergyIndex == -1) {
+            signatureEnergyIndex = EntityStatType.getAssetMap().getIndex("SignatureEnergy");
+        }
+        return signatureEnergyIndex;
     }
 
     /**
@@ -128,7 +146,8 @@ public class KillDetectionSystem extends DamageEventSystem {
             return;
         }
 
-        // Get attacker UUID (player or bot)
+        // Get attacker info (UUID and entity ref for signature energy)
+        Ref<EntityStore> attackerEntityRef = getAttackerEntityRef(damage.getSource());
         UUID attackerUuid = getAttackerUuid(damage.getSource(), store);
 
         // Get victim's current health
@@ -154,6 +173,11 @@ public class KillDetectionSystem extends DamageEventSystem {
             // Cancel damage to prevent death screen
             damage.setCancelled(true);
 
+            // Grant signature energy to attacker since damage was cancelled
+            if (attackerEntityRef != null) {
+                grantSignatureEnergy(attackerEntityRef, store);
+            }
+
             // Restore health to max
             float maxHealth = healthStat.getMax();
             stats.setStatValue(healthIndex, maxHealth);
@@ -175,7 +199,7 @@ public class KillDetectionSystem extends DamageEventSystem {
                 match.end();
             }
         } else {
-            // Non-fatal damage - record it
+            // Non-fatal damage - record it (damage is NOT cancelled, so normal signature charge applies)
             match.recordDamage(victimUuid, attackerUuid, damageAmount);
         }
     }
@@ -206,7 +230,8 @@ public class KillDetectionSystem extends DamageEventSystem {
             return;
         }
 
-        // Get attacker UUID (player or bot)
+        // Get attacker info (UUID and entity ref for signature energy)
+        Ref<EntityStore> attackerEntityRef = getAttackerEntityRef(damage.getSource());
         UUID attackerUuid = getAttackerUuid(damage.getSource(), store);
 
         float damageAmount = damage.getAmount();
@@ -224,6 +249,14 @@ public class KillDetectionSystem extends DamageEventSystem {
 
         // Cancel the actual Hytale damage (we handle it internally)
         damage.setCancelled(true);
+
+        // Grant signature energy to player attacker since damage was cancelled
+        if (attackerEntityRef != null) {
+            Player attackerPlayer = store.getComponent(attackerEntityRef, Player.getComponentType());
+            if (attackerPlayer != null) {
+                grantSignatureEnergy(attackerEntityRef, store);
+            }
+        }
 
         // Record damage - use actual HP removed for fatal hits (not overkill damage)
         double actualDamage = died ? healthBeforeDamage : damageAmount;
@@ -274,5 +307,57 @@ public class KillDetectionSystem extends DamageEventSystem {
         }
 
         return null;
+    }
+
+    /**
+     * Gets the attacker entity reference from a damage source.
+     */
+    private Ref<EntityStore> getAttackerEntityRef(Damage.Source damageSource) {
+        if (!(damageSource instanceof Damage.EntitySource entitySource)) {
+            return null;
+        }
+
+        Ref<EntityStore> attackerRef = entitySource.getRef();
+        if (attackerRef == null || !attackerRef.isValid()) {
+            return null;
+        }
+
+        return attackerRef;
+    }
+
+    /**
+     * Grants Signature Energy to an attacking player.
+     * This compensates for cancelled damage not triggering normal weapon signature charge.
+     */
+    private void grantSignatureEnergy(Ref<EntityStore> playerRef, Store<EntityStore> store) {
+        try {
+            EntityStatMap stats = store.getComponent(playerRef,
+                EntityStatsModule.get().getEntityStatMapComponentType());
+
+            if (stats == null) {
+                return;
+            }
+
+            int sigEnergyIndex = getSignatureEnergyIndex();
+            if (sigEnergyIndex < 0) {
+                return;
+            }
+
+            // Check if the player has this stat
+            EntityStatValue sigEnergyStat = stats.get(sigEnergyIndex);
+            if (sigEnergyStat == null) {
+                return; // Player doesn't have SignatureEnergy stat
+            }
+
+            float currentValue = sigEnergyStat.get();
+            float maxValue = sigEnergyStat.getMax();
+
+            // Only add if not already at max
+            if (currentValue < maxValue) {
+                stats.addStatValue(sigEnergyIndex, SIGNATURE_ENERGY_PER_HIT);
+            }
+        } catch (Exception e) {
+            // Silently ignore - signature energy is optional
+        }
     }
 }
