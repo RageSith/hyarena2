@@ -5,7 +5,7 @@ Group #ArenaMenuPage {
 
     $C.@DecoratedContainer {
         @CloseButton = true;
-        Anchor: (Width: 600, Height: 580);
+        Anchor: (Width: 700, Height: 520);
 
         Group #Title {
             $C.@Title #TitleLabel {
@@ -17,376 +17,58 @@ Group #ArenaMenuPage {
         Group #Content {
             Padding: (Full: 20);
             Anchor: (Top: 35);
-            LayoutMode: Top;
+            LayoutMode: Left;
 
-            // Welcome Section
-            Group #WelcomeSection {
-                Anchor: (Height: 70);
+            // Left Column - Game Mode List
+            Group #LeftColumn {
+                Anchor: (Width: 200);
                 LayoutMode: Top;
 
-                Label #WelcomeTitle {
-                    Text: "Choose Your Battle";
-                    Anchor: (Height: 32);
-                    Style: (FontSize: 22, TextColor: #e8c872, Alignment: Center, RenderBold: true);
+                Label #GameModeHeader {
+                    Text: "Game Modes";
+                    Anchor: (Height: 24);
+                    Style: (FontSize: 16, TextColor: #e8c872, RenderBold: true);
                 }
 
-                Label #WelcomeSubtitle {
-                    Text: "Select an arena to view details and join the queue";
-                    Anchor: (Height: 22, Top: 4);
+                Group #GameModeList {
+                    Anchor: (Top: 6);
+                    FlexWeight: 1;
+                    LayoutMode: TopScrolling;
+                    ScrollbarStyle: $C.@DefaultScrollbarStyle;
+                }
+            }
+
+            // Vertical separator
+            $C.@VerticalSeparator {
+                Anchor: (Left: 12, Right: 12);
+            }
+
+            // Right Column - Arena List
+            Group #RightColumn {
+                FlexWeight: 1;
+                LayoutMode: Top;
+
+                // Header showing selected mode name
+                Label #SelectedModeName {
+                    Text: "All Arenas";
+                    Anchor: (Height: 24);
+                    Style: (FontSize: 16, TextColor: #e8c872, RenderBold: true);
+                }
+
+                // No arenas notice (hidden by default)
+                Label #NoArenasNotice {
+                    Text: "No arenas available for this game mode.";
+                    Anchor: (Height: 30, Top: 20);
+                    Visible: false;
                     Style: (FontSize: 14, TextColor: #96a9be, Alignment: Center);
                 }
-            }
 
-            $C.@ContentSeparator {
-                @Anchor = (Top: 10, Bottom: 10);
-            }
-
-            // No Arenas Notice
-            Label #NoArenasNotice {
-                Text: "There are currently no arenas available.";
-                Anchor: (Height: 30);
-                Visible: false;
-                Style: (FontSize: 16, TextColor: #96a9be, Alignment: Center);
-            }
-
-            // Arena List
-            Group #ArenaList {
-                Anchor: (Top: 10);
-                FlexWeight: 1;
-                LayoutMode: TopScrolling;
-                ScrollbarStyle: $C.@DefaultScrollbarStyle;
-
-                // Arena Button 0
-                Button #ArenaButton0 {
-                    Anchor: (Height: 80);
-                    Visible: false;
-                    Style: $C.@SecondaryButtonStyle;
-                    Padding: (Horizontal: 15, Vertical: 8);
-
-                    Group {
-                        LayoutMode: Top;
-                        Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
-
-                        // Title Row with name and status tag
-                        Group #TitleRow0 {
-                            Anchor: (Height: 24);
-                            LayoutMode: Left;
-
-                            Label #ArenaName0 {
-                                Text: "Arena Name";
-                                Anchor: (Height: 24);
-                                FlexWeight: 1;
-                                Style: (FontSize: 17, TextColor: #b7cedd, RenderBold: true, VerticalAlignment: Center);
-                            }
-
-                            Label #StatusTag0 {
-                                Text: "AVAILABLE";
-                                Anchor: (Width: 80, Height: 20);
-                                Visible: true;
-                                Style: (FontSize: 10, TextColor: #2ecc71, Alignment: Center, VerticalAlignment: Center, RenderBold: true, RenderUppercase: true);
-                            }
-                        }
-
-                        // Gamemode Row
-                        Label #GameMode0 {
-                            Text: "Duel | 2 Players";
-                            Anchor: (Height: 18, Top: 2);
-                            Style: (FontSize: 11, TextColor: #96a9be, VerticalAlignment: Center);
-                        }
-
-                        // Stats Row
-                        Group #StatsRow0 {
-                            Anchor: (Height: 20, Top: 4);
-                            LayoutMode: Left;
-
-                            Label #InQueue0 {
-                                Text: "In Queue: 0";
-                                Anchor: (Width: 90, Height: 20);
-                                Style: (FontSize: 12, TextColor: #3498db, VerticalAlignment: Center, RenderBold: true);
-                            }
-
-                            Label #InGame0 {
-                                Text: "In Game: 0";
-                                Anchor: (Width: 90, Height: 20, Left: 10);
-                                Style: (FontSize: 12, TextColor: #2ecc71, VerticalAlignment: Center, RenderBold: true);
-                            }
-                        }
-                    }
-                }
-
-                // Arena Button 1
-                Button #ArenaButton1 {
-                    Anchor: (Height: 80, Top: 8);
-                    Visible: false;
-                    Style: $C.@SecondaryButtonStyle;
-                    Padding: (Horizontal: 15, Vertical: 8);
-
-                    Group {
-                        LayoutMode: Top;
-                        Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
-
-                        Group #TitleRow1 {
-                            Anchor: (Height: 24);
-                            LayoutMode: Left;
-
-                            Label #ArenaName1 {
-                                Text: "Arena Name";
-                                Anchor: (Height: 24);
-                                FlexWeight: 1;
-                                Style: (FontSize: 17, TextColor: #b7cedd, RenderBold: true, VerticalAlignment: Center);
-                            }
-
-                            Label #StatusTag1 {
-                                Text: "AVAILABLE";
-                                Anchor: (Width: 80, Height: 20);
-                                Visible: true;
-                                Style: (FontSize: 10, TextColor: #2ecc71, Alignment: Center, VerticalAlignment: Center, RenderBold: true, RenderUppercase: true);
-                            }
-                        }
-
-                        Label #GameMode1 {
-                            Text: "Duel | 2 Players";
-                            Anchor: (Height: 18, Top: 2);
-                            Style: (FontSize: 11, TextColor: #96a9be, VerticalAlignment: Center);
-                        }
-
-                        Group #StatsRow1 {
-                            Anchor: (Height: 20, Top: 4);
-                            LayoutMode: Left;
-
-                            Label #InQueue1 {
-                                Text: "In Queue: 0";
-                                Anchor: (Width: 90, Height: 20);
-                                Style: (FontSize: 12, TextColor: #3498db, VerticalAlignment: Center, RenderBold: true);
-                            }
-
-                            Label #InGame1 {
-                                Text: "In Game: 0";
-                                Anchor: (Width: 90, Height: 20, Left: 10);
-                                Style: (FontSize: 12, TextColor: #2ecc71, VerticalAlignment: Center, RenderBold: true);
-                            }
-                        }
-                    }
-                }
-
-                // Arena Button 2
-                Button #ArenaButton2 {
-                    Anchor: (Height: 80, Top: 8);
-                    Visible: false;
-                    Style: $C.@SecondaryButtonStyle;
-                    Padding: (Horizontal: 15, Vertical: 8);
-
-                    Group {
-                        LayoutMode: Top;
-                        Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
-
-                        Group #TitleRow2 {
-                            Anchor: (Height: 24);
-                            LayoutMode: Left;
-
-                            Label #ArenaName2 {
-                                Text: "Arena Name";
-                                Anchor: (Height: 24);
-                                FlexWeight: 1;
-                                Style: (FontSize: 17, TextColor: #b7cedd, RenderBold: true, VerticalAlignment: Center);
-                            }
-
-                            Label #StatusTag2 {
-                                Text: "AVAILABLE";
-                                Anchor: (Width: 80, Height: 20);
-                                Visible: true;
-                                Style: (FontSize: 10, TextColor: #2ecc71, Alignment: Center, VerticalAlignment: Center, RenderBold: true, RenderUppercase: true);
-                            }
-                        }
-
-                        Label #GameMode2 {
-                            Text: "Duel | 2 Players";
-                            Anchor: (Height: 18, Top: 2);
-                            Style: (FontSize: 11, TextColor: #96a9be, VerticalAlignment: Center);
-                        }
-
-                        Group #StatsRow2 {
-                            Anchor: (Height: 20, Top: 4);
-                            LayoutMode: Left;
-
-                            Label #InQueue2 {
-                                Text: "In Queue: 0";
-                                Anchor: (Width: 90, Height: 20);
-                                Style: (FontSize: 12, TextColor: #3498db, VerticalAlignment: Center, RenderBold: true);
-                            }
-
-                            Label #InGame2 {
-                                Text: "In Game: 0";
-                                Anchor: (Width: 90, Height: 20, Left: 10);
-                                Style: (FontSize: 12, TextColor: #2ecc71, VerticalAlignment: Center, RenderBold: true);
-                            }
-                        }
-                    }
-                }
-
-                // Arena Button 3
-                Button #ArenaButton3 {
-                    Anchor: (Height: 80, Top: 8);
-                    Visible: false;
-                    Style: $C.@SecondaryButtonStyle;
-                    Padding: (Horizontal: 15, Vertical: 8);
-
-                    Group {
-                        LayoutMode: Top;
-                        Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
-
-                        Group #TitleRow3 {
-                            Anchor: (Height: 24);
-                            LayoutMode: Left;
-
-                            Label #ArenaName3 {
-                                Text: "Arena Name";
-                                Anchor: (Height: 24);
-                                FlexWeight: 1;
-                                Style: (FontSize: 17, TextColor: #b7cedd, RenderBold: true, VerticalAlignment: Center);
-                            }
-
-                            Label #StatusTag3 {
-                                Text: "AVAILABLE";
-                                Anchor: (Width: 80, Height: 20);
-                                Visible: true;
-                                Style: (FontSize: 10, TextColor: #2ecc71, Alignment: Center, VerticalAlignment: Center, RenderBold: true, RenderUppercase: true);
-                            }
-                        }
-
-                        Label #GameMode3 {
-                            Text: "Duel | 2 Players";
-                            Anchor: (Height: 18, Top: 2);
-                            Style: (FontSize: 11, TextColor: #96a9be, VerticalAlignment: Center);
-                        }
-
-                        Group #StatsRow3 {
-                            Anchor: (Height: 20, Top: 4);
-                            LayoutMode: Left;
-
-                            Label #InQueue3 {
-                                Text: "In Queue: 0";
-                                Anchor: (Width: 90, Height: 20);
-                                Style: (FontSize: 12, TextColor: #3498db, VerticalAlignment: Center, RenderBold: true);
-                            }
-
-                            Label #InGame3 {
-                                Text: "In Game: 0";
-                                Anchor: (Width: 90, Height: 20, Left: 10);
-                                Style: (FontSize: 12, TextColor: #2ecc71, VerticalAlignment: Center, RenderBold: true);
-                            }
-                        }
-                    }
-                }
-
-                // Arena Button 4
-                Button #ArenaButton4 {
-                    Anchor: (Height: 80, Top: 8);
-                    Visible: false;
-                    Style: $C.@SecondaryButtonStyle;
-                    Padding: (Horizontal: 15, Vertical: 8);
-
-                    Group {
-                        LayoutMode: Top;
-                        Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
-
-                        Group #TitleRow4 {
-                            Anchor: (Height: 24);
-                            LayoutMode: Left;
-
-                            Label #ArenaName4 {
-                                Text: "Arena Name";
-                                Anchor: (Height: 24);
-                                FlexWeight: 1;
-                                Style: (FontSize: 17, TextColor: #b7cedd, RenderBold: true, VerticalAlignment: Center);
-                            }
-
-                            Label #StatusTag4 {
-                                Text: "AVAILABLE";
-                                Anchor: (Width: 80, Height: 20);
-                                Visible: true;
-                                Style: (FontSize: 10, TextColor: #2ecc71, Alignment: Center, VerticalAlignment: Center, RenderBold: true, RenderUppercase: true);
-                            }
-                        }
-
-                        Label #GameMode4 {
-                            Text: "Duel | 2 Players";
-                            Anchor: (Height: 18, Top: 2);
-                            Style: (FontSize: 11, TextColor: #96a9be, VerticalAlignment: Center);
-                        }
-
-                        Group #StatsRow4 {
-                            Anchor: (Height: 20, Top: 4);
-                            LayoutMode: Left;
-
-                            Label #InQueue4 {
-                                Text: "In Queue: 0";
-                                Anchor: (Width: 90, Height: 20);
-                                Style: (FontSize: 12, TextColor: #3498db, VerticalAlignment: Center, RenderBold: true);
-                            }
-
-                            Label #InGame4 {
-                                Text: "In Game: 0";
-                                Anchor: (Width: 90, Height: 20, Left: 10);
-                                Style: (FontSize: 12, TextColor: #2ecc71, VerticalAlignment: Center, RenderBold: true);
-                            }
-                        }
-                    }
-                }
-
-                // Arena Button 5
-                Button #ArenaButton5 {
-                    Anchor: (Height: 80, Top: 8);
-                    Visible: false;
-                    Style: $C.@SecondaryButtonStyle;
-                    Padding: (Horizontal: 15, Vertical: 8);
-
-                    Group {
-                        LayoutMode: Top;
-                        Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
-
-                        Group #TitleRow5 {
-                            Anchor: (Height: 24);
-                            LayoutMode: Left;
-
-                            Label #ArenaName5 {
-                                Text: "Arena Name";
-                                Anchor: (Height: 24);
-                                FlexWeight: 1;
-                                Style: (FontSize: 17, TextColor: #b7cedd, RenderBold: true, VerticalAlignment: Center);
-                            }
-
-                            Label #StatusTag5 {
-                                Text: "AVAILABLE";
-                                Anchor: (Width: 80, Height: 20);
-                                Visible: true;
-                                Style: (FontSize: 10, TextColor: #2ecc71, Alignment: Center, VerticalAlignment: Center, RenderBold: true, RenderUppercase: true);
-                            }
-                        }
-
-                        Label #GameMode5 {
-                            Text: "Duel | 2 Players";
-                            Anchor: (Height: 18, Top: 2);
-                            Style: (FontSize: 11, TextColor: #96a9be, VerticalAlignment: Center);
-                        }
-
-                        Group #StatsRow5 {
-                            Anchor: (Height: 20, Top: 4);
-                            LayoutMode: Left;
-
-                            Label #InQueue5 {
-                                Text: "In Queue: 0";
-                                Anchor: (Width: 90, Height: 20);
-                                Style: (FontSize: 12, TextColor: #3498db, VerticalAlignment: Center, RenderBold: true);
-                            }
-
-                            Label #InGame5 {
-                                Text: "In Game: 0";
-                                Anchor: (Width: 90, Height: 20, Left: 10);
-                                Style: (FontSize: 12, TextColor: #2ecc71, VerticalAlignment: Center, RenderBold: true);
-                            }
-                        }
-                    }
+                // Arena card list
+                Group #ArenaList {
+                    Anchor: (Top: 8);
+                    FlexWeight: 1;
+                    LayoutMode: TopScrolling;
+                    ScrollbarStyle: $C.@DefaultScrollbarStyle;
                 }
             }
         }

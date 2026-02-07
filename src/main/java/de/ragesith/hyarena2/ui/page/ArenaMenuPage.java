@@ -18,6 +18,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.arena.Arena;
 import de.ragesith.hyarena2.arena.Match;
 import de.ragesith.hyarena2.arena.MatchManager;
+import de.ragesith.hyarena2.gamemode.GameMode;
 import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.queue.QueueManager;
 import de.ragesith.hyarena2.ui.hud.HudManager;
@@ -32,12 +33,11 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Arena selection page showing all available arenas.
- * Players can click an arena to view details and join the queue.
+ * Arena selection page with two-column layout:
+ * - Left: scrollable list of game mode buttons (dynamic templates)
+ * - Right: arena cards filtered by selected game mode
  */
 public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEventData> implements CloseablePage {
-
-    private static final int MAX_ARENAS = 6;
 
     private final PlayerRef playerRef;
     private final UUID playerUuid;
@@ -51,14 +51,18 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
     private Ref<EntityStore> storedRef;
     private Store<EntityStore> storedStore;
 
-    // Arena list cached for event handling
-    private List<Arena> arenaList;
+    // Game mode entries: index 0 = "All", 1+ = specific game modes
+    private List<GameModeEntry> gameModeEntries;
+
+    // Current state
+    private int selectedModeIndex;
+    private List<Arena> filteredArenas;
 
     // Auto-refresh task
     private ScheduledFuture<?> refreshTask;
     private volatile boolean active = true;
 
-    // Previous refresh values for diff-based updates (avoid focus steal)
+    // Previous refresh values for diff-based updates
     private boolean[] lastInUse;
     private int[] lastQueueCount;
     private int[] lastInGameCount;
@@ -67,6 +71,13 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
                          MatchManager matchManager, QueueManager queueManager,
                          KitManager kitManager, HudManager hudManager,
                          ScheduledExecutorService scheduler) {
+        this(playerRef, playerUuid, matchManager, queueManager, kitManager, hudManager, scheduler, 0);
+    }
+
+    public ArenaMenuPage(PlayerRef playerRef, UUID playerUuid,
+                         MatchManager matchManager, QueueManager queueManager,
+                         KitManager kitManager, HudManager hudManager,
+                         ScheduledExecutorService scheduler, int selectedModeIndex) {
         super(playerRef, CustomPageLifetime.CantClose, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
@@ -75,7 +86,19 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
         this.kitManager = kitManager;
         this.hudManager = hudManager;
         this.scheduler = scheduler;
-        this.arenaList = new ArrayList<>(matchManager.getArenas());
+        this.selectedModeIndex = selectedModeIndex;
+
+        // Build game mode entries: "All" + each registered game mode
+        this.gameModeEntries = new ArrayList<>();
+        this.gameModeEntries.add(new GameModeEntry("all", "All"));
+        for (GameMode gm : matchManager.getGameModes()) {
+            this.gameModeEntries.add(new GameModeEntry(gm.getId(), gm.getDisplayName()));
+        }
+
+        // Clamp index
+        if (this.selectedModeIndex < 0 || this.selectedModeIndex >= gameModeEntries.size()) {
+            this.selectedModeIndex = 0;
+        }
     }
 
     @Override
@@ -86,27 +109,89 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
 
         cmd.append("Pages/ArenaMenuPage.ui");
 
-        // Populate arena list
-        populateArenas(cmd);
+        // Populate game mode list (left column)
+        for (int i = 0; i < gameModeEntries.size(); i++) {
+            GameModeEntry entry = gameModeEntries.get(i);
 
-        // Bind close button event
+            cmd.append("#GameModeList", "Pages/GameModeButton.ui");
+            String row = "#GameModeList[" + i + "]";
+
+            cmd.set(row + " #GMBtnName.Text", entry.displayName);
+
+            // Highlight selected mode with gold text
+            if (i == selectedModeIndex) {
+                cmd.set(row + " #GMBtnName.Style.TextColor", "#e8c872");
+            }
+
+            // Bind click event
+            events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                row,
+                EventData.of("Action", "mode").append("Index", String.valueOf(i)),
+                false
+            );
+        }
+
+        // Filter arenas by selected game mode
+        filteredArenas = filterArenas();
+
+        // Update header
+        if (selectedModeIndex == 0) {
+            cmd.set("#SelectedModeName.Text", "All Arenas");
+        } else {
+            cmd.set("#SelectedModeName.Text", gameModeEntries.get(selectedModeIndex).displayName);
+        }
+
+        // Show/hide no arenas notice
+        cmd.set("#NoArenasNotice.Visible", filteredArenas.isEmpty());
+
+        // Populate arena cards (right column)
+        for (int i = 0; i < filteredArenas.size(); i++) {
+            Arena arena = filteredArenas.get(i);
+
+            cmd.append("#ArenaList", "Pages/ArenaCard.ui");
+            String row = "#ArenaList[" + i + "]";
+
+            // Arena name
+            cmd.set(row + " #ArenaName.Text", arena.getDisplayName());
+
+            // Player count
+            cmd.set(row + " #PlayerCount.Text", MatchManager.formatPlayerCount(arena));
+
+            // Status tag
+            boolean inUse = matchManager.isArenaInUse(arena.getId());
+            if (inUse) {
+                cmd.set(row + " #StatusTag.Text", "IN USE");
+                cmd.set(row + " #StatusTag.Style.TextColor", "#e74c3c");
+            } else {
+                cmd.set(row + " #StatusTag.Text", "AVAILABLE");
+                cmd.set(row + " #StatusTag.Style.TextColor", "#2ecc71");
+            }
+
+            // Queue count
+            int queueCount = queueManager.getQueueSize(arena.getId());
+            cmd.set(row + " #InQueue.Text", "Queue: " + queueCount);
+
+            // In-game count
+            int inGameCount = getPlayersInArenaMatch(arena.getId());
+            cmd.set(row + " #InGame.Text", "In Game: " + inGameCount);
+
+            // Bind click event
+            events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                row,
+                EventData.of("Action", "arena").append("Arena", arena.getId()),
+                false
+            );
+        }
+
+        // Bind close button
         events.addEventBinding(
             CustomUIEventBindingType.Activating,
             "#CloseButton",
             EventData.of("Action", "close"),
             false
         );
-
-        // Bind arena button events
-        for (int i = 0; i < MAX_ARENAS && i < arenaList.size(); i++) {
-            Arena arena = arenaList.get(i);
-            events.addEventBinding(
-                CustomUIEventBindingType.Activating,
-                "#ArenaButton" + i,
-                EventData.of("Arena", arena.getId()),
-                false
-            );
-        }
 
         // Register with HudManager for proper cleanup
         hudManager.registerPage(playerUuid, this);
@@ -116,51 +201,23 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
     }
 
     /**
-     * Populates the arena buttons with current data.
+     * Filters arenas by the currently selected game mode.
+     * Index 0 = all arenas, 1+ = specific game mode.
      */
-    private void populateArenas(UICommandBuilder cmd) {
-        // Show/hide no arenas notice
-        if (arenaList.isEmpty()) {
-            cmd.set("#NoArenasNotice.Visible", true);
-        } else {
-            cmd.set("#NoArenasNotice.Visible", false);
+    private List<Arena> filterArenas() {
+        Collection<Arena> allArenas = matchManager.getArenas();
+        if (selectedModeIndex == 0) {
+            return new ArrayList<>(allArenas);
         }
 
-        // Populate arena buttons
-        for (int i = 0; i < MAX_ARENAS; i++) {
-            if (i < arenaList.size()) {
-                Arena arena = arenaList.get(i);
-                cmd.set("#ArenaButton" + i + ".Visible", true);
-
-                // Arena name
-                cmd.set("#ArenaName" + i + ".Text", arena.getDisplayName());
-
-                // Game mode and player count
-                String gameModeDisplay = matchManager.getGameModeDisplayName(arena);
-                String playersStr = MatchManager.formatPlayerCount(arena);
-                cmd.set("#GameMode" + i + ".Text", gameModeDisplay + " | " + playersStr);
-
-                // Status tag (Available / In Use)
-                boolean inUse = matchManager.isArenaInUse(arena.getId());
-                if (inUse) {
-                    cmd.set("#StatusTag" + i + ".Text", "IN USE");
-                    cmd.set("#StatusTag" + i + ".Style.TextColor", "#e74c3c");
-                } else {
-                    cmd.set("#StatusTag" + i + ".Text", "AVAILABLE");
-                    cmd.set("#StatusTag" + i + ".Style.TextColor", "#2ecc71");
-                }
-
-                // Queue count
-                int queueCount = queueManager.getQueueSize(arena.getId());
-                cmd.set("#InQueue" + i + ".Text", "In Queue: " + queueCount);
-
-                // In-game count
-                int inGameCount = getPlayersInArenaMatch(arena.getId());
-                cmd.set("#InGame" + i + ".Text", "In Game: " + inGameCount);
-            } else {
-                cmd.set("#ArenaButton" + i + ".Visible", false);
+        String modeId = gameModeEntries.get(selectedModeIndex).id;
+        List<Arena> filtered = new ArrayList<>();
+        for (Arena arena : allArenas) {
+            if (modeId.equals(arena.getGameMode())) {
+                filtered.add(arena);
             }
         }
+        return filtered;
     }
 
     /**
@@ -185,14 +242,14 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
             return;
         }
 
-        int count = Math.min(MAX_ARENAS, arenaList.size());
+        int count = filteredArenas.size();
         lastInUse = new boolean[count];
         lastQueueCount = new int[count];
         lastInGameCount = new int[count];
 
         // Initialize with current values so first tick doesn't send a redundant update
         for (int i = 0; i < count; i++) {
-            Arena arena = arenaList.get(i);
+            Arena arena = filteredArenas.get(i);
             lastInUse[i] = matchManager.isArenaInUse(arena.getId());
             lastQueueCount[i] = queueManager.getQueueSize(arena.getId());
             lastInGameCount[i] = getPlayersInArenaMatch(arena.getId());
@@ -207,8 +264,10 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
                 UICommandBuilder cmd = new UICommandBuilder();
                 boolean changed = false;
 
-                for (int i = 0; i < count; i++) {
-                    Arena arena = arenaList.get(i);
+                int size = filteredArenas.size();
+                for (int i = 0; i < size; i++) {
+                    Arena arena = filteredArenas.get(i);
+                    String row = "#ArenaList[" + i + "]";
 
                     boolean inUse = matchManager.isArenaInUse(arena.getId());
                     int queueCount = queueManager.getQueueSize(arena.getId());
@@ -218,24 +277,24 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
                         lastInUse[i] = inUse;
                         changed = true;
                         if (inUse) {
-                            cmd.set("#StatusTag" + i + ".Text", "IN USE");
-                            cmd.set("#StatusTag" + i + ".Style.TextColor", "#e74c3c");
+                            cmd.set(row + " #StatusTag.Text", "IN USE");
+                            cmd.set(row + " #StatusTag.Style.TextColor", "#e74c3c");
                         } else {
-                            cmd.set("#StatusTag" + i + ".Text", "AVAILABLE");
-                            cmd.set("#StatusTag" + i + ".Style.TextColor", "#2ecc71");
+                            cmd.set(row + " #StatusTag.Text", "AVAILABLE");
+                            cmd.set(row + " #StatusTag.Style.TextColor", "#2ecc71");
                         }
                     }
 
                     if (queueCount != lastQueueCount[i]) {
                         lastQueueCount[i] = queueCount;
                         changed = true;
-                        cmd.set("#InQueue" + i + ".Text", "In Queue: " + queueCount);
+                        cmd.set(row + " #InQueue.Text", "Queue: " + queueCount);
                     }
 
                     if (inGameCount != lastInGameCount[i]) {
                         lastInGameCount[i] = inGameCount;
                         changed = true;
-                        cmd.set("#InGame" + i + ".Text", "In Game: " + inGameCount);
+                        cmd.set(row + " #InGame.Text", "In Game: " + inGameCount);
                     }
                 }
 
@@ -250,7 +309,6 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
 
     /**
      * Safely sends a UI update, checking active flag first.
-     * Prevents "CustomUI command not found" errors when page is closed.
      */
     private void safeSendUpdate(UICommandBuilder cmd) {
         if (!active) {
@@ -259,7 +317,6 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
         try {
             sendUpdate(cmd, false);
         } catch (Exception e) {
-            // Page might be closed, stop further updates
             active = false;
         }
     }
@@ -278,39 +335,55 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
     @Override
     public void handleDataEvent(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store, PageEventData data) {
         try {
-            if (data == null) {
+            if (data == null || data.action == null) {
                 return;
             }
 
             Player player = store.getComponent(ref, Player.getComponentType());
 
-            // Handle close action
-            if ("close".equals(data.action)) {
-                stopAutoRefresh();
-                if (player != null) {
-                    player.getPageManager().setPage(ref, store, Page.None);
-                }
-                return;
-            }
+            switch (data.action) {
+                case "close":
+                    stopAutoRefresh();
+                    if (player != null) {
+                        player.getPageManager().setPage(ref, store, Page.None);
+                    }
+                    break;
 
-            // Handle arena selection
-            if (data.arena != null) {
-                stopAutoRefresh();
+                case "mode":
+                    if (data.index != null) {
+                        try {
+                            int newIndex = Integer.parseInt(data.index);
+                            if (newIndex >= 0 && newIndex < gameModeEntries.size() && newIndex != selectedModeIndex) {
+                                selectedModeIndex = newIndex;
+                                stopAutoRefresh();
+                                active = true;
+                                rebuild();
+                            }
+                        } catch (NumberFormatException e) {
+                            // Ignore invalid index
+                        }
+                    }
+                    break;
 
-                Arena arena = matchManager.getArena(data.arena);
-                if (arena == null) {
-                    return;
-                }
+                case "arena":
+                    if (data.arena != null) {
+                        Arena arena = matchManager.getArena(data.arena);
+                        if (arena == null) {
+                            return;
+                        }
 
-                // Open arena detail page
-                if (player != null) {
-                    ArenaDetailPage detailPage = new ArenaDetailPage(
-                        playerRef, playerUuid, arena,
-                        matchManager, queueManager, kitManager, hudManager, scheduler,
-                        this::onBackFromDetail
-                    );
-                    player.getPageManager().openCustomPage(ref, store, detailPage);
-                }
+                        stopAutoRefresh();
+
+                        if (player != null) {
+                            ArenaDetailPage detailPage = new ArenaDetailPage(
+                                playerRef, playerUuid, arena,
+                                matchManager, queueManager, kitManager, hudManager, scheduler,
+                                this::onBackFromDetail
+                            );
+                            player.getPageManager().openCustomPage(ref, store, detailPage);
+                        }
+                    }
+                    break;
             }
         } catch (Exception e) {
             System.err.println("[ArenaMenuPage] Error handling event: " + e.getMessage());
@@ -320,13 +393,14 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
 
     /**
      * Callback when returning from detail page.
+     * Preserves the previously selected game mode index.
      */
     private void onBackFromDetail(Ref<EntityStore> ref, Store<EntityStore> store) {
         Player player = store.getComponent(ref, Player.getComponentType());
         if (player != null) {
-            // Refresh arena list and reopen this page
             ArenaMenuPage newPage = new ArenaMenuPage(
-                playerRef, playerUuid, matchManager, queueManager, kitManager, hudManager, scheduler
+                playerRef, playerUuid, matchManager, queueManager, kitManager, hudManager,
+                scheduler, selectedModeIndex
             );
             player.getPageManager().openCustomPage(ref, store, newPage);
         }
@@ -348,14 +422,30 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
         shutdown();
     }
 
+    /**
+     * Simple holder for game mode list entries.
+     */
+    private static class GameModeEntry {
+        final String id;
+        final String displayName;
+
+        GameModeEntry(String id, String displayName) {
+            this.id = id;
+            this.displayName = displayName;
+        }
+    }
+
     public static class PageEventData {
         public String action;
+        public String index;
         public String arena;
 
         public static final BuilderCodec<PageEventData> CODEC =
             BuilderCodec.builder(PageEventData.class, PageEventData::new)
                 .append(new KeyedCodec<>("Action", Codec.STRING),
                     (d, v) -> d.action = v, d -> d.action).add()
+                .append(new KeyedCodec<>("Index", Codec.STRING),
+                    (d, v) -> d.index = v, d -> d.index).add()
                 .append(new KeyedCodec<>("Arena", Codec.STRING),
                     (d, v) -> d.arena = v, d -> d.arena).add()
                 .build();

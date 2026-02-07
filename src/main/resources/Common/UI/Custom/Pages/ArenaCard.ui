@@ -1,0 +1,52 @@
+$C = "../Common.ui";
+
+Button #ArenaCard {
+    Anchor: (Height: 80, Top: 6);
+    Style: $C.@SecondaryButtonStyle;
+    Padding: (Horizontal: 15, Vertical: 8);
+    LayoutMode: Top;
+
+    // Title row: name + status tag
+    Group #TitleRow {
+        Anchor: (Height: 24);
+        LayoutMode: Left;
+
+        Label #ArenaName {
+            Text: "Arena Name";
+            Anchor: (Height: 24);
+            FlexWeight: 1;
+            Style: (FontSize: 17, TextColor: #b7cedd, RenderBold: true, VerticalAlignment: Center);
+        }
+
+        Label #StatusTag {
+            Text: "AVAILABLE";
+            Anchor: (Width: 80, Height: 20);
+            Style: (FontSize: 10, TextColor: #2ecc71, Alignment: Center, VerticalAlignment: Center, RenderBold: true, RenderUppercase: true);
+        }
+    }
+
+    // Player count
+    Label #PlayerCount {
+        Text: "2 Players";
+        Anchor: (Height: 18, Top: 2);
+        Style: (FontSize: 11, TextColor: #96a9be, VerticalAlignment: Center);
+    }
+
+    // Stats row: queue + in game
+    Group #StatsRow {
+        Anchor: (Height: 20, Top: 4);
+        LayoutMode: Left;
+
+        Label #InQueue {
+            Text: "Queue: 0";
+            Anchor: (Width: 90, Height: 20);
+            Style: (FontSize: 12, TextColor: #3498db, VerticalAlignment: Center, RenderBold: true);
+        }
+
+        Label #InGame {
+            Text: "In Game: 0";
+            Anchor: (Width: 100, Height: 20, Left: 10);
+            Style: (FontSize: 12, TextColor: #2ecc71, VerticalAlignment: Center, RenderBold: true);
+        }
+    }
+}
