@@ -110,22 +110,18 @@ Group #ArenaDetailPage {
 
             // Kit Selection Section
             Group #KitSection {
-                Anchor: (Top: 12);
-                LayoutMode: Top;
+                Anchor: (Top: 12, Height: 44);
+                LayoutMode: Left;
 
-                $C.@Subtitle {
+                Label #SelectedKitLabel {
+                    Text: "Kit: None selected";
+                    FlexWeight: 1;
+                    Style: (FontSize: 14, TextColor: #96a9be, VerticalAlignment: Center);
+                }
+
+                $C.@SecondaryTextButton #SelectKitButton {
                     @Text = "Select Kit";
-                }
-
-                $C.@DropdownBox #KitDropdown {
-                    @Anchor = (Top: 8, Height: 38);
-                }
-
-                // Kit description
-                Label #KitDescription {
-                    Text: "Select a kit to use in this arena";
-                    Anchor: (Height: 20, Top: 8);
-                    Style: (FontSize: 12, TextColor: #7f8c8d, Alignment: Center);
+                    @Anchor = (Width: 140);
                 }
             }
 

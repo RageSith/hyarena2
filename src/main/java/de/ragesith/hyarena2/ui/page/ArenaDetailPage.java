@@ -10,13 +10,11 @@ import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.protocol.packets.interface_.Page;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
-import com.hypixel.hytale.server.core.ui.DropdownEntryInfo;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import com.hypixel.hytale.server.core.ui.LocalizableString;
 import de.ragesith.hyarena2.arena.Arena;
 import de.ragesith.hyarena2.arena.MatchManager;
 import de.ragesith.hyarena2.kit.KitAccessInfo;
@@ -66,6 +64,16 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
                            KitManager kitManager, HudManager hudManager,
                            ScheduledExecutorService scheduler,
                            BiConsumer<Ref<EntityStore>, Store<EntityStore>> onBack) {
+        this(playerRef, playerUuid, arena, matchManager, queueManager,
+             kitManager, hudManager, scheduler, onBack, null);
+    }
+
+    public ArenaDetailPage(PlayerRef playerRef, UUID playerUuid, Arena arena,
+                           MatchManager matchManager, QueueManager queueManager,
+                           KitManager kitManager, HudManager hudManager,
+                           ScheduledExecutorService scheduler,
+                           BiConsumer<Ref<EntityStore>, Store<EntityStore>> onBack,
+                           String selectedKitId) {
         super(playerRef, CustomPageLifetime.CanDismiss, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
@@ -76,6 +84,7 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
         this.hudManager = hudManager;
         this.scheduler = scheduler;
         this.onBack = onBack;
+        this.selectedKitId = selectedKitId;
         this.availableKits = new ArrayList<>();
     }
 
@@ -103,9 +112,39 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
         // Queue status
         updateQueueInfo(cmd);
 
-        // Setup kit dropdown
+        // Kit selection label
         if (player != null) {
-            setupKitDropdown(cmd, player);
+            availableKits = kitManager.getKitsForArena(player, arena.getId());
+
+            // Resolve kit: explicit selection > saved preference > first unlocked
+            if (selectedKitId == null) {
+                String preferred = kitManager.getPreferredKit(playerUuid, arena.getId());
+                if (preferred != null && kitManager.kitExists(preferred)) {
+                    selectedKitId = preferred;
+                }
+            }
+            if (selectedKitId == null && !availableKits.isEmpty()) {
+                // Sort same as KitSelectionPage to pick the first alphabetically
+                List<KitAccessInfo> sorted = new ArrayList<>(availableKits);
+                sorted.sort((a, b) -> a.getDisplayName().compareToIgnoreCase(b.getDisplayName()));
+                for (KitAccessInfo info : sorted) {
+                    if (info.isUnlocked()) {
+                        selectedKitId = info.getKitId();
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (selectedKitId != null) {
+            KitConfig kit = kitManager.getKit(selectedKitId);
+            if (kit != null) {
+                cmd.set("#SelectedKitLabel.Text", "Kit: " + kit.getDisplayName());
+            } else {
+                cmd.set("#SelectedKitLabel.Text", "Kit: None selected");
+            }
+        } else {
+            cmd.set("#SelectedKitLabel.Text", availableKits.isEmpty() ? "No kits available" : "Kit: None selected");
         }
 
         // Event bindings
@@ -131,9 +170,9 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
         );
 
         events.addEventBinding(
-            CustomUIEventBindingType.ValueChanged,
-            "#KitDropdown",
-            EventData.of("@Kit", "#KitDropdown.Value"),
+            CustomUIEventBindingType.Activating,
+            "#SelectKitButton",
+            EventData.of("Action", "selectkit"),
             false
         );
 
@@ -142,55 +181,6 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
 
         // Start auto-refresh
         startAutoRefresh();
-    }
-
-    /**
-     * Sets up the kit dropdown with available kits.
-     */
-    private void setupKitDropdown(UICommandBuilder cmd, Player player) {
-        availableKits = kitManager.getKitsForArena(player, arena.getId());
-
-        if (availableKits.isEmpty()) {
-            // No kits configured - hide kit section or show default
-            cmd.set("#KitDescription.Text", "No kits available for this arena");
-            selectedKitId = null;
-            return;
-        }
-
-        // Build dropdown entries
-        List<DropdownEntryInfo> entries = new ArrayList<>();
-        String defaultKit = null;
-
-        for (KitAccessInfo info : availableKits) {
-            KitConfig kit = info.getKit();
-            String displayName = kit.getDisplayName();
-
-            // Mark locked kits
-            if (!info.isUnlocked()) {
-                displayName += " (Locked)";
-            } else if (defaultKit == null) {
-                defaultKit = kit.getId();
-            }
-
-            entries.add(new DropdownEntryInfo(
-                LocalizableString.fromString(displayName),
-                kit.getId()
-            ));
-        }
-
-        cmd.set("#KitDropdown.Entries", entries);
-
-        // Set default selection
-        if (defaultKit != null) {
-            selectedKitId = defaultKit;
-            cmd.set("#KitDropdown.Value", defaultKit);
-
-            // Update description
-            KitConfig kit = kitManager.getKit(defaultKit);
-            if (kit != null && kit.getDescription() != null) {
-                cmd.set("#KitDescription.Text", kit.getDescription());
-            }
-        }
     }
 
     /**
@@ -315,24 +305,6 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
 
             Player player = store.getComponent(ref, Player.getComponentType());
 
-            // Handle kit selection change (don't rebuild)
-            if (data.kit != null) {
-                selectedKitId = data.kit;
-
-                // Update kit description
-                KitConfig kit = kitManager.getKit(selectedKitId);
-                if (kit != null) {
-                    UICommandBuilder cmd = new UICommandBuilder();
-                    if (kit.getDescription() != null && !kit.getDescription().isEmpty()) {
-                        cmd.set("#KitDescription.Text", kit.getDescription());
-                    } else {
-                        cmd.set("#KitDescription.Text", "No description available");
-                    }
-                    safeSendUpdate(cmd);
-                }
-                return;
-            }
-
             // Handle actions
             if (data.action != null) {
                 switch (data.action) {
@@ -353,12 +325,69 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
                     case "join":
                         handleJoinQueue(ref, store, player);
                         break;
+
+                    case "selectkit":
+                        handleOpenKitSelection(ref, store, player);
+                        break;
                 }
             }
         } catch (Exception e) {
             System.err.println("[ArenaDetailPage] Error handling event: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Opens the KitSelectionPage.
+     */
+    private void handleOpenKitSelection(Ref<EntityStore> ref, Store<EntityStore> store, Player player) {
+        if (player == null || availableKits.isEmpty()) {
+            return;
+        }
+
+        stopAutoRefresh();
+
+        KitSelectionPage kitPage = new KitSelectionPage(
+            playerRef, playerUuid, availableKits, selectedKitId, hudManager,
+            // onKitSelected callback
+            (kitId) -> {
+                selectedKitId = kitId;
+                kitManager.setPreferredKit(playerUuid, arena.getId(), kitId);
+                // Reopen this page with the selected kit
+                ArenaDetailPage newPage = new ArenaDetailPage(
+                    playerRef, playerUuid, arena,
+                    matchManager, queueManager, kitManager, hudManager, scheduler,
+                    onBack, selectedKitId
+                );
+                Ref<EntityStore> pRef = playerRef.getReference();
+                if (pRef != null) {
+                    Store<EntityStore> pStore = pRef.getStore();
+                    Player p = pStore.getComponent(pRef, Player.getComponentType());
+                    if (p != null) {
+                        p.getPageManager().openCustomPage(pRef, pStore, newPage);
+                    }
+                }
+            },
+            // onBack callback
+            () -> {
+                // Return to this ArenaDetailPage preserving selected kit
+                ArenaDetailPage newPage = new ArenaDetailPage(
+                    playerRef, playerUuid, arena,
+                    matchManager, queueManager, kitManager, hudManager, scheduler,
+                    onBack, selectedKitId
+                );
+                Ref<EntityStore> pRef = playerRef.getReference();
+                if (pRef != null) {
+                    Store<EntityStore> pStore = pRef.getStore();
+                    Player p = pStore.getComponent(pRef, Player.getComponentType());
+                    if (p != null) {
+                        p.getPageManager().openCustomPage(pRef, pStore, newPage);
+                    }
+                }
+            }
+        );
+
+        player.getPageManager().openCustomPage(ref, store, kitPage);
     }
 
     /**
@@ -445,14 +474,11 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
 
     public static class PageEventData {
         public String action;
-        public String kit;
 
         public static final BuilderCodec<PageEventData> CODEC =
             BuilderCodec.builder(PageEventData.class, PageEventData::new)
                 .append(new KeyedCodec<>("Action", Codec.STRING),
                     (d, v) -> d.action = v, d -> d.action).add()
-                .append(new KeyedCodec<>("@Kit", Codec.STRING),
-                    (d, v) -> d.kit = v, d -> d.kit).add()
                 .build();
     }
 }

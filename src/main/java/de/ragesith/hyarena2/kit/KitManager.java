@@ -42,6 +42,9 @@ public class KitManager {
     // Track current hotbar slot during kit application (thread-local for safety)
     private final ThreadLocal<Short> currentHotbarSlot = ThreadLocal.withInitial(() -> (short) 0);
 
+    // Per-player, per-arena kit preferences: playerUuid -> arenaId -> kitId
+    private final Map<UUID, Map<String, String>> preferredKits = new ConcurrentHashMap<>();
+
     // MatchManager reference for arena lookups (set after construction)
     private MatchManager matchManager;
 
@@ -55,6 +58,21 @@ public class KitManager {
      */
     public void setMatchManager(MatchManager matchManager) {
         this.matchManager = matchManager;
+    }
+
+    /**
+     * Saves a player's preferred kit for an arena.
+     */
+    public void setPreferredKit(UUID playerUuid, String arenaId, String kitId) {
+        preferredKits.computeIfAbsent(playerUuid, k -> new ConcurrentHashMap<>()).put(arenaId, kitId);
+    }
+
+    /**
+     * Gets a player's preferred kit for an arena, or null if none saved.
+     */
+    public String getPreferredKit(UUID playerUuid, String arenaId) {
+        Map<String, String> playerPrefs = preferredKits.get(playerUuid);
+        return playerPrefs != null ? playerPrefs.get(arenaId) : null;
     }
 
     /**

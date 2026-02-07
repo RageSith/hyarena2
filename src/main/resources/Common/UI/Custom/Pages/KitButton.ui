@@ -1,0 +1,24 @@
+$C = "../Common.ui";
+
+Button #KitBtn {
+    Anchor: (Height: 44, Top: 4);
+    Style: $C.@SecondaryButtonStyle;
+    Padding: (Horizontal: 12, Vertical: 6);
+
+    Group {
+        LayoutMode: Left;
+        Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+
+        Label #KitBtnName {
+            Text: "Kit Name";
+            FlexWeight: 1;
+            Style: (FontSize: 14, TextColor: #b7cedd, VerticalAlignment: Center);
+        }
+
+        Label #KitBtnStatus {
+            Text: "";
+            Anchor: (Width: 50);
+            Style: (FontSize: 9, TextColor: #e74c3c, Alignment: Center, VerticalAlignment: Center, RenderBold: true, RenderUppercase: true);
+        }
+    }
+}

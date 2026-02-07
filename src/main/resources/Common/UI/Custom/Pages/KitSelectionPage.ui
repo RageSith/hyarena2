@@ -1,0 +1,115 @@
+$C = "../Common.ui";
+
+Group #KitSelectionPage {
+    $C.@PageOverlay {}
+
+    $C.@DecoratedContainer {
+        @CloseButton = true;
+        Anchor: (Width: 700, Height: 480);
+
+        Group #Title {
+            $C.@Title #PageTitle {
+                @Text = "Select Kit";
+                Anchor: (Top: 12, Height: 24);
+            }
+        }
+
+        Group #Content {
+            Padding: (Full: 20);
+            Anchor: (Top: 35);
+            LayoutMode: Left;
+
+            // Left Column - Kit List (scrollable)
+            Group #LeftColumn {
+                Anchor: (Width: 220);
+                LayoutMode: Top;
+
+                Group #KitList {
+                    FlexWeight: 1;
+                    LayoutMode: TopScrolling;
+                    ScrollbarStyle: $C.@DefaultScrollbarStyle;
+                }
+            }
+
+            // Vertical separator
+            $C.@VerticalSeparator {
+                Anchor: (Left: 12, Right: 12);
+            }
+
+            // Right Column - Kit Detail
+            Group #RightColumn {
+                FlexWeight: 1;
+                LayoutMode: Top;
+                Padding: (Left: 8);
+
+                // Kit Name
+                Label #DetailName {
+                    Text: "Select a kit";
+                    Anchor: (Height: 28);
+                    Style: (FontSize: 18, TextColor: #e8c872, RenderBold: true);
+                }
+
+                $C.@ContentSeparator {
+                    @Anchor = (Top: 8, Bottom: 8);
+                }
+
+                // Kit Description
+                Label #DetailDescription {
+                    Text: "";
+                    Anchor: (Height: 48, Top: 4);
+                    Style: (FontSize: 13, TextColor: #96a9be, Wrap: true);
+                }
+
+                // Items Header
+                Label #ItemsHeader {
+                    Text: "Items";
+                    Anchor: (Height: 22, Top: 8);
+                    Visible: false;
+                    Style: (FontSize: 14, TextColor: #b7cedd, RenderBold: true);
+                }
+
+                // Item List (dynamic)
+                Group #ItemList {
+                    Anchor: (Top: 4);
+                    LayoutMode: TopScrolling;
+                    ScrollbarStyle: $C.@DefaultScrollbarStyle;
+                    FlexWeight: 1;
+                }
+
+                // Unlock Section
+                Group #UnlockSection {
+                    Anchor: (Top: 12, Height: 32);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #UnlockText {
+                        Text: "";
+                        FlexWeight: 1;
+                        Style: (FontSize: 13, TextColor: #e74c3c, VerticalAlignment: Center);
+                    }
+                }
+            }
+        }
+
+        // Bottom Button Row
+        Group #ButtonRow {
+            Anchor: (Bottom: 16, Height: 44, Left: 20, Right: 20);
+            LayoutMode: Left;
+
+            $C.@SecondaryTextButton #BackButton {
+                @Text = "Back";
+                @Anchor = (Width: 120);
+            }
+
+            // Spacer
+            Group {
+                FlexWeight: 1;
+            }
+
+            $C.@TextButton #SelectButton {
+                @Text = "Select";
+                @Anchor = (Width: 140);
+            }
+        }
+    }
+}

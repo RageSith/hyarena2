@@ -1,0 +1,10 @@
+Group #ItemRow {
+    Anchor: (Height: 20);
+    LayoutMode: Left;
+
+    Label #ItemName {
+        Text: "Item Name";
+        FlexWeight: 1;
+        Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center);
+    }
+}
