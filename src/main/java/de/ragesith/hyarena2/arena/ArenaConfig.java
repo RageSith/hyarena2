@@ -27,6 +27,7 @@ public class ArenaConfig {
     private List<CaptureZone> captureZones;
     private int scoreTarget = 0; // Control-seconds needed to win (0 = unused)
     private int zoneRotationSeconds = 60; // Rotation interval for multiple zones
+    private List<String> randomKitPool; // Kit IDs for random assignment (Kit Roulette)
 
     // Getters
     public String getId() { return id; }
@@ -50,6 +51,7 @@ public class ArenaConfig {
     public List<CaptureZone> getCaptureZones() { return captureZones; }
     public int getScoreTarget() { return scoreTarget; }
     public int getZoneRotationSeconds() { return zoneRotationSeconds; }
+    public List<String> getRandomKitPool() { return randomKitPool; }
 
     /**
      * Validates the arena configuration

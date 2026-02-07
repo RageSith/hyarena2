@@ -58,6 +58,7 @@ public class Match {
 
     private final Map<UUID, Participant> participants;
     private final Set<UUID> arrivedPlayers; // Players who have completed teleport to arena
+    private final Map<UUID, Integer> respawnTimers; // Ticks remaining per dead player awaiting respawn
     private MatchState state;
     private int tickCount;
     private int waitingTicks; // Ticks spent in WAITING state
@@ -81,6 +82,7 @@ public class Match {
         this.kitManager = kitManager;
         this.participants = new ConcurrentHashMap<>();
         this.arrivedPlayers = ConcurrentHashMap.newKeySet();
+        this.respawnTimers = new ConcurrentHashMap<>();
         this.state = MatchState.WAITING;
         this.tickCount = 0;
         this.waitingTicks = 0;
@@ -185,6 +187,13 @@ public class Match {
                     if (pRef != null) {
                         PlayerMovementControl.disableMovementForPlayer(pRef, arenaWorld);
                         System.out.println("[Match] Froze player after teleport: " + participant.getName());
+                    }
+
+                    // Check if game mode overrides the kit (e.g. Kit Roulette)
+                    String gameModeKit = gameMode.getNextKitId(arena.getConfig(), participant);
+                    if (gameModeKit != null) {
+                        participant.setSelectedKitId(gameModeKit);
+                        System.out.println("[Match] Game mode assigned kit: " + gameModeKit);
                     }
 
                     // Apply kit if selected, otherwise fallback to first allowed kit
@@ -706,6 +715,13 @@ public class Match {
             broadcast("<color:#e74c3c>" + victim.getName() + "</color> <color:#7f8c8d>died</color>");
         }
 
+        // Handle respawning for player participants
+        if (victim.getType() == ParticipantType.PLAYER && gameMode.shouldRespawn(arena.getConfig(), victim)) {
+            // Instant respawn (delay 0 = next tick). Timer infrastructure exists for future delay support.
+            respawnTimers.put(victim.getUniqueId(), 0);
+            victim.sendMessage("<color:#f39c12>Respawning...</color>");
+        }
+
         // If victim is a bot and no respawn allowed, despawn the bot entity
         if (victim.getType() == ParticipantType.BOT && !gameMode.shouldRespawn(arena.getConfig(), victim)) {
             if (botManager != null) {
@@ -782,6 +798,9 @@ public class Match {
         // Let game mode tick
         gameMode.onTick(arena.getConfig(), getParticipants(), tickCount);
 
+        // Process respawn timers
+        processRespawnTimers();
+
         // Check if match should end (normal game mode condition)
         if (gameMode.shouldMatchEnd(arena.getConfig(), getParticipants())) {
             end();
@@ -815,6 +834,81 @@ public class Match {
         // Finish when delay expires
         if (victoryDelayTicks <= 0) {
             finish();
+        }
+    }
+
+    /**
+     * Processes respawn timers: ticks down each entry and respawns players when timer reaches 0.
+     */
+    private void processRespawnTimers() {
+        if (respawnTimers.isEmpty()) {
+            return;
+        }
+
+        Iterator<Map.Entry<UUID, Integer>> it = respawnTimers.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<UUID, Integer> entry = it.next();
+            UUID playerUuid = entry.getKey();
+            int remaining = entry.getValue() - 1;
+
+            if (remaining > 0) {
+                entry.setValue(remaining);
+                continue;
+            }
+
+            // Timer expired — respawn this player
+            it.remove();
+
+            Participant participant = participants.get(playerUuid);
+            if (participant == null || participant.getType() != ParticipantType.PLAYER) {
+                continue;
+            }
+
+            // Check if game mode wants to override the kit
+            String nextKit = gameMode.getNextKitId(arena.getConfig(), participant);
+            if (nextKit != null) {
+                participant.setSelectedKitId(nextKit);
+            }
+
+            // Pick a random spawn point
+            List<ArenaConfig.SpawnPoint> spawnPoints = arena.getSpawnPoints();
+            ArenaConfig.SpawnPoint spawn = spawnPoints.get(new Random().nextInt(spawnPoints.size()));
+            Position spawnPos = new Position(
+                spawn.getX(), spawn.getY(), spawn.getZ(),
+                spawn.getYaw(), spawn.getPitch()
+            );
+
+            // Teleport player to spawn point (same world)
+            Player player = getPlayerFromUuid(playerUuid);
+            if (player == null) {
+                continue;
+            }
+
+            World arenaWorld = arena.getWorld();
+            hubManager.teleportPlayerToWorld(player, spawnPos, arenaWorld, () -> {
+                // Short settle delay, then apply kit, heal, grant immunity, mark alive
+                CompletableFuture.delayedExecutor(300, TimeUnit.MILLISECONDS).execute(() -> {
+                    arenaWorld.execute(() -> {
+                        String kitId = participant.getSelectedKitId();
+                        if (kitId != null && kitManager != null) {
+                            Player p = getPlayerFromUuid(playerUuid);
+                            if (p != null) {
+                                kitManager.applyKit(p, kitId);
+                            }
+                        }
+
+                        // Heal to full after kit applies
+                        CompletableFuture.delayedExecutor(200, TimeUnit.MILLISECONDS).execute(() -> {
+                            arenaWorld.execute(() -> {
+                                healPlayer(playerUuid, arenaWorld);
+                                participant.grantImmunity(SPAWN_IMMUNITY_MS);
+                                participant.setAlive(true);
+                                System.out.println("[Match] Respawned " + participant.getName());
+                            });
+                        });
+                    });
+                });
+            });
         }
     }
 

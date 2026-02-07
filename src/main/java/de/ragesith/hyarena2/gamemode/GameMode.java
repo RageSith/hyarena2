@@ -94,6 +94,18 @@ public interface GameMode {
     String getVictoryMessage(ArenaConfig config, List<Participant> winners);
 
     /**
+     * Returns the kit ID to assign on spawn/respawn.
+     * Returning null means the participant keeps their selected kit (default behavior).
+     * Game modes like Kit Roulette override this to assign random kits.
+     * @param config The arena configuration
+     * @param participant The participant being spawned
+     * @return kit ID to override with, or null for default behavior
+     */
+    default String getNextKitId(ArenaConfig config, Participant participant) {
+        return null;
+    }
+
+    /**
      * Determines if a participant should respawn after death
      * @param config The arena configuration
      * @param participant The participant who died

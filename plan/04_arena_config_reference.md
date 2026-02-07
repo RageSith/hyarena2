@@ -38,6 +38,7 @@ These fields are required for every arena regardless of game mode.
 | `lms` | Last Man Standing | no | — |
 | `deathmatch` | Deathmatch | yes | `killTarget`, `respawnDelaySeconds` |
 | `koth` | King of the Hill | yes | `scoreTarget`, `captureZones`, `zoneRotationSeconds`, `respawnDelaySeconds` |
+| `kit_roulette` | Kit Roulette | yes | `killTarget`, `randomKitPool`, `respawnDelaySeconds` |
 
 ## Game-Mode-Specific Fields
 
@@ -56,6 +57,14 @@ These fields are required for every arena regardless of game mode.
 | `respawnDelaySeconds` | int | 3 | no | Seconds before a dead player respawns |
 | `captureZones` | CaptureZone[] | null | yes (for koth) | One or more capture zones |
 | `zoneRotationSeconds` | int | 60 | no | Seconds between zone rotations (ignored if only 1 zone) |
+
+### Kit Roulette (`kit_roulette`)
+
+| Field | Type | Default | Required | Description |
+|-------|------|---------|----------|-------------|
+| `killTarget` | int | 0 | no | Kills needed to win. 0 = win by most kills at time limit |
+| `respawnDelaySeconds` | int | 3 | no | Seconds before a dead player respawns |
+| `randomKitPool` | string[] | null | yes (for kit_roulette) | Kit IDs to randomly assign on each spawn. Ignores `allowedKits` |
 
 ### Duel (`duel`) / Last Man Standing (`lms`)
 
@@ -240,6 +249,34 @@ No additional fields beyond core. These modes are elimination-based with no resp
   "bounds": {
     "minX": -25.0, "minY": 75.0, "minZ": -15.0,
     "maxX": 25.0, "maxY": 95.0, "maxZ": 15.0
+  }
+}
+```
+
+### Kit Roulette
+
+```json
+{
+  "id": "roulette_arena",
+  "displayName": "The Crucible: Kit Roulette",
+  "worldName": "default",
+  "gameMode": "kit_roulette",
+  "minPlayers": 2,
+  "maxPlayers": 4,
+  "waitTimeSeconds": 10,
+  "matchDurationSeconds": 180,
+  "killTarget": 10,
+  "respawnDelaySeconds": 0,
+  "randomKitPool": ["warrior", "archer", "rogue"],
+  "spawnPoints": [
+    { "x": 0.0, "y": 80.0, "z": 0.0, "yaw": 0.0, "pitch": 0.0 },
+    { "x": 10.0, "y": 80.0, "z": 0.0, "yaw": 180.0, "pitch": 0.0 },
+    { "x": 0.0, "y": 80.0, "z": 10.0, "yaw": 90.0, "pitch": 0.0 },
+    { "x": -10.0, "y": 80.0, "z": 0.0, "yaw": 270.0, "pitch": 0.0 }
+  ],
+  "bounds": {
+    "minX": -15.0, "minY": 75.0, "minZ": -15.0,
+    "maxX": 15.0, "maxY": 90.0, "maxZ": 15.0
   }
 }
 ```
