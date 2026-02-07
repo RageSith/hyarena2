@@ -52,7 +52,7 @@
     "ParticleColor": "#2e3742",
     "Interactions": {
       "Use": {
-        "HintLabel": "View Leaderboard",
+        "HintLabel": "Open Shop",
         "Interactions": [
           {
             "Type": "Hyarena_Open_Shop"

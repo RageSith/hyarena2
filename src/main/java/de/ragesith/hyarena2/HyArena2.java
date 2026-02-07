@@ -196,6 +196,7 @@ public class HyArena2 extends JavaPlugin {
         // Register custom interactions for NPC statues
         OpenMatchmakingInteraction.setPluginInstance(this);
         OpenLeaderboardInteraction.setPluginInstance(this);
+        OpenShopInteraction.setPluginInstance(this);
         this.getCodecRegistry(Interaction.CODEC)
             .register("Hyarena_Open_Matchmaking", OpenMatchmakingInteraction.class, OpenMatchmakingInteraction.CODEC);
         this.getCodecRegistry(Interaction.CODEC)
