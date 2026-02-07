@@ -28,10 +28,23 @@ public class GlobalConfig {
     private int botTickIntervalMs = 1000;
 
     /**
-     * Interval in milliseconds between boundary checks.
+     * Interval in milliseconds between hub boundary checks.
      * Default: 500ms
      */
     private int boundaryCheckIntervalMs = 500;
+
+    /**
+     * Interval in milliseconds between arena boundary checks.
+     * Lower than hub checks for smoother invisible-wall feel.
+     * Default: 50ms
+     */
+    private int arenaBoundaryCheckIntervalMs = 50;
+
+    /**
+     * Margin in blocks inward from arena walls for boundary clamping.
+     * Default: 0.5
+     */
+    private double arenaBoundaryMargin = 0.5;
 
     // ========== Default Settings ==========
 
@@ -142,6 +155,22 @@ public class GlobalConfig {
 
     public void setBoundaryCheckIntervalMs(int boundaryCheckIntervalMs) {
         this.boundaryCheckIntervalMs = boundaryCheckIntervalMs;
+    }
+
+    public int getArenaBoundaryCheckIntervalMs() {
+        return arenaBoundaryCheckIntervalMs;
+    }
+
+    public void setArenaBoundaryCheckIntervalMs(int arenaBoundaryCheckIntervalMs) {
+        this.arenaBoundaryCheckIntervalMs = arenaBoundaryCheckIntervalMs;
+    }
+
+    public double getArenaBoundaryMargin() {
+        return arenaBoundaryMargin;
+    }
+
+    public void setArenaBoundaryMargin(double arenaBoundaryMargin) {
+        this.arenaBoundaryMargin = arenaBoundaryMargin;
     }
 
     // ========== Default Settings Getters/Setters ==========

@@ -57,6 +57,10 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
     private ScheduledFuture<?> refreshTask;
     private volatile boolean active = true;
 
+    // Previous refresh values for diff-based updates (avoid focus steal)
+    private int lastQueueCount = -1;
+    private boolean lastInUse;
+
     public ArenaDetailPage(PlayerRef playerRef, UUID playerUuid, Arena arena,
                            MatchManager matchManager, QueueManager queueManager,
                            KitManager kitManager, HudManager hudManager,
@@ -218,11 +222,16 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
 
     /**
      * Starts auto-refresh for queue counts.
+     * Only sends an update when values actually change to avoid stealing UI focus.
      */
     private void startAutoRefresh() {
         if (refreshTask != null || scheduler == null) {
             return;
         }
+
+        // Initialize with current values
+        lastQueueCount = queueManager.getQueueSize(arena.getId());
+        lastInUse = matchManager.isArenaInUse(arena.getId());
 
         refreshTask = scheduler.scheduleAtFixedRate(() -> {
             if (!active) {
@@ -230,8 +239,39 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
             }
 
             try {
+                int queueCount = queueManager.getQueueSize(arena.getId());
+                boolean inUse = matchManager.isArenaInUse(arena.getId());
+
+                if (queueCount == lastQueueCount && inUse == lastInUse) {
+                    return;
+                }
+
                 UICommandBuilder cmd = new UICommandBuilder();
-                updateQueueInfo(cmd);
+
+                if (queueCount != lastQueueCount) {
+                    lastQueueCount = queueCount;
+                    cmd.set("#QueueValue.Text", String.valueOf(queueCount));
+
+                    if (queueCount >= arena.getMinPlayers()) {
+                        cmd.set("#QueueValue.Style.TextColor", "#2ecc71");
+                    } else if (queueCount > 0) {
+                        cmd.set("#QueueValue.Style.TextColor", "#f39c12");
+                    } else {
+                        cmd.set("#QueueValue.Style.TextColor", "#3498db");
+                    }
+                }
+
+                if (inUse != lastInUse) {
+                    lastInUse = inUse;
+                    if (inUse) {
+                        cmd.set("#StatusValue.Text", "In Use");
+                        cmd.set("#StatusValue.Style.TextColor", "#e74c3c");
+                    } else {
+                        cmd.set("#StatusValue.Text", "Available");
+                        cmd.set("#StatusValue.Style.TextColor", "#2ecc71");
+                    }
+                }
+
                 safeSendUpdate(cmd);
             } catch (Exception e) {
                 // Page might be closed
@@ -248,7 +288,7 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
             return;
         }
         try {
-            sendUpdate(cmd);
+            sendUpdate(cmd, false);
         } catch (Exception e) {
             // Page might be closed, stop further updates
             active = false;
@@ -268,51 +308,56 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
 
     @Override
     public void handleDataEvent(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store, PageEventData data) {
-        if (data == null) {
-            return;
-        }
+        try {
+            if (data == null) {
+                return;
+            }
 
-        Player player = store.getComponent(ref, Player.getComponentType());
+            Player player = store.getComponent(ref, Player.getComponentType());
 
-        // Handle kit selection change (don't rebuild)
-        if (data.kit != null) {
-            selectedKitId = data.kit;
+            // Handle kit selection change (don't rebuild)
+            if (data.kit != null) {
+                selectedKitId = data.kit;
 
-            // Update kit description
-            KitConfig kit = kitManager.getKit(selectedKitId);
-            if (kit != null) {
-                UICommandBuilder cmd = new UICommandBuilder();
-                if (kit.getDescription() != null && !kit.getDescription().isEmpty()) {
-                    cmd.set("#KitDescription.Text", kit.getDescription());
-                } else {
-                    cmd.set("#KitDescription.Text", "No description available");
+                // Update kit description
+                KitConfig kit = kitManager.getKit(selectedKitId);
+                if (kit != null) {
+                    UICommandBuilder cmd = new UICommandBuilder();
+                    if (kit.getDescription() != null && !kit.getDescription().isEmpty()) {
+                        cmd.set("#KitDescription.Text", kit.getDescription());
+                    } else {
+                        cmd.set("#KitDescription.Text", "No description available");
+                    }
+                    safeSendUpdate(cmd);
                 }
-                safeSendUpdate(cmd);
+                return;
             }
-            return;
-        }
 
-        // Handle actions
-        if (data.action != null) {
-            switch (data.action) {
-                case "close":
-                    stopAutoRefresh();
-                    if (player != null) {
-                        player.getPageManager().setPage(ref, store, Page.None);
-                    }
-                    break;
+            // Handle actions
+            if (data.action != null) {
+                switch (data.action) {
+                    case "close":
+                        stopAutoRefresh();
+                        if (player != null) {
+                            player.getPageManager().setPage(ref, store, Page.None);
+                        }
+                        break;
 
-                case "back":
-                    stopAutoRefresh();
-                    if (onBack != null) {
-                        onBack.accept(ref, store);
-                    }
-                    break;
+                    case "back":
+                        stopAutoRefresh();
+                        if (onBack != null) {
+                            onBack.accept(ref, store);
+                        }
+                        break;
 
-                case "join":
-                    handleJoinQueue(ref, store, player);
-                    break;
+                    case "join":
+                        handleJoinQueue(ref, store, player);
+                        break;
+                }
             }
+        } catch (Exception e) {
+            System.err.println("[ArenaDetailPage] Error handling event: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -380,6 +425,11 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
         cmd.set("#StatusMessage.Visible", true);
         cmd.set("#StatusMessage.Style.TextColor", "#e74c3c");
         safeSendUpdate(cmd);
+    }
+
+    @Override
+    public void onDismiss(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
+        shutdown();
     }
 
     @Override

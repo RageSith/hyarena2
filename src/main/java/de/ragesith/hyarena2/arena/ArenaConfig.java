@@ -101,5 +101,32 @@ public class ArenaConfig {
                    y >= minY && y <= maxY &&
                    z >= minZ && z <= maxZ;
         }
+
+        /**
+         * Checks if a position is within the bounds shrunk by margin on each side.
+         */
+        public boolean containsWithMargin(double x, double y, double z, double margin) {
+            return x >= minX + margin && x <= maxX - margin &&
+                   y >= minY + margin && y <= maxY - margin &&
+                   z >= minZ + margin && z <= maxZ - margin;
+        }
+
+        /**
+         * Clamps a position to be inside the bounds shrunk by margin.
+         * Returns a double[3] with {clampedX, clampedY, clampedZ}.
+         */
+        public double[] clampInside(double x, double y, double z, double margin) {
+            double effectiveMinX = minX + margin;
+            double effectiveMaxX = maxX - margin;
+            double effectiveMinY = minY + margin;
+            double effectiveMaxY = maxY - margin;
+            double effectiveMinZ = minZ + margin;
+            double effectiveMaxZ = maxZ - margin;
+            return new double[] {
+                Math.max(effectiveMinX, Math.min(x, effectiveMaxX)),
+                Math.max(effectiveMinY, Math.min(y, effectiveMaxY)),
+                Math.max(effectiveMinZ, Math.min(z, effectiveMaxZ))
+            };
+        }
     }
 }

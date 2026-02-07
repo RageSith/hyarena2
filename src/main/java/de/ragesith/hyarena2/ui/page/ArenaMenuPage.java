@@ -58,11 +58,16 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
     private ScheduledFuture<?> refreshTask;
     private volatile boolean active = true;
 
+    // Previous refresh values for diff-based updates (avoid focus steal)
+    private boolean[] lastInUse;
+    private int[] lastQueueCount;
+    private int[] lastInGameCount;
+
     public ArenaMenuPage(PlayerRef playerRef, UUID playerUuid,
                          MatchManager matchManager, QueueManager queueManager,
                          KitManager kitManager, HudManager hudManager,
                          ScheduledExecutorService scheduler) {
-        super(playerRef, CustomPageLifetime.CanDismiss, PageEventData.CODEC);
+        super(playerRef, CustomPageLifetime.CantClose, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
         this.matchManager = matchManager;
@@ -175,10 +180,24 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
 
     /**
      * Starts auto-refresh for queue/game counts.
+     * Only sends an update when values actually change to avoid stealing UI focus.
      */
     private void startAutoRefresh() {
         if (refreshTask != null || scheduler == null) {
             return;
+        }
+
+        int count = Math.min(MAX_ARENAS, arenaList.size());
+        lastInUse = new boolean[count];
+        lastQueueCount = new int[count];
+        lastInGameCount = new int[count];
+
+        // Initialize with current values so first tick doesn't send a redundant update
+        for (int i = 0; i < count; i++) {
+            Arena arena = arenaList.get(i);
+            lastInUse[i] = matchManager.isArenaInUse(arena.getId());
+            lastQueueCount[i] = queueManager.getQueueSize(arena.getId());
+            lastInGameCount[i] = getPlayersInArenaMatch(arena.getId());
         }
 
         refreshTask = scheduler.scheduleAtFixedRate(() -> {
@@ -188,29 +207,43 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
 
             try {
                 UICommandBuilder cmd = new UICommandBuilder();
+                boolean changed = false;
 
-                // Update queue and in-game counts
-                for (int i = 0; i < MAX_ARENAS && i < arenaList.size(); i++) {
+                for (int i = 0; i < count; i++) {
                     Arena arena = arenaList.get(i);
 
-                    // Status
                     boolean inUse = matchManager.isArenaInUse(arena.getId());
-                    if (inUse) {
-                        cmd.set("#StatusTag" + i + ".Text", "IN USE");
-                        cmd.set("#StatusTag" + i + ".Style.TextColor", "#e74c3c");
-                    } else {
-                        cmd.set("#StatusTag" + i + ".Text", "AVAILABLE");
-                        cmd.set("#StatusTag" + i + ".Style.TextColor", "#2ecc71");
+                    int queueCount = queueManager.getQueueSize(arena.getId());
+                    int inGameCount = getPlayersInArenaMatch(arena.getId());
+
+                    if (inUse != lastInUse[i]) {
+                        lastInUse[i] = inUse;
+                        changed = true;
+                        if (inUse) {
+                            cmd.set("#StatusTag" + i + ".Text", "IN USE");
+                            cmd.set("#StatusTag" + i + ".Style.TextColor", "#e74c3c");
+                        } else {
+                            cmd.set("#StatusTag" + i + ".Text", "AVAILABLE");
+                            cmd.set("#StatusTag" + i + ".Style.TextColor", "#2ecc71");
+                        }
                     }
 
-                    int queueCount = queueManager.getQueueSize(arena.getId());
-                    cmd.set("#InQueue" + i + ".Text", "In Queue: " + queueCount);
+                    if (queueCount != lastQueueCount[i]) {
+                        lastQueueCount[i] = queueCount;
+                        changed = true;
+                        cmd.set("#InQueue" + i + ".Text", "In Queue: " + queueCount);
+                    }
 
-                    int inGameCount = getPlayersInArenaMatch(arena.getId());
-                    cmd.set("#InGame" + i + ".Text", "In Game: " + inGameCount);
+                    if (inGameCount != lastInGameCount[i]) {
+                        lastInGameCount[i] = inGameCount;
+                        changed = true;
+                        cmd.set("#InGame" + i + ".Text", "In Game: " + inGameCount);
+                    }
                 }
 
-                safeSendUpdate(cmd);
+                if (changed) {
+                    safeSendUpdate(cmd);
+                }
             } catch (Exception e) {
                 // Page might be closed
             }
@@ -226,7 +259,7 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
             return;
         }
         try {
-            sendUpdate(cmd);
+            sendUpdate(cmd, false);
         } catch (Exception e) {
             // Page might be closed, stop further updates
             active = false;
@@ -246,39 +279,44 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
 
     @Override
     public void handleDataEvent(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store, PageEventData data) {
-        if (data == null) {
-            return;
-        }
-
-        Player player = store.getComponent(ref, Player.getComponentType());
-
-        // Handle close action
-        if ("close".equals(data.action)) {
-            stopAutoRefresh();
-            if (player != null) {
-                player.getPageManager().setPage(ref, store, Page.None);
-            }
-            return;
-        }
-
-        // Handle arena selection
-        if (data.arena != null) {
-            stopAutoRefresh();
-
-            Arena arena = matchManager.getArena(data.arena);
-            if (arena == null) {
+        try {
+            if (data == null) {
                 return;
             }
 
-            // Open arena detail page
-            if (player != null) {
-                ArenaDetailPage detailPage = new ArenaDetailPage(
-                    playerRef, playerUuid, arena,
-                    matchManager, queueManager, kitManager, hudManager, scheduler,
-                    this::onBackFromDetail
-                );
-                player.getPageManager().openCustomPage(ref, store, detailPage);
+            Player player = store.getComponent(ref, Player.getComponentType());
+
+            // Handle close action
+            if ("close".equals(data.action)) {
+                stopAutoRefresh();
+                if (player != null) {
+                    player.getPageManager().setPage(ref, store, Page.None);
+                }
+                return;
             }
+
+            // Handle arena selection
+            if (data.arena != null) {
+                stopAutoRefresh();
+
+                Arena arena = matchManager.getArena(data.arena);
+                if (arena == null) {
+                    return;
+                }
+
+                // Open arena detail page
+                if (player != null) {
+                    ArenaDetailPage detailPage = new ArenaDetailPage(
+                        playerRef, playerUuid, arena,
+                        matchManager, queueManager, kitManager, hudManager, scheduler,
+                        this::onBackFromDetail
+                    );
+                    player.getPageManager().openCustomPage(ref, store, detailPage);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("[ArenaMenuPage] Error handling event: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -294,6 +332,11 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
             );
             player.getPageManager().openCustomPage(ref, store, newPage);
         }
+    }
+
+    @Override
+    public void onDismiss(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
+        shutdown();
     }
 
     @Override

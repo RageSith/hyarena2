@@ -118,6 +118,9 @@ public class HyArena2 extends JavaPlugin {
         this.matchManager = new MatchManager(configManager, eventBus, hubManager);
         this.matchManager.initialize();
 
+        // Wire boundary manager to match manager for state-driven boundary checks
+        this.boundaryManager.setMatchManager(matchManager);
+
         // Initialize kit manager
         this.kitManager = new KitManager(configManager.getConfigRoot(), eventBus);
         this.kitManager.loadKits();
@@ -229,19 +232,16 @@ public class HyArena2 extends JavaPlugin {
      * Note: Scheduler is created early in setup() for HUD support.
      */
     private void startScheduledTasks() {
-        // Boundary check task - runs on scheduler, executes on world thread
-        int checkIntervalMs = configManager.getGlobalConfig().getBoundaryCheckIntervalMs();
+        // Boundary check task - hub + arena at same interval, dispatches to world threads internally
+        int boundaryCheckIntervalMs = configManager.getGlobalConfig().getBoundaryCheckIntervalMs();
         scheduler.scheduleAtFixedRate(() -> {
-            if (world != null) {
-                world.execute(() -> {
-                    try {
-                        boundaryManager.tick();
-                    } catch (Exception e) {
-                        System.err.println("[HyArena2] Error in boundary tick: " + e.getMessage());
-                    }
-                });
+            try {
+                boundaryManager.tickHub();
+                boundaryManager.tickArena();
+            } catch (Exception e) {
+                System.err.println("[HyArena2] Error in boundary tick: " + e.getMessage());
             }
-        }, checkIntervalMs, checkIntervalMs, TimeUnit.MILLISECONDS);
+        }, boundaryCheckIntervalMs, boundaryCheckIntervalMs, TimeUnit.MILLISECONDS);
 
         // Matchmaker task - runs every 1 second on hub world thread
         scheduler.scheduleAtFixedRate(() -> {
@@ -271,7 +271,7 @@ public class HyArena2 extends JavaPlugin {
             }
         }, botTickIntervalMs, botTickIntervalMs, TimeUnit.MILLISECONDS);
 
-        System.out.println("[HyArena2] Scheduled tasks started (boundary check every " + checkIntervalMs + "ms, matchmaker every 1s, bot tick every " + botTickIntervalMs + "ms)");
+        System.out.println("[HyArena2] Scheduled tasks started (boundary check every " + boundaryCheckIntervalMs + "ms, matchmaker every 1s, bot tick every " + botTickIntervalMs + "ms)");
     }
 
     /**
