@@ -25,6 +25,7 @@ public class ArenaCommand extends AbstractPlayerCommand {
 
     public ArenaCommand(HyArena2 plugin) {
         super("arena", "Opens the arena selection menu");
+        this.requirePermission("hyarena.use");
         this.plugin = plugin;
     }
 

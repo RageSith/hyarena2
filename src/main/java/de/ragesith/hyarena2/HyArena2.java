@@ -41,6 +41,7 @@ import de.ragesith.hyarena2.generated.BuildInfo;
 import de.ragesith.hyarena2.hub.HubManager;
 import de.ragesith.hyarena2.interaction.OpenLeaderboardInteraction;
 import de.ragesith.hyarena2.interaction.OpenMatchmakingInteraction;
+import de.ragesith.hyarena2.interaction.OpenShopInteraction;
 import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.queue.Matchmaker;
 import de.ragesith.hyarena2.queue.QueueManager;
@@ -196,6 +197,8 @@ public class HyArena2 extends JavaPlugin {
             .register("Hyarena_Open_Matchmaking", OpenMatchmakingInteraction.class, OpenMatchmakingInteraction.CODEC);
         this.getCodecRegistry(Interaction.CODEC)
             .register("Hyarena_Open_Leaderboard", OpenLeaderboardInteraction.class, OpenLeaderboardInteraction.CODEC);
+        this.getCodecRegistry(Interaction.CODEC)
+                .register("Hyarena_Open_Shop", OpenShopInteraction.class, OpenShopInteraction.CODEC);
 
         System.out.println("[HyArena2] Custom interactions registered");
 

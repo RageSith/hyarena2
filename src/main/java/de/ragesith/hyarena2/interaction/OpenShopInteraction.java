@@ -1,0 +1,61 @@
+package de.ragesith.hyarena2.interaction;
+
+import com.hypixel.hytale.codec.builder.BuilderCodec;
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.protocol.InteractionType;
+import com.hypixel.hytale.server.core.Message;
+import com.hypixel.hytale.server.core.entity.InteractionContext;
+import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.modules.interaction.interaction.CooldownHandler;
+import com.hypixel.hytale.server.core.modules.interaction.interaction.config.SimpleInstantInteraction;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import de.ragesith.hyarena2.HyArena2;
+
+import javax.annotation.Nonnull;
+
+/**
+ * Custom interaction for opening the leaderboard UI when using the statue.
+ */
+public class OpenShopInteraction extends SimpleInstantInteraction {
+
+    public static final BuilderCodec<OpenShopInteraction> CODEC =
+        BuilderCodec.builder(OpenShopInteraction.class,
+            OpenShopInteraction::new, SimpleInstantInteraction.CODEC).build();
+
+    private static HyArena2 pluginInstance;
+
+    /**
+     * Sets the plugin instance for accessing the UI methods.
+     */
+    public static void setPluginInstance(HyArena2 plugin) {
+        pluginInstance = plugin;
+    }
+
+    @Override
+    protected void firstRun(@Nonnull InteractionType type, @Nonnull InteractionContext context, @Nonnull CooldownHandler handler) {
+        if (pluginInstance == null) {
+            System.err.println("[OpenShopInteraction] Plugin instance not set!");
+            return;
+        }
+
+        // Get player from context
+        Ref<EntityStore> ref = context.getOwningEntity();
+        if (ref == null) {
+            return;
+        }
+
+        Store<EntityStore> store = ref.getStore();
+        if (store == null) {
+            return;
+        }
+
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) {
+            return;
+        }
+
+        // TODO: Implement shop will come later
+        player.sendMessage(Message.raw("<color:#f39c12>Shop coming soon!</color>"));
+    }
+}

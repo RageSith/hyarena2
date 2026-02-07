@@ -93,7 +93,11 @@ public class KitManager {
             KitConfig kit = GSON.fromJson(reader, KitConfig.class);
             if (kit != null && kit.isValid()) {
                 kits.put(kit.getId(), kit);
-                System.out.println("[KitManager] Loaded kit: " + kit.getId() + " (" + kit.getDisplayName() + ")");
+                String permInfo = kit.requiresPermission()
+                    ? "permission=" + kit.getPermission()
+                    : "no permission required";
+                System.out.println("[KitManager] Loaded kit: " + kit.getId() +
+                    " (" + kit.getDisplayName() + ") [" + permInfo + "]");
             } else {
                 System.err.println("[KitManager] Invalid kit file: " + file.getFileName());
             }
@@ -148,8 +152,21 @@ public class KitManager {
             return true;
         }
 
-        // Check permission
-        return player.hasPermission(kit.getPermission());
+        // Check bypass permission first
+        if (player.hasPermission(de.ragesith.hyarena2.Permissions.BYPASS_KIT)) {
+            return true;
+        }
+
+        // Check kit-specific permission
+        String requiredPermission = kit.getPermission();
+        boolean hasPermission = player.hasPermission(requiredPermission);
+
+        // Debug logging
+        System.out.println("[KitManager] Permission check for kit '" + kitId + "': " +
+            "required='" + requiredPermission + "', hasPermission=" + hasPermission +
+            ", player=" + player.getDisplayName());
+
+        return hasPermission;
     }
 
     /**

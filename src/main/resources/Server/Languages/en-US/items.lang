@@ -5,3 +5,7 @@ hyarena_statue_matchmaking.interactionHints.open = Press [{key}] to open to queu
 hyarena_statue_leaderboard.name = Leaderboard Agent
 hyarena_statue_leaderboard.description = Is an interactive Statue for open the Leaderboard
 hyarena_statue_leaderboard.interactionHints.open = Press [{key}] to open the Arena Leaderboard
+
+hyarena_statue_shop.name = Shop Agent
+hyarena_statue_shop.description = Is an interactive Statue for open the Shop
+hyarena_statue_shop.interactionHints.open = Press [{key}] to open the Arena Shop

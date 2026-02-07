@@ -113,5 +113,5 @@ tasks.named<JavaCompile>("compileJava") {
 tasks.named<Jar>("jar") {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from("src/main/resources")
-    destinationDirectory.set(file("/home/hypanel/hytale/fdfae6e5-819f-466e-bed3-2feef026eb90/mods"))
+    destinationDirectory.set(file("/home/ragesith/"))
 }

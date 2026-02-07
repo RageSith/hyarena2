@@ -1,8 +1,8 @@
 {
   "TranslationProperties": {
-    "Name": "items.hyarena_statue_leaderboard.name",
-    "Description": "items.hyarena_statue_leaderboard.description",
-    "InteractionHint": "items.hyarena_statue_leaderboard.interactionHints.open"
+    "Name": "items.hyarena_statue_shop.name",
+    "Description": "items.hyarena_statue_shop.description",
+    "InteractionHint": "items.hyarena_statue_shop.interactionHints.open"
   },
   "PlayerAnimationsId": "Block",
   "Categories": [
@@ -24,10 +24,10 @@
   "BlockType": {
     "BlockParticleSetId": "Stone",
     "BlockSoundSetId": "Stone",
-    "CustomModel": "Blocks/Decorative_Sets/Temple_Light/Gaia_Statue_01.blockymodel",
+    "CustomModel": "Blocks/Decorative_Sets/Temple_Wind/Statue.blockymodel",
     "CustomModelTexture": [
       {
-        "Texture": "Blocks/Decorative_Sets/Temple_Light/Gaia_Statue_01_Textures/Sandstone.png",
+        "Texture": "Blocks/Decorative_Sets/Temple_Wind/Statue_Texture.png",
         "Weight": 1
       }
     ],
@@ -55,7 +55,7 @@
         "HintLabel": "View Leaderboard",
         "Interactions": [
           {
-            "Type": "Hyarena_Open_Leaderboard"
+            "Type": "Hyarena_Open_Shop"
           }
         ]
       }
