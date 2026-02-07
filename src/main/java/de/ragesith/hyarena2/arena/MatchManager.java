@@ -123,6 +123,32 @@ public class MatchManager {
     }
 
     /**
+     * Gets all registered game modes.
+     */
+    public Collection<GameMode> getGameModes() {
+        return gameModes.values();
+    }
+
+    /**
+     * Gets the display name for an arena's game mode, with fallback to the raw ID.
+     */
+    public String getGameModeDisplayName(Arena arena) {
+        GameMode gm = gameModes.get(arena.getGameMode());
+        return gm != null ? gm.getDisplayName() : arena.getGameMode();
+    }
+
+    /**
+     * Gets a formatted player count string for an arena.
+     * Returns "2 Players" when min==max, "2-4 Players" otherwise.
+     */
+    public static String formatPlayerCount(Arena arena) {
+        if (arena.getMinPlayers() == arena.getMaxPlayers()) {
+            return arena.getMinPlayers() + " Players";
+        }
+        return arena.getMinPlayers() + "-" + arena.getMaxPlayers() + " Players";
+    }
+
+    /**
      * Loads all arenas from config/arenas/ directory.
      */
     private void loadArenas() {

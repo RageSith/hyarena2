@@ -99,15 +99,15 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
         cmd.set("#ArenaTitle.Text", arena.getDisplayName());
 
         // Arena description
-        String description = String.format("%s | %d-%d Players",
-            arena.getGameMode(),
-            arena.getMinPlayers(),
-            arena.getMaxPlayers());
-        cmd.set("#ArenaDescription.Text", description);
+        String gameModeDisplay = matchManager.getGameModeDisplayName(arena);
+        String playersStr = MatchManager.formatPlayerCount(arena);
+        cmd.set("#ArenaDescription.Text", gameModeDisplay + " | " + playersStr);
 
         // Info section
-        cmd.set("#GameModeValue.Text", arena.getGameMode());
-        cmd.set("#PlayersValue.Text", arena.getMinPlayers() + "-" + arena.getMaxPlayers());
+        cmd.set("#GameModeValue.Text", gameModeDisplay);
+        cmd.set("#PlayersValue.Text", arena.getMinPlayers() == arena.getMaxPlayers()
+            ? String.valueOf(arena.getMinPlayers())
+            : arena.getMinPlayers() + "-" + arena.getMaxPlayers());
 
         // Queue status
         updateQueueInfo(cmd);
@@ -139,12 +139,14 @@ public class ArenaDetailPage extends InteractiveCustomUIPage<ArenaDetailPage.Pag
         if (selectedKitId != null) {
             KitConfig kit = kitManager.getKit(selectedKitId);
             if (kit != null) {
-                cmd.set("#SelectedKitLabel.Text", "Kit: " + kit.getDisplayName());
+                cmd.set("#SelectedKitLabel.Text", kit.getDisplayName());
             } else {
-                cmd.set("#SelectedKitLabel.Text", "Kit: None selected");
+                cmd.set("#SelectedKitLabel.Text", "None selected");
+                cmd.set("#SelectedKitLabel.Style.TextColor", "#96a9be");
             }
         } else {
-            cmd.set("#SelectedKitLabel.Text", availableKits.isEmpty() ? "No kits available" : "Kit: None selected");
+            cmd.set("#SelectedKitLabel.Text", availableKits.isEmpty() ? "No kits available" : "None selected");
+            cmd.set("#SelectedKitLabel.Style.TextColor", "#96a9be");
         }
 
         // Event bindings

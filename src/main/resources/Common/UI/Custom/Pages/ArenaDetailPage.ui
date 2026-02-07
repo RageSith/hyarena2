@@ -5,7 +5,7 @@ Group #ArenaDetailPage {
 
     $C.@DecoratedContainer {
         @CloseButton = true;
-        Anchor: (Width: 500, Height: 450);
+        Anchor: (Width: 560, Height: 420);
 
         Group #Title {
             $C.@Title #ArenaTitle {
@@ -19,87 +19,87 @@ Group #ArenaDetailPage {
             Anchor: (Top: 35);
             LayoutMode: Top;
 
-            // Arena Description
+            // Arena Description (subtitle)
             Label #ArenaDescription {
-                Text: "Duel | 2 Players | Last Standing";
-                Anchor: (Height: 24, Top: 5);
+                Text: "Duel | 2 Players";
+                Anchor: (Height: 22);
                 Style: (FontSize: 14, TextColor: #96a9be, Alignment: Center);
             }
 
             $C.@ContentSeparator {
-                @Anchor = (Top: 12);
+                @Anchor = (Top: 10);
             }
 
-            // Info Section
-            Group #InfoSection {
+            // Info Panel - two column grid with background
+            Group #InfoPanel {
                 Anchor: (Top: 12);
+                Padding: (Full: 14);
+                Background: #141c26;
                 LayoutMode: Top;
 
-                // Game Mode Row
-                Group #GameModeRow {
-                    Anchor: (Height: 24);
+                // Top row: Game Mode + Status
+                Group #TopInfoRow {
+                    Anchor: (Height: 26);
                     LayoutMode: Left;
 
+                    // Game Mode
                     Label {
                         Text: "Game Mode";
-                        Anchor: (Width: 120);
-                        Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center);
+                        Anchor: (Width: 90);
+                        Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center);
                     }
                     Label #GameModeValue {
                         Text: "Duel";
-                        FlexWeight: 1;
-                        Style: (FontSize: 14, TextColor: #b7cedd, VerticalAlignment: Center, Alignment: End, RenderBold: true);
-                    }
-                }
-
-                // Players Row
-                Group #PlayersRow {
-                    Anchor: (Height: 24, Top: 4);
-                    LayoutMode: Left;
-
-                    Label {
-                        Text: "Players";
                         Anchor: (Width: 120);
-                        Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center);
+                        Style: (FontSize: 13, TextColor: #b7cedd, VerticalAlignment: Center, RenderBold: true);
                     }
-                    Label #PlayersValue {
-                        Text: "2-2";
-                        FlexWeight: 1;
-                        Style: (FontSize: 14, TextColor: #b7cedd, VerticalAlignment: Center, Alignment: End, RenderBold: true);
-                    }
-                }
 
-                // Queue Status Row
-                Group #QueueRow {
-                    Anchor: (Height: 24, Top: 4);
-                    LayoutMode: Left;
+                    // Spacer
+                    Group { FlexWeight: 1; }
 
-                    Label {
-                        Text: "In Queue";
-                        Anchor: (Width: 120);
-                        Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center);
-                    }
-                    Label #QueueValue {
-                        Text: "0";
-                        FlexWeight: 1;
-                        Style: (FontSize: 14, TextColor: #3498db, VerticalAlignment: Center, Alignment: End, RenderBold: true);
-                    }
-                }
-
-                // Status Row
-                Group #StatusRow {
-                    Anchor: (Height: 24, Top: 4);
-                    LayoutMode: Left;
-
+                    // Status
                     Label {
                         Text: "Status";
-                        Anchor: (Width: 120);
-                        Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center);
+                        Anchor: (Width: 55);
+                        Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center);
                     }
                     Label #StatusValue {
                         Text: "Available";
-                        FlexWeight: 1;
-                        Style: (FontSize: 14, TextColor: #2ecc71, VerticalAlignment: Center, Alignment: End, RenderBold: true);
+                        Anchor: (Width: 90);
+                        Style: (FontSize: 13, TextColor: #2ecc71, VerticalAlignment: Center, Alignment: End, RenderBold: true);
+                    }
+                }
+
+                // Bottom row: Players + Queue
+                Group #BottomInfoRow {
+                    Anchor: (Height: 26, Top: 4);
+                    LayoutMode: Left;
+
+                    // Players
+                    Label {
+                        Text: "Players";
+                        Anchor: (Width: 90);
+                        Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center);
+                    }
+                    Label #PlayersValue {
+                        Text: "2-2";
+                        Anchor: (Width: 120);
+                        Style: (FontSize: 13, TextColor: #b7cedd, VerticalAlignment: Center, RenderBold: true);
+                    }
+
+                    // Spacer
+                    Group { FlexWeight: 1; }
+
+                    // In Queue
+                    Label {
+                        Text: "In Queue";
+                        Anchor: (Width: 55);
+                        Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center);
+                    }
+                    Label #QueueValue {
+                        Text: "0";
+                        Anchor: (Width: 90);
+                        Style: (FontSize: 13, TextColor: #3498db, VerticalAlignment: Center, Alignment: End, RenderBold: true);
                     }
                 }
             }
@@ -108,41 +108,35 @@ Group #ArenaDetailPage {
                 @Anchor = (Top: 12);
             }
 
-            // Kit Selection Section
-            Group #KitSection {
-                Anchor: (Top: 12, Height: 44);
-                LayoutMode: Left;
+            // Kit Selection Panel
+            Group #KitPanel {
+                Anchor: (Top: 12);
+                Padding: (Full: 14);
+                Background: #141c26;
+                LayoutMode: Top;
 
-                Label #SelectedKitLabel {
-                    Text: "Kit: None selected";
-                    FlexWeight: 1;
-                    Style: (FontSize: 14, TextColor: #96a9be, VerticalAlignment: Center);
+                // Kit header label
+                Label {
+                    Text: "KIT";
+                    Anchor: (Height: 16);
+                    Style: (FontSize: 10, TextColor: #6b7d8e, RenderBold: true, RenderUppercase: true);
                 }
 
-                $C.@SecondaryTextButton #SelectKitButton {
-                    @Text = "Select Kit";
-                    @Anchor = (Width: 140);
-                }
-            }
+                // Kit row: name + button
+                Group #KitRow {
+                    Anchor: (Height: 44, Top: 4);
+                    LayoutMode: Left;
 
-            // Button Row
-            Group #ButtonRow {
-                Anchor: (Top: 20);
-                LayoutMode: Left;
+                    Label #SelectedKitLabel {
+                        Text: "Kit: None selected";
+                        FlexWeight: 1;
+                        Style: (FontSize: 15, TextColor: #e8c872, VerticalAlignment: Center, RenderBold: true);
+                    }
 
-                $C.@SecondaryTextButton #BackButton {
-                    @Text = "Back";
-                    @Anchor = (Width: 120);
-                }
-
-                // Spacer
-                Group {
-                    FlexWeight: 1;
-                }
-
-                $C.@TextButton #JoinQueueButton {
-                    @Text = "Join Queue";
-                    @Anchor = (Width: 160);
+                    $C.@SecondaryTextButton #SelectKitButton {
+                        @Text = "Change";
+                        @Anchor = (Width: 160);
+                    }
                 }
             }
 
@@ -152,6 +146,27 @@ Group #ArenaDetailPage {
                 Anchor: (Height: 20, Top: 12);
                 Visible: false;
                 Style: (FontSize: 12, TextColor: #e74c3c, Alignment: Center);
+            }
+        }
+
+        // Bottom Button Row (pinned)
+        Group #ButtonRow {
+            Anchor: (Bottom: 16, Height: 44, Left: 20, Right: 20);
+            LayoutMode: Left;
+
+            $C.@SecondaryTextButton #BackButton {
+                @Text = "Back";
+                @Anchor = (Width: 120);
+            }
+
+            // Spacer
+            Group {
+                FlexWeight: 1;
+            }
+
+            $C.@TextButton #JoinQueueButton {
+                @Text = "Join Queue";
+                @Anchor = (Width: 160);
             }
         }
     }
