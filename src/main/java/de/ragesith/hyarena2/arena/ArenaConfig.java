@@ -24,6 +24,9 @@ public class ArenaConfig {
     private List<String> allowedKits;
     private List<SpawnPoint> spawnPoints;
     private Bounds bounds;
+    private List<CaptureZone> captureZones;
+    private int scoreTarget = 0; // Control-seconds needed to win (0 = unused)
+    private int zoneRotationSeconds = 60; // Rotation interval for multiple zones
 
     // Getters
     public String getId() { return id; }
@@ -44,6 +47,9 @@ public class ArenaConfig {
     public List<String> getAllowedKits() { return allowedKits; }
     public List<SpawnPoint> getSpawnPoints() { return spawnPoints; }
     public Bounds getBounds() { return bounds; }
+    public List<CaptureZone> getCaptureZones() { return captureZones; }
+    public int getScoreTarget() { return scoreTarget; }
+    public int getZoneRotationSeconds() { return zoneRotationSeconds; }
 
     /**
      * Validates the arena configuration
@@ -77,6 +83,33 @@ public class ArenaConfig {
         public double getZ() { return z; }
         public float getYaw() { return yaw; }
         public float getPitch() { return pitch; }
+    }
+
+    /**
+     * Represents a capture zone for King of the Hill mode
+     */
+    public static class CaptureZone {
+        private String displayName;
+        private double minX;
+        private double minY;
+        private double minZ;
+        private double maxX;
+        private double maxY;
+        private double maxZ;
+
+        public String getDisplayName() { return displayName; }
+        public double getMinX() { return minX; }
+        public double getMinY() { return minY; }
+        public double getMinZ() { return minZ; }
+        public double getMaxX() { return maxX; }
+        public double getMaxY() { return maxY; }
+        public double getMaxZ() { return maxZ; }
+
+        public boolean contains(double x, double y, double z) {
+            return x >= minX && x <= maxX &&
+                   y >= minY && y <= maxY &&
+                   z >= minZ && z <= maxZ;
+        }
     }
 
     /**

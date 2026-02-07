@@ -12,6 +12,7 @@ import de.ragesith.hyarena2.event.EventBus;
 import de.ragesith.hyarena2.gamemode.DeathmatchGameMode;
 import de.ragesith.hyarena2.gamemode.DuelGameMode;
 import de.ragesith.hyarena2.gamemode.GameMode;
+import de.ragesith.hyarena2.gamemode.KingOfTheHillGameMode;
 import de.ragesith.hyarena2.gamemode.LastManStandingGameMode;
 import de.ragesith.hyarena2.hub.HubManager;
 import de.ragesith.hyarena2.kit.KitManager;
@@ -56,6 +57,7 @@ public class MatchManager {
         registerGameMode(new DuelGameMode());
         registerGameMode(new LastManStandingGameMode());
         registerGameMode(new DeathmatchGameMode());
+        registerGameMode(new KingOfTheHillGameMode());
     }
 
     /**
