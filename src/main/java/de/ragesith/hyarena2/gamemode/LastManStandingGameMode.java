@@ -9,12 +9,12 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * 1v1 last standing game mode.
- * Winner is the last player alive.
+ * Free-for-all last man standing game mode.
+ * No respawns — last player alive wins.
  */
-public class DuelGameMode implements GameMode {
-    private static final String ID = "duel";
-    private static final String DISPLAY_NAME = "Duel";
+public class LastManStandingGameMode implements GameMode {
+    private static final String ID = "lms";
+    private static final String DISPLAY_NAME = "Last Man Standing";
 
     @Override
     public String getId() {
@@ -29,23 +29,23 @@ public class DuelGameMode implements GameMode {
     @Override
     public String getDescription() {
         return "Group { LayoutMode: Top;"
-            + " Label { Text: \"Duel\"; Anchor: (Height: 28); Style: (FontSize: 18, TextColor: #e8c872, RenderBold: true); }"
-            + " Label { Text: \"A classic 1v1 battle. Two players enter, one leaves victorious.\"; Anchor: (Height: 40, Top: 4); Style: (FontSize: 13, TextColor: #b7cedd, Wrap: true); }"
+            + " Label { Text: \"Last Man Standing\"; Anchor: (Height: 28); Style: (FontSize: 18, TextColor: #e8c872, RenderBold: true); }"
+            + " Label { Text: \"A free-for-all battle royale. Multiple players, no respawns. Be the last one alive to claim victory.\"; Anchor: (Height: 40, Top: 4); Style: (FontSize: 13, TextColor: #b7cedd, Wrap: true); }"
             + " Label { Text: \"Rules\"; Anchor: (Height: 24, Top: 12); Style: (FontSize: 15, TextColor: #e8c872, RenderBold: true); }"
-            + " Label { Text: \"\u2022 Two players fight head-to-head\"; Anchor: (Height: 18, Top: 4); Style: (FontSize: 12, TextColor: #96a9be); }"
+            + " Label { Text: \"\u2022 All players fight at once \u2014 free-for-all\"; Anchor: (Height: 18, Top: 4); Style: (FontSize: 12, TextColor: #96a9be); }"
             + " Label { Text: \"\u2022 No respawns \u2014 one life only\"; Anchor: (Height: 18, Top: 2); Style: (FontSize: 12, TextColor: #96a9be); }"
+            + " Label { Text: \"\u2022 Eliminated players spectate until the match ends\"; Anchor: (Height: 18, Top: 2); Style: (FontSize: 12, TextColor: #96a9be); }"
             + " Label { Text: \"\u2022 Last player standing wins\"; Anchor: (Height: 18, Top: 2); Style: (FontSize: 12, TextColor: #96a9be); }"
-            + " Label { Text: \"\u2022 If time runs out, the player with more kills wins\"; Anchor: (Height: 18, Top: 2); Style: (FontSize: 12, TextColor: #96a9be); }"
+            + " Label { Text: \"\u2022 If time runs out, the player with the most kills wins\"; Anchor: (Height: 18, Top: 2); Style: (FontSize: 12, TextColor: #96a9be); }"
             + " Label { Text: \"Tips\"; Anchor: (Height: 24, Top: 12); Style: (FontSize: 15, TextColor: #e8c872, RenderBold: true); }"
-            + " Label { Text: \"\u2022 Choose your kit wisely \u2014 you only get one shot\"; Anchor: (Height: 18, Top: 4); Style: (FontSize: 12, TextColor: #96a9be); }"
-            + " Label { Text: \"\u2022 Use the 3-second spawn immunity to position yourself\"; Anchor: (Height: 18, Top: 2); Style: (FontSize: 12, TextColor: #96a9be); }"
-            + " Label { Text: \"\u2022 Watch the timer; play aggressively if time is running out\"; Anchor: (Height: 18, Top: 2); Style: (FontSize: 12, TextColor: #96a9be); }"
+            + " Label { Text: \"\u2022 Let others fight first \u2014 pick off weakened enemies\"; Anchor: (Height: 18, Top: 4); Style: (FontSize: 12, TextColor: #96a9be); }"
+            + " Label { Text: \"\u2022 Stay near the center to avoid being cornered\"; Anchor: (Height: 18, Top: 2); Style: (FontSize: 12, TextColor: #96a9be); }"
+            + " Label { Text: \"\u2022 Keep track of how many players remain\"; Anchor: (Height: 18, Top: 2); Style: (FontSize: 12, TextColor: #96a9be); }"
             + " }";
     }
 
     @Override
     public void onMatchStart(ArenaConfig config, List<Participant> participants) {
-        // Ensure all participants start alive
         for (Participant p : participants) {
             p.setAlive(true);
         }
@@ -53,15 +53,16 @@ public class DuelGameMode implements GameMode {
 
     @Override
     public void onGameplayBegin(ArenaConfig config, List<Participant> participants) {
-        // Send fight message
+        long aliveCount = participants.stream().filter(Participant::isAlive).count();
         for (Participant p : participants) {
             p.sendMessage("<gradient:#2ecc71:#27ae60><b>FIGHT!</b></gradient>");
+            p.sendMessage("<color:#f1c40f>" + aliveCount + " players remain</color>");
         }
     }
 
     @Override
     public void onTick(ArenaConfig config, List<Participant> participants, int tickCount) {
-        // No periodic behavior needed for duel mode
+        // No periodic behavior needed
     }
 
     @Override
@@ -73,8 +74,19 @@ public class DuelGameMode implements GameMode {
             killer.addKill();
         }
 
-        // Duel ends when only one player remains alive
         long aliveCount = participants.stream().filter(Participant::isAlive).count();
+
+        // Broadcast elimination
+        String eliminationMsg;
+        if (killer != null) {
+            eliminationMsg = "<color:#e74c3c>" + victim.getName() + "</color> <color:#95a5a6>was eliminated by</color> <color:#e74c3c>" + killer.getName() + "</color><color:#95a5a6>!</color> <color:#f1c40f>" + aliveCount + " players remain</color>";
+        } else {
+            eliminationMsg = "<color:#e74c3c>" + victim.getName() + "</color> <color:#95a5a6>was eliminated!</color> <color:#f1c40f>" + aliveCount + " players remain</color>";
+        }
+        for (Participant p : participants) {
+            p.sendMessage(eliminationMsg);
+        }
+
         return aliveCount <= 1;
     }
 
@@ -88,14 +100,12 @@ public class DuelGameMode implements GameMode {
 
     @Override
     public boolean shouldMatchEnd(ArenaConfig config, List<Participant> participants) {
-        // Match ends if 0 or 1 players are alive
         long aliveCount = participants.stream().filter(Participant::isAlive).count();
         return aliveCount <= 1;
     }
 
     @Override
     public List<UUID> getWinners(ArenaConfig config, List<Participant> participants) {
-        // Winner is the last alive participant
         List<Participant> alive = participants.stream()
                 .filter(Participant::isAlive)
                 .collect(Collectors.toList());
@@ -104,23 +114,21 @@ public class DuelGameMode implements GameMode {
             return List.of(alive.get(0).getUniqueId());
         }
 
-        // No winners if all dead (tie/draw)
         return new ArrayList<>();
     }
 
     @Override
     public String getVictoryMessage(ArenaConfig config, List<Participant> winners) {
         if (winners.isEmpty()) {
-            return "<color:#f39c12>Match ended in a draw!</color>";
+            return "<color:#f39c12>No one survived!</color>";
         }
 
-        // Get winner name (assumes single winner in duel)
         Participant winner = winners.stream()
                 .findFirst()
                 .orElse(null);
 
         if (winner != null) {
-            return "<gradient:#f1c40f:#f39c12><b>" + winner.getName() + "</b></gradient> <color:#f1c40f>wins the duel!</color>";
+            return "<gradient:#f1c40f:#f39c12><b>" + winner.getName() + "</b></gradient> <color:#f1c40f>is the last one standing!</color>";
         }
 
         return "<color:#f39c12>Match ended!</color>";
@@ -128,12 +136,11 @@ public class DuelGameMode implements GameMode {
 
     @Override
     public boolean shouldRespawn(ArenaConfig config, Participant participant) {
-        // No respawns in duel mode - last standing wins
         return false;
     }
 
     @Override
     public int getRespawnDelayTicks(ArenaConfig config) {
-        return 0; // Not used since shouldRespawn returns false
+        return 0;
     }
 }

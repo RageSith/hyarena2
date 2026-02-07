@@ -123,13 +123,24 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
                 cmd.set(row + " #GMBtnName.Style.TextColor", "#e8c872");
             }
 
-            // Bind click event
+            // Bind click event on the select area
             events.addEventBinding(
                 CustomUIEventBindingType.Activating,
-                row,
+                row + " #GMBtnSelect",
                 EventData.of("Action", "mode").append("Index", String.valueOf(i)),
                 false
             );
+
+            // Show and bind "?" info button for actual game modes (skip "All")
+            if (i > 0) {
+                cmd.set(row + " #GMBtnInfo.Visible", true);
+                events.addEventBinding(
+                    CustomUIEventBindingType.Activating,
+                    row + " #GMBtnInfo",
+                    EventData.of("Action", "gminfo").append("Index", String.valueOf(i)),
+                    false
+                );
+            }
         }
 
         // Filter arenas by selected game mode
@@ -361,6 +372,42 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
                             }
                         } catch (NumberFormatException e) {
                             // Ignore invalid index
+                        }
+                    }
+                    break;
+
+                case "gminfo":
+                    if (data.index != null) {
+                        try {
+                            int modeIndex = Integer.parseInt(data.index);
+                            if (modeIndex > 0 && modeIndex < gameModeEntries.size()) {
+                                GameMode gm = matchManager.getGameMode(gameModeEntries.get(modeIndex).id);
+                                if (gm != null && player != null) {
+                                    stopAutoRefresh();
+                                    final int savedModeIndex = selectedModeIndex;
+                                    GameModeInfoPage infoPage = new GameModeInfoPage(
+                                        playerRef, playerUuid, gm, hudManager,
+                                        () -> {
+                                            // Return to arena menu preserving selected mode
+                                            Ref<EntityStore> pRef = playerRef.getReference();
+                                            if (pRef != null) {
+                                                Store<EntityStore> pStore = pRef.getStore();
+                                                Player p = pStore.getComponent(pRef, Player.getComponentType());
+                                                if (p != null) {
+                                                    ArenaMenuPage newPage = new ArenaMenuPage(
+                                                        playerRef, playerUuid, matchManager, queueManager,
+                                                        kitManager, hudManager, scheduler, savedModeIndex
+                                                    );
+                                                    p.getPageManager().openCustomPage(pRef, pStore, newPage);
+                                                }
+                                            }
+                                        }
+                                    );
+                                    player.getPageManager().openCustomPage(ref, store, infoPage);
+                                }
+                            }
+                        } catch (NumberFormatException e) {
+                            // Ignore
                         }
                     }
                     break;

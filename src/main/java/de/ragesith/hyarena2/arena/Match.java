@@ -348,7 +348,7 @@ public class Match {
             participant.addDeath();
 
             // Check if match should end
-            if (gameMode.shouldMatchEnd(getParticipants())) {
+            if (gameMode.shouldMatchEnd(arena.getConfig(), getParticipants())) {
                 end();
             }
         } else if (state == MatchState.WAITING || state == MatchState.STARTING) {
@@ -377,7 +377,7 @@ public class Match {
         freezeAllParticipants();
 
         // Notify game mode
-        gameMode.onMatchStart(getParticipants());
+        gameMode.onMatchStart(arena.getConfig(), getParticipants());
 
         // Fire event
         eventBus.publish(new MatchStartedEvent(matchId, arena.getWaitTimeSeconds()));
@@ -409,7 +409,7 @@ public class Match {
         showMatchHudToAllPlayers();
 
         // Notify game mode
-        gameMode.onGameplayBegin(getParticipants());
+        gameMode.onGameplayBegin(arena.getConfig(), getParticipants());
     }
 
     /**
@@ -430,14 +430,14 @@ public class Match {
         healAllAliveParticipants();
 
         // Determine winners
-        winners = gameMode.getWinners(getParticipants());
+        winners = gameMode.getWinners(arena.getConfig(), getParticipants());
 
         // Get victory message
         List<Participant> winnerParticipants = winners.stream()
                 .map(participants::get)
                 .filter(Objects::nonNull)
                 .toList();
-        String victoryMessage = gameMode.getVictoryMessage(winnerParticipants);
+        String victoryMessage = gameMode.getVictoryMessage(arena.getConfig(), winnerParticipants);
 
         // Get winner name for VictoryHud
         String winnerName = winnerParticipants.isEmpty() ? null : winnerParticipants.get(0).getName();
@@ -639,7 +639,7 @@ public class Match {
         }
 
         // Notify game mode
-        gameMode.onParticipantDamaged(victim, attacker, damage);
+        gameMode.onParticipantDamaged(arena.getConfig(), victim, attacker, damage);
 
         // Fire damage event
         eventBus.publish(new ParticipantDamagedEvent(matchId, victim, attacker, damage));
@@ -694,7 +694,7 @@ public class Match {
         Participant killer = killerUuid != null ? participants.get(killerUuid) : null;
 
         // Notify game mode and check if match ends
-        boolean shouldEnd = gameMode.onParticipantKilled(victim, killer, getParticipants());
+        boolean shouldEnd = gameMode.onParticipantKilled(arena.getConfig(), victim, killer, getParticipants());
 
         // Fire kill event
         eventBus.publish(new ParticipantKilledEvent(matchId, victim, killer));
@@ -707,7 +707,7 @@ public class Match {
         }
 
         // If victim is a bot and no respawn allowed, despawn the bot entity
-        if (victim.getType() == ParticipantType.BOT && !gameMode.shouldRespawn(victim)) {
+        if (victim.getType() == ParticipantType.BOT && !gameMode.shouldRespawn(arena.getConfig(), victim)) {
             if (botManager != null) {
                 BotParticipant bot = botManager.getBot(victimUuid);
                 if (bot != null) {
@@ -780,10 +780,10 @@ public class Match {
         tickCount++;
 
         // Let game mode tick
-        gameMode.onTick(getParticipants(), tickCount);
+        gameMode.onTick(arena.getConfig(), getParticipants(), tickCount);
 
         // Check if match should end (normal game mode condition)
-        if (gameMode.shouldMatchEnd(getParticipants())) {
+        if (gameMode.shouldMatchEnd(arena.getConfig(), getParticipants())) {
             end();
             return;
         }

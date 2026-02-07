@@ -9,8 +9,10 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.config.ConfigManager;
 import de.ragesith.hyarena2.event.EventBus;
+import de.ragesith.hyarena2.gamemode.DeathmatchGameMode;
 import de.ragesith.hyarena2.gamemode.DuelGameMode;
 import de.ragesith.hyarena2.gamemode.GameMode;
+import de.ragesith.hyarena2.gamemode.LastManStandingGameMode;
 import de.ragesith.hyarena2.hub.HubManager;
 import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.bot.BotManager;
@@ -52,6 +54,8 @@ public class MatchManager {
 
         // Register game modes
         registerGameMode(new DuelGameMode());
+        registerGameMode(new LastManStandingGameMode());
+        registerGameMode(new DeathmatchGameMode());
     }
 
     /**

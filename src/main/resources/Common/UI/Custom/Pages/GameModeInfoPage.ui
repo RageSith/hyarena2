@@ -1,0 +1,49 @@
+$C = "../Common.ui";
+
+Group #GameModeInfoPage {
+    $C.@PageOverlay {}
+
+    $C.@DecoratedContainer {
+        @CloseButton = true;
+        Anchor: (Width: 480, Height: 420);
+
+        Group #Title {
+            $C.@Title #InfoTitle {
+                @Text = "Game Mode Info";
+                Anchor: (Top: 12, Height: 24);
+            }
+        }
+
+        Group #Content {
+            Padding: (Full: 20);
+            Anchor: (Top: 35, Bottom: 70);
+
+            // Scrollable description container
+            Group #DescriptionContent {
+                LayoutMode: TopScrolling;
+                ScrollbarStyle: $C.@DefaultScrollbarStyle;
+            }
+        }
+
+        // Bottom Button Row (pinned)
+        Group #ButtonRow {
+            Anchor: (Bottom: 16, Height: 44, Left: 20, Right: 20);
+            LayoutMode: Left;
+
+            // Spacer
+            Group {
+                FlexWeight: 1;
+            }
+
+            $C.@SecondaryTextButton #BackButton {
+                @Text = "Back";
+                @Anchor = (Width: 120);
+            }
+
+            // Spacer
+            Group {
+                FlexWeight: 1;
+            }
+        }
+    }
+}
