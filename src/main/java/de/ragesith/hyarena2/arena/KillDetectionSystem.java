@@ -230,10 +230,19 @@ public class KillDetectionSystem extends DamageEventSystem {
             return;
         }
 
-        // Get attacker info (UUID and entity ref for signature energy)
+        // Determine if attacker is a player (only player-on-bot goes through this path)
         Ref<EntityStore> attackerEntityRef = getAttackerEntityRef(damage.getSource());
-        UUID attackerUuid = getAttackerUuid(damage.getSource(), store);
+        Player attackerPlayer = (attackerEntityRef != null)
+            ? store.getComponent(attackerEntityRef, Player.getComponentType()) : null;
 
+        // Non-player damage to bots (bot-on-bot, environment, etc.) is cancelled here;
+        // bot-on-bot is handled solely by BotManager.handleBotDamage()
+        if (attackerPlayer == null) {
+            damage.setCancelled(true);
+            return;
+        }
+
+        UUID attackerUuid = getAttackerUuid(damage.getSource(), store);
         float damageAmount = damage.getAmount();
 
         // Capture current health BEFORE applying damage (for accurate fatal damage tracking)
@@ -251,12 +260,7 @@ public class KillDetectionSystem extends DamageEventSystem {
         damage.setCancelled(true);
 
         // Grant signature energy to player attacker since damage was cancelled
-        if (attackerEntityRef != null) {
-            Player attackerPlayer = store.getComponent(attackerEntityRef, Player.getComponentType());
-            if (attackerPlayer != null) {
-                grantSignatureEnergy(attackerEntityRef, store);
-            }
-        }
+        grantSignatureEnergy(attackerEntityRef, store);
 
         // Record damage - use actual HP removed for fatal hits (not overkill damage)
         double actualDamage = died ? healthBeforeDamage : damageAmount;

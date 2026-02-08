@@ -293,13 +293,12 @@ public class BotAI {
             // Calculate damage (base damage from kit or default)
             double baseDamage = 10.0; // Default melee damage
 
-            // Notify via callback
+            // Notify via callback (handleBotDamage tracks damage dealt)
             if (damageCallback != null) {
                 damageCallback.onBotDamage(bot, currentTargetId, baseDamage);
             }
 
             bot.setLastAttackTime(System.currentTimeMillis());
-            bot.addDamageDealt(baseDamage);
         } else {
             // Miss - still update attack time
             bot.setLastAttackTime(System.currentTimeMillis());

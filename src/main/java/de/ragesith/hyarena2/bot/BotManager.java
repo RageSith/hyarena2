@@ -61,6 +61,9 @@ public class BotManager {
     // NPC entity health tracking (for proportional damage)
     private final Map<UUID, Float> npcMaxHealthMap = new ConcurrentHashMap<>();
 
+    // Separate cooldown tracker for bot-on-bot combat (independent of BotAI's lastAttackTime)
+    private final Map<UUID, Long> botCombatLastAttack = new ConcurrentHashMap<>();
+
     public BotManager(EventBus eventBus) {
         this.eventBus = eventBus;
     }
@@ -301,6 +304,7 @@ public class BotManager {
         // Remove from tracking
         activeBots.remove(botId);
         botMatches.remove(botId);
+        botCombatLastAttack.remove(botId);
 
         System.out.println("[BotManager] Despawned bot " + bot.getName());
     }
@@ -458,6 +462,9 @@ public class BotManager {
 
         // Update NPC targeting
         updateBotTarget(bot, match, store);
+
+        // Manual bot-on-bot damage (synced with NPC facing direction)
+        applyBotCombatDamage(bot, match);
     }
 
     /**
@@ -642,7 +649,103 @@ public class BotManager {
     }
 
     /**
+     * Checks if a target position is within the attacker's field of view cone.
+     * @param attackerPos the attacker's position (includes yaw)
+     * @param targetPos the target's position
+     * @param fovDegrees the total field of view angle (e.g., 90 = +/-45 from center)
+     * @return true if target is within the FOV cone
+     */
+    private boolean isTargetInFOV(Position attackerPos, Position targetPos, float fovDegrees) {
+        if (attackerPos == null || targetPos == null) return false;
+
+        double dx = targetPos.getX() - attackerPos.getX();
+        double dz = targetPos.getZ() - attackerPos.getZ();
+
+        // atan2 gives angle in radians; Hytale: yaw 0 = +Z, yaw 90 = -X (clockwise from +Z)
+        float angleToTarget = (float) Math.toDegrees(Math.atan2(-dx, dz));
+
+        float attackerYaw = attackerPos.getYaw();
+
+        float angleDiff = angleToTarget - attackerYaw;
+        while (angleDiff > 180) angleDiff -= 360;
+        while (angleDiff < -180) angleDiff += 360;
+
+        return Math.abs(angleDiff) <= fovDegrees / 2.0f;
+    }
+
+    /**
+     * Manually applies damage between bots since Hytale's NPC-on-NPC combat
+     * doesn't reliably generate damage events.
+     * Checks FOV (bot must be facing target) and range to stay in sync with attack animations.
+     */
+    private void applyBotCombatDamage(BotParticipant attacker, Match match) {
+        if (!attacker.isAlive()) return;
+
+        Position attackerPos = attacker.getCurrentPosition();
+        if (attackerPos == null) return;
+
+        // Check attack cooldown (separate from BotAI's lastAttackTime)
+        long now = System.currentTimeMillis();
+        long lastAttack = botCombatLastAttack.getOrDefault(attacker.getUniqueId(), 0L);
+        if (now - lastAttack < attacker.getDifficulty().getAttackCooldownMs()) return;
+
+        // Find nearest alive bot in front of attacker (90 degree FOV cone)
+        BotParticipant nearestBot = null;
+        double nearestDistance = Double.MAX_VALUE;
+
+        for (Participant participant : match.getParticipants()) {
+            if (participant.getUniqueId().equals(attacker.getUniqueId())) continue;
+            if (participant.getType() != ParticipantType.BOT) continue;
+            if (!participant.isAlive() || participant.isImmune()) continue;
+
+            BotParticipant otherBot = activeBots.get(participant.getUniqueId());
+            if (otherBot == null) continue;
+
+            Position otherPos = otherBot.getCurrentPosition();
+            if (otherPos == null) continue;
+
+            // FOV check — only consider targets the NPC is facing
+            if (!isTargetInFOV(attackerPos, otherPos, 90f)) continue;
+
+            double dx = otherPos.getX() - attackerPos.getX();
+            double dy = otherPos.getY() - attackerPos.getY();
+            double dz = otherPos.getZ() - attackerPos.getZ();
+            double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestBot = otherBot;
+            }
+        }
+
+        if (nearestBot == null) return;
+
+        // Attack range check (melee = 3 blocks)
+        if (nearestDistance > 3.0) return;
+
+        // Apply damage
+        double damage = 10.0;
+        botCombatLastAttack.put(attacker.getUniqueId(), now);
+        System.out.println("[DEBUG BOT-COMBAT] HIT! " + attacker.getName() + " -> " + nearestBot.getName() +
+            " | dmg=" + damage + " | dist=" + String.format("%.1f", nearestDistance) +
+            " | victimHP=" + nearestBot.getHealth() + "/" + nearestBot.getMaxHealth());
+
+        boolean died = nearestBot.takeDamage(damage);
+        attacker.addDamageDealt(damage);
+
+        // Update NPC entity health bar
+        applyDamageToNpcEntity(nearestBot, damage);
+
+        if (died) {
+            match.recordKill(nearestBot.getUniqueId(), attacker.getUniqueId());
+        } else {
+            match.recordDamage(nearestBot.getUniqueId(), attacker.getUniqueId(), damage);
+        }
+    }
+
+    /**
      * Handles damage dealt by a bot (callback from BotAI).
+     * Only processes bot-to-player damage; bot-on-bot is handled by applyBotCombatDamage().
      */
     private void handleBotDamage(BotParticipant attacker, UUID victimId, double damage) {
         Match match = botMatches.get(attacker.getUniqueId());
@@ -660,22 +763,13 @@ public class BotManager {
             return;
         }
 
-        // Apply damage based on victim type
+        // Bot-on-bot is handled by applyBotCombatDamage() during tick (synced with NPC facing)
         if (victim.getType() == ParticipantType.BOT) {
-            BotParticipant botVictim = activeBots.get(victimId);
-            if (botVictim != null) {
-                boolean died = botVictim.takeDamage(damage);
-                attacker.addDamageDealt(damage);
+            return;
+        }
 
-                if (died) {
-                    // Record kill
-                    attacker.addKill();
-                    match.recordKill(victimId, attacker.getUniqueId());
-                } else {
-                    match.recordDamage(victimId, attacker.getUniqueId(), damage);
-                }
-            }
-        } else if (victim.getType() == ParticipantType.PLAYER) {
+        // Bot-to-player: apply damage via Hytale's damage system
+        if (victim.getType() == ParticipantType.PLAYER) {
             // Bot attacking player - apply damage via Hytale's damage system
             // This will be handled by KillDetectionSystem
             applyDamageToPlayer(victimId, damage);
