@@ -599,6 +599,9 @@ public class Match {
 
         state = MatchState.FINISHED;
 
+        // Let game mode clean up (e.g., clear debug shapes)
+        gameMode.onMatchFinished(getParticipants());
+
         // VictoryHud pages are NOT hidden here — they persist after teleport
         // and the player dismisses them manually (close button or ESC).
 
@@ -651,6 +654,9 @@ public class Match {
      */
     public synchronized void cancel(String reason) {
         broadcast("<color:#e74c3c>Match cancelled: " + reason + "</color>");
+
+        // Let game mode clean up (e.g., clear debug shapes)
+        gameMode.onMatchFinished(getParticipants());
 
         // Teleport all player participants back to hub FIRST.
         // Bot entities must still exist when players leave to prevent

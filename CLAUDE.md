@@ -185,10 +185,9 @@ Key reference files in old project:
 - `src/main/java/de/ragesith/hyarena2/ui/page/ArenaDetailPage.java`
 
 **Deferred to later phases:**
-- Admin pages (arena editor, kit editor, hub settings) - Phase 12 or as needed
-- Stats page - needs Phase 7 API
-- Shop pages - Phase 8
-- Leaderboard page - Phase 7 API
+- Stats page - needs Phase 10 API
+- Shop pages - Phase 7
+- Leaderboard page - Phase 10 API
 
 **Milestone**: Full UI flow working, HUDs show all match info.
 
@@ -208,7 +207,12 @@ Key reference files in old project:
 - Only handles player participants — bots have their own despawn-on-death logic.
 - `getNextKitId()` is called on both initial spawn and every respawn.
 
-### Phases 7-12: Not Started
+### Remaining Phases
+- **Phase 7: Economy & Shop** — Currency, shop pages, purchases, unlock checking
+- **Phase 8: Achievements & Challenges** — Achievement tracking, daily/weekly challenges, progression UI
+- **Phase 9: Polish & Extras** — Sound effects, anti-cheat, seasonal events, logging, performance
+- **Phase 10: External API & Website Overhaul** — Stats persistence, leaderboards, website redesign
+
 See `plan/03_implementation_plan.md` for full roadmap.
 
 ## Package Structure

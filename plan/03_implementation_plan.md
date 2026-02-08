@@ -6,102 +6,93 @@ Build in layers - each phase produces a working (but incomplete) plugin.
 
 ---
 
-## Phase 1: Core Foundation
+## Phase 1: Core Foundation - COMPLETE
 *Get players joining and moving between worlds*
 
-- [ ] Project setup (package structure, dependencies)
-- [ ] `ConfigManager` - load global.json, hub.json
-- [ ] `EventBus` - basic pub/sub
-- [ ] `HubManager` - spawn players in hub
-- [ ] `/arena` command (opens placeholder UI)
-- [ ] Basic boundary system (keep players in hub)
-- [ ] `PlayerReadyEvent` handling (world change detection)
+- [x] Project setup (package structure, dependencies)
+- [x] `ConfigManager` - load global.json, hub.json
+- [x] `EventBus` - basic pub/sub
+- [x] `HubManager` - spawn players in hub
+- [x] `/arena` command (opens placeholder UI)
+- [x] Basic boundary system (keep players in hub)
+- [x] `PlayerReadyEvent` handling (world change detection)
 
 **Milestone**: Players join, spawn in hub, can't leave hub area.
 
 ---
 
-## Phase 2: Arena & Match Basics
+## Phase 2: Arena & Match Basics - COMPLETE
 *Create and run a simple match*
 
-- [ ] `Arena` class with config loading
-- [ ] `Match` class with state machine
-- [ ] `MatchManager` - create/track matches
-- [ ] `GameMode` interface + `DuelGameMode`
-- [ ] `Participant` interface + `PlayerParticipant`
-- [ ] Basic teleportation (hub ↔ arena)
-- [ ] Match lifecycle events
+- [x] `Arena` class with config loading
+- [x] `Match` class with state machine
+- [x] `MatchManager` - create/track matches
+- [x] `GameMode` interface + `DuelGameMode`
+- [x] `Participant` interface + `PlayerParticipant`
+- [x] Basic teleportation (hub ↔ arena)
+- [x] Match lifecycle events
 
 **Milestone**: Two players can teleport to arena, fight, winner returns to hub.
 
 ---
 
-## Phase 3: Queue System
+## Phase 3: Queue System - COMPLETE
 *Proper matchmaking flow*
 
-- [ ] `QueueManager` - join/leave queue
-- [ ] `Matchmaker` - countdown logic, match creation
-- [ ] `QueueHud` - show queue status
-- [ ] `LobbyHud` - show server stats
-- [ ] Queue events (PlayerQueuedEvent, etc.)
+- [x] `QueueManager` - join/leave queue
+- [x] `Matchmaker` - countdown logic, match creation
+- [x] `QueueHud` - show queue status
+- [x] `LobbyHud` - show server stats
+- [x] Queue events (PlayerQueuedEvent, etc.)
 
 **Milestone**: Players queue via UI, match starts automatically after countdown.
 
 ---
 
-## Phase 4: Kits & Combat
+## Phase 4: Kits & Combat - COMPLETE
 *Equipment and proper fighting*
 
-- [ ] `Kit` class with config loading
-- [ ] `KitManager` - apply kits to players
-- [ ] Kit selection in UI
-- [ ] Damage detection system
-- [ ] Kill/death tracking per match
-- [ ] Respawn logic (game mode dependent)
+- [x] `Kit` class with config loading
+- [x] `KitManager` - apply kits to players
+- [x] Kit selection in UI
+- [x] Damage detection system
+- [x] Kill/death tracking per match
+- [x] Respawn logic (game mode dependent)
 
 **Milestone**: Players get kits, kills are tracked, respawns work.
 
 ---
 
-## Phase 5: Bots
+## Phase 5: Bots - COMPLETE
 *AI opponents*
 
-- [ ] `BotParticipant` implementation
-- [ ] `BotAI` - targeting, movement, attacking
-- [ ] `BotDifficulty` settings
-- [ ] Bot spawning in matches
-- [ ] Bot kit application
+- [x] `BotParticipant` implementation
+- [x] `BotAI` - targeting, movement, attacking
+- [x] `BotDifficulty` settings
+- [x] Bot spawning in matches
+- [x] Bot kit application
+- [x] Cross-world bot support (world-thread-local management)
 
 **Milestone**: Bots fill empty slots, fight players, work in any world.
 
 ---
 
-## Phase 6: HUDs & UI Polish
-*Complete user interface*
+## Phase 6: HUDs, UI & Game Modes - COMPLETE
+*Complete user interface and all game modes*
 
-- [ ] `MatchHud` - scoreboard, timer
-- [ ] Victory screen
-- [ ] Full UI page hierarchy (MainMenu → subpages)
-- [ ] Arena list & detail pages
-- [ ] Admin pages (arena/kit/hub editor)
+- [x] `MatchHud` - scoreboard, timer
+- [x] Victory screen (interactive page with close button)
+- [x] Full UI page hierarchy (MainMenu → subpages)
+- [x] Arena list & detail pages
+- [x] Admin pages (arena/kit CRUD, hub settings, /hyadmin command)
+- [x] Game modes: `duel`, `lms`, `deathmatch`, `koth`, `kit_roulette`
+- [x] KOTH score HUD
 
-**Milestone**: Full UI flow working, HUDs show all info.
-
----
-
-## Phase 7: External API Integration
-*Stats and persistence*
-
-- [ ] `ApiClient` implementation
-- [ ] Stats recording on match end
-- [ ] Player stats display in UI
-- [ ] Leaderboard integration
-
-**Milestone**: Match results sent to API, stats viewable.
+**Milestone**: Full UI flow working, HUDs show all info, all game modes implemented.
 
 ---
 
-## Phase 8: Economy & Shop
+## Phase 7: Economy & Shop
 *Currency and purchases*
 
 - [ ] Currency display in UI
@@ -113,19 +104,7 @@ Build in layers - each phase produces a working (but incomplete) plugin.
 
 ---
 
-## Phase 9: Social Features
-*Chat and friends*
-
-- [ ] `ChatManager` - global/match/private channels
-- [ ] Chat commands (/m, /msg)
-- [ ] Friends list (via API)
-- [ ] Friend UI page
-
-**Milestone**: Full chat system, friends list working.
-
----
-
-## Phase 10: Achievements & Challenges
+## Phase 8: Achievements & Challenges
 *Progression systems*
 
 - [ ] `AchievementTracker` - event subscriptions
@@ -138,19 +117,7 @@ Build in layers - each phase produces a working (but incomplete) plugin.
 
 ---
 
-## Phase 11: Additional Game Modes
-*Extend gameplay variety*
-
-- [ ] `DeathmatchGameMode` (FFA, first to X kills)
-- [ ] `TimedDeathmatchGameMode` (FFA, most kills in time)
-- [ ] Game mode configs
-- [ ] Game mode selection in arena config
-
-**Milestone**: All three game modes playable.
-
----
-
-## Phase 12: Polish & Extras
+## Phase 9: Polish & Extras
 *Final features*
 
 - [ ] `SoundManager` - all sound effects
@@ -164,6 +131,19 @@ Build in layers - each phase produces a working (but incomplete) plugin.
 
 ---
 
+## Phase 10: External API & Website Overhaul
+*Stats, persistence, and website redesign*
+
+- [ ] `ApiClient` implementation
+- [ ] Stats recording on match end
+- [ ] Player stats display in UI
+- [ ] Leaderboard integration
+- [ ] Website overhaul (details TBD)
+
+**Milestone**: Match results sent to API, stats viewable, website updated.
+
+---
+
 ## Implementation Approach
 
 **Answer:** Phase by phase with testing checkpoints.
@@ -174,9 +154,3 @@ Each phase will:
 3. Wait for confirmation before moving to next phase
 
 This ensures each layer works correctly before building on top of it.
-
----
-
-# Ready to Begin
-
-Start with **Phase 1: Core Foundation** when ready.

@@ -2,12 +2,18 @@ package de.ragesith.hyarena2.gamemode;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.math.matrix.Matrix4d;
 import com.hypixel.hytale.math.vector.Vector3d;
+import com.hypixel.hytale.protocol.DebugShape;
+import com.hypixel.hytale.protocol.packets.player.ClearDebugShapes;
+import com.hypixel.hytale.protocol.packets.player.DisplayDebug;
+import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.modules.entity.EntityModule;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.core.util.EventTitleUtil;
 import de.ragesith.hyarena2.arena.ArenaConfig;
 import de.ragesith.hyarena2.bot.BotParticipant;
 import de.ragesith.hyarena2.config.Position;
@@ -25,6 +31,14 @@ import java.util.stream.Collectors;
 public class KingOfTheHillGameMode implements GameMode {
     private static final String ID = "koth";
     private static final String DISPLAY_NAME = "King of the Hill";
+
+    // Zone visualization colors (per-player perspective) — uses protocol Vector3f for DisplayDebug packet
+    private static final com.hypixel.hytale.protocol.Vector3f COLOR_UNCLAIMED = new com.hypixel.hytale.protocol.Vector3f(0.5f, 0.5f, 0.5f);
+    private static final com.hypixel.hytale.protocol.Vector3f COLOR_HOLDING = new com.hypixel.hytale.protocol.Vector3f(0.0f, 1.0f, 0.0f);
+    private static final com.hypixel.hytale.protocol.Vector3f COLOR_ENEMY = new com.hypixel.hytale.protocol.Vector3f(1.0f, 0.0f, 0.0f);
+    private static final com.hypixel.hytale.protocol.Vector3f COLOR_CONTESTED = new com.hypixel.hytale.protocol.Vector3f(1.0f, 0.65f, 0.0f);
+    private static final float SHAPE_DURATION = 1.5f;
+    private static final double EDGE_THICKNESS = 0.03;
 
     private final Map<UUID, Integer> controlTicks = new HashMap<>();
     private int activeZoneIndex = 0;
@@ -93,13 +107,17 @@ public class KingOfTheHillGameMode implements GameMode {
             return;
         }
 
+        // Zone rotation warning (5 seconds before)
+        int rotationTicks = config.getZoneRotationSeconds() * 20;
+        if (zones.size() > 1 && tickCount > 0 && (tickCount + 100) % rotationTicks == 0) {
+            showZoneStatus(participants, "Get ready!", "Zone changing in 5s");
+        }
+
         // Zone rotation
-        if (zones.size() > 1 && tickCount > 0 && tickCount % (config.getZoneRotationSeconds() * 20) == 0) {
+        if (zones.size() > 1 && tickCount > 0 && tickCount % rotationTicks == 0) {
             activeZoneIndex = (activeZoneIndex + 1) % zones.size();
             String newZoneName = zones.get(activeZoneIndex).getDisplayName();
-            for (Participant p : participants) {
-                p.sendMessage("<color:#e8c872><b>Zone rotated!</b> Active zone: " + newZoneName + "</color>");
-            }
+            showZoneStatus(participants, newZoneName, "Zone rotated!");
             // Reset controller state on rotation
             currentController = null;
             contested = false;
@@ -117,12 +135,12 @@ public class KingOfTheHillGameMode implements GameMode {
             if (p.getType() == ParticipantType.BOT) {
                 BotParticipant bot = (BotParticipant) p;
                 Position botPos = bot.getCurrentPosition();
-                if (botPos != null && activeZone.contains(botPos.getX(), botPos.getY(), botPos.getZ())) {
+                if (botPos != null && isInZone(activeZone, botPos.getX(), botPos.getY(), botPos.getZ())) {
                     participantsInZone.add(p.getUniqueId());
                 }
             } else {
                 Vector3d pos = getPlayerPosition(p.getUniqueId());
-                if (pos != null && activeZone.contains(pos.getX(), pos.getY(), pos.getZ())) {
+                if (pos != null && isInZone(activeZone, pos.getX(), pos.getY(), pos.getZ())) {
                     participantsInZone.add(p.getUniqueId());
                 }
             }
@@ -144,36 +162,35 @@ public class KingOfTheHillGameMode implements GameMode {
             contested = true;
         }
 
-        // Feedback every second (20 ticks)
-        if (tickCount % 20 == 0) {
-            // Controller changed
-            if (!Objects.equals(previousController, currentController) || previousContested != contested) {
-                if (contested) {
-                    for (Participant p : participants) {
-                        p.sendMessage("<color:#e74c3c>Contested!</color> <color:#95a5a6>Multiple players on the hill</color>");
-                    }
-                } else if (currentController != null) {
-                    Participant controller = findParticipant(participants, currentController);
-                    if (controller != null) {
-                        for (Participant p : participants) {
-                            p.sendMessage("<color:#3498db>" + controller.getName() + " is capturing the hill!</color>");
-                        }
-                    }
-                } else if (previousController != null || previousContested) {
-                    for (Participant p : participants) {
-                        p.sendMessage("<color:#95a5a6>The hill is empty</color>");
-                    }
-                }
-            }
-
-            // Score milestone to controller
-            if (currentController != null) {
-                int ticks = controlTicks.getOrDefault(currentController, 0);
-                int score = ticks / 20;
+        // Zone state change — broadcast immediately via event title + update zone shape
+        if (!Objects.equals(previousController, currentController) || previousContested != contested) {
+            String zoneName = activeZone.getDisplayName();
+            if (contested) {
+                showZoneStatus(participants, zoneName, "Contested!");
+            } else if (currentController != null) {
                 Participant controller = findParticipant(participants, currentController);
                 if (controller != null) {
-                    controller.sendMessage("<color:#2ecc71>Score: " + score + "/" + config.getScoreTarget() + "</color>");
+                    showZoneStatus(participants, zoneName, controller.getName() + " is holding!");
                 }
+            } else if (previousController != null || previousContested) {
+                showZoneStatus(participants, zoneName, "Unclaimed!");
+            }
+            // Immediately update zone shape on state change
+            sendZoneShape(activeZone, participants);
+        }
+
+        // Periodic zone shape refresh (every second)
+        if (tickCount % 20 == 0) {
+            sendZoneShape(activeZone, participants);
+        }
+
+        // Score milestone to controller (every second)
+        if (tickCount % 20 == 0 && currentController != null) {
+            int ticks = controlTicks.getOrDefault(currentController, 0);
+            int score = ticks / 20;
+            Participant controller = findParticipant(participants, currentController);
+            if (controller != null) {
+                controller.sendMessage("<color:#2ecc71>Score: " + score + "/" + config.getScoreTarget() + "</color>");
             }
         }
     }
@@ -302,6 +319,140 @@ public class KingOfTheHillGameMode implements GameMode {
     }
 
     /**
+     * Sends a wireframe cube (12 thin edges) showing the capture zone boundary to each player.
+     * Color depends on the player's relationship to the current zone state.
+     */
+    private void sendZoneShape(ArenaConfig.CaptureZone zone, List<Participant> participants) {
+        // Snap to full blocks: floor mins, ceil maxes — visual always covers the full zone
+        double x1 = Math.floor(Math.min(zone.getMinX(), zone.getMaxX()));
+        double x2 = Math.ceil(Math.max(zone.getMinX(), zone.getMaxX()));
+        double y1 = Math.floor(Math.min(zone.getMinY(), zone.getMaxY()));
+        double y2 = Math.ceil(Math.max(zone.getMinY(), zone.getMaxY()));
+        double z1 = Math.floor(Math.min(zone.getMinZ(), zone.getMaxZ()));
+        double z2 = Math.ceil(Math.max(zone.getMinZ(), zone.getMaxZ()));
+
+        double centerX = (x1 + x2) / 2.0;
+        double centerY = (y1 + y2) / 2.0;
+        double centerZ = (z1 + z2) / 2.0;
+        double sizeX = x2 - x1;
+        double sizeY = y2 - y1;
+        double sizeZ = z2 - z1;
+        double t = EDGE_THICKNESS;
+
+        // 12 edges of a wireframe cube: 4 bottom, 4 top, 4 vertical
+        float[][] edgeMatrices = new float[12][];
+
+        // Extend horizontal edges by t on each end so they overlap the vertical pillars at corners
+        double extX = sizeX + t;
+        double extZ = sizeZ + t;
+
+        // --- Bottom edges (y1) ---
+        Matrix4d m = new Matrix4d().identity();
+        m.translate(centerX, y1, z1); m.scale(extX, t, t);
+        edgeMatrices[0] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(centerX, y1, z2); m.scale(extX, t, t);
+        edgeMatrices[1] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(x1, y1, centerZ); m.scale(t, t, extZ);
+        edgeMatrices[2] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(x2, y1, centerZ); m.scale(t, t, extZ);
+        edgeMatrices[3] = m.asFloatData();
+
+        // --- Top edges (y2) ---
+        m = new Matrix4d().identity();
+        m.translate(centerX, y2, z1); m.scale(extX, t, t);
+        edgeMatrices[4] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(centerX, y2, z2); m.scale(extX, t, t);
+        edgeMatrices[5] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(x1, y2, centerZ); m.scale(t, t, extZ);
+        edgeMatrices[6] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(x2, y2, centerZ); m.scale(t, t, extZ);
+        edgeMatrices[7] = m.asFloatData();
+
+        // --- Vertical edges (4 corners) ---
+        m = new Matrix4d().identity();
+        m.translate(x1, centerY, z1); m.scale(t, sizeY, t);
+        edgeMatrices[8] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(x2, centerY, z1); m.scale(t, sizeY, t);
+        edgeMatrices[9] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(x1, centerY, z2); m.scale(t, sizeY, t);
+        edgeMatrices[10] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(x2, centerY, z2); m.scale(t, sizeY, t);
+        edgeMatrices[11] = m.asFloatData();
+
+        for (Participant p : participants) {
+            if (p.getType() != ParticipantType.PLAYER) continue;
+
+            PlayerRef playerRef = Universe.get().getPlayer(p.getUniqueId());
+            if (playerRef == null) continue;
+
+            // Determine color based on this player's perspective
+            com.hypixel.hytale.protocol.Vector3f color;
+            if (contested) {
+                color = COLOR_CONTESTED;
+            } else if (currentController != null && currentController.equals(p.getUniqueId())) {
+                color = COLOR_HOLDING;
+            } else if (currentController != null) {
+                color = COLOR_ENEMY;
+            } else {
+                color = COLOR_UNCLAIMED;
+            }
+
+            try {
+                // Clear previous shapes to prevent stacking
+                playerRef.getPacketHandler().write(new ClearDebugShapes());
+
+                for (float[] edgeMatrix : edgeMatrices) {
+                    DisplayDebug packet = new DisplayDebug();
+                    packet.shape = DebugShape.Cube;
+                    packet.matrix = edgeMatrix;
+                    packet.color = color;
+                    packet.time = SHAPE_DURATION;
+                    packet.fade = true;
+                    packet.frustumProjection = null;
+                    playerRef.getPacketHandler().write(packet);
+                }
+            } catch (Exception e) {
+                // Silently ignore — player may have disconnected
+            }
+        }
+    }
+
+    @Override
+    public void onMatchFinished(List<Participant> participants) {
+        // Clear debug shapes for all player participants
+        for (Participant p : participants) {
+            if (p.getType() != ParticipantType.PLAYER) continue;
+
+            PlayerRef playerRef = Universe.get().getPlayer(p.getUniqueId());
+            if (playerRef == null) continue;
+
+            try {
+                playerRef.getPacketHandler().write(new ClearDebugShapes());
+            } catch (Exception e) {
+                // Silently ignore
+            }
+        }
+    }
+
+    /**
      * Gets the current position of a player from the world thread.
      * This method is called from onTick which already runs on the world thread.
      */
@@ -323,6 +474,46 @@ public class KingOfTheHillGameMode implements GameMode {
             return transform.getPosition();
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    /**
+     * Zone containment check with Y tolerance.
+     * Adds 0.5 blocks of vertical padding to prevent flickering from physics jitter
+     * (player Y position fluctuates slightly when walking on small/thin zones).
+     */
+    private static final double Y_TOLERANCE = 0.5;
+
+    private boolean isInZone(ArenaConfig.CaptureZone zone, double x, double y, double z) {
+        double x1 = Math.min(zone.getMinX(), zone.getMaxX());
+        double x2 = Math.max(zone.getMinX(), zone.getMaxX());
+        double y1 = Math.min(zone.getMinY(), zone.getMaxY());
+        double y2 = Math.max(zone.getMinY(), zone.getMaxY());
+        double z1 = Math.min(zone.getMinZ(), zone.getMaxZ());
+        double z2 = Math.max(zone.getMinZ(), zone.getMaxZ());
+        return x >= x1 && x <= x2 &&
+               y >= y1 - Y_TOLERANCE && y <= y2 + Y_TOLERANCE &&
+               z >= z1 && z <= z2;
+    }
+
+    /**
+     * Shows a zone status event title to all player participants.
+     */
+    private void showZoneStatus(List<Participant> participants, String zoneName, String status) {
+        for (Participant p : participants) {
+            if (p.getType() != ParticipantType.PLAYER) continue;
+            PlayerRef playerRef = Universe.get().getPlayer(p.getUniqueId());
+            if (playerRef != null) {
+                try {
+                    EventTitleUtil.showEventTitleToPlayer(playerRef,
+                        Message.raw(status),
+                        Message.raw(zoneName),
+                        true, null, 1, 0, 0.5f);
+                } catch (Exception e) {
+                    // Fallback to chat
+                    p.sendMessage("<color:#e8c872>" + zoneName + ": " + status + "</color>");
+                }
+            }
         }
     }
 

@@ -128,6 +128,13 @@ public interface GameMode {
     }
 
     /**
+     * Called when the match finishes or is cancelled, before players are teleported back.
+     * Game modes can use this for cleanup (e.g., clearing debug shapes).
+     * @param participants All participants in the match
+     */
+    default void onMatchFinished(List<Participant> participants) {}
+
+    /**
      * Determines if a participant should respawn after death
      * @param config The arena configuration
      * @param participant The participant who died
