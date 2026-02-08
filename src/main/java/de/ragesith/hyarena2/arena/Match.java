@@ -462,7 +462,7 @@ public class Match {
     }
 
     /**
-     * Ends the match due to timeout - determines winner by most kills.
+     * Ends the match due to timeout - delegates winner determination to game mode.
      */
     private synchronized void endByTimeout() {
         if (state != MatchState.IN_PROGRESS) {
@@ -478,46 +478,18 @@ public class Match {
         // Heal all alive players
         healAllAliveParticipants();
 
-        // Determine winner by most kills
-        List<Participant> aliveParticipants = getParticipants().stream()
-                .filter(Participant::isAlive)
-                .toList();
-
-        if (aliveParticipants.isEmpty()) {
-            // Everyone dead - draw
-            winners = new ArrayList<>();
-        } else {
-            // Find participant(s) with most kills
-            int maxKills = aliveParticipants.stream()
-                    .mapToInt(Participant::getKills)
-                    .max()
-                    .orElse(0);
-
-            List<Participant> topKillers = aliveParticipants.stream()
-                    .filter(p -> p.getKills() == maxKills)
-                    .toList();
-
-            if (topKillers.size() == 1) {
-                // Single winner
-                winners = List.of(topKillers.get(0).getUniqueId());
-            } else {
-                // Tie - draw (no winners)
-                winners = new ArrayList<>();
-            }
-        }
+        // Delegate winner determination to game mode
+        winners = gameMode.getWinners(arena.getConfig(), getParticipants());
 
         // Get victory message
-        String victoryMessage;
-        String winnerName = null;
+        List<Participant> winnerParticipants = winners.stream()
+                .map(participants::get)
+                .filter(Objects::nonNull)
+                .toList();
+        String victoryMessage = "<color:#f39c12>Time's up!</color> " +
+            gameMode.getVictoryMessage(arena.getConfig(), winnerParticipants);
 
-        if (winners.isEmpty()) {
-            victoryMessage = "<color:#f39c12>Time's up! It's a draw!</color>";
-        } else {
-            Participant winner = participants.get(winners.get(0));
-            winnerName = winner != null ? winner.getName() : "Unknown";
-            victoryMessage = "<color:#2ecc71>" + winnerName + " wins with " +
-                           (winner != null ? winner.getKills() : 0) + " kills!</color>";
-        }
+        String winnerName = winnerParticipants.isEmpty() ? null : winnerParticipants.get(0).getName();
 
         // Show VictoryHud to all player participants
         showVictoryHudToAllPlayers(winnerName);

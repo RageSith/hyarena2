@@ -106,6 +106,28 @@ public interface GameMode {
     }
 
     /**
+     * Returns a participant's game-mode-specific score (e.g., control seconds in KOTH).
+     * Returns -1 if the game mode doesn't use a score system.
+     */
+    default int getParticipantScore(UUID participantId) {
+        return -1;
+    }
+
+    /**
+     * Returns the score target for the match, or -1 if no target.
+     */
+    default int getScoreTarget(ArenaConfig config) {
+        return -1;
+    }
+
+    /**
+     * Returns the label for the score column (e.g., "Pts"), or null if no score system.
+     */
+    default String getScoreLabel() {
+        return null;
+    }
+
+    /**
      * Determines if a participant should respawn after death
      * @param config The arena configuration
      * @param participant The participant who died

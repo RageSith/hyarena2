@@ -79,20 +79,51 @@ public class MatchHud extends CustomUIHud {
             cmd.set("#MatchTime.Style.TextColor", "#f1c40f"); // Yellow - normal
         }
 
-        // Build participant list sorted by kills descending
+        // Score info (KOTH etc.)
+        String scoreLabel = match.getGameMode().getScoreLabel();
+        boolean hasScores = scoreLabel != null;
+
+        if (hasScores) {
+            cmd.set("#ScoreInfo.Visible", true);
+
+            int myScore = match.getGameMode().getParticipantScore(playerUuid);
+            int scoreTarget = match.getGameMode().getScoreTarget(match.getArena().getConfig());
+
+            // Find best score
+            int bestScore = 0;
+            for (Participant p : match.getParticipants()) {
+                int s = match.getGameMode().getParticipantScore(p.getUniqueId());
+                if (s > bestScore) bestScore = s;
+            }
+
+            String targetSuffix = scoreTarget > 0 ? "/" + scoreTarget : "";
+            cmd.set("#MyScore.Text", myScore + targetSuffix);
+            cmd.set("#BestScore.Text", bestScore + targetSuffix);
+            cmd.set("#ScoreTarget.Text", scoreTarget > 0 ? "Target: " + scoreTarget + "s" : "");
+        } else {
+            cmd.set("#ScoreInfo.Visible", false);
+        }
+
+        // Build participant list
         List<ParticipantInfo> participantList = new ArrayList<>();
         for (Participant p : match.getParticipants()) {
+            int score = hasScores ? match.getGameMode().getParticipantScore(p.getUniqueId()) : -1;
             participantList.add(new ParticipantInfo(
                 p.getName(),
                 p.getKills(),
                 p.getDeaths(),
                 p.isAlive(),
-                p.getType() == ParticipantType.BOT
+                p.getType() == ParticipantType.BOT,
+                score
             ));
         }
 
-        // Sort by kills descending
-        participantList.sort((a, b) -> Integer.compare(b.kills, a.kills));
+        // Sort by score descending if available, otherwise by kills
+        if (hasScores) {
+            participantList.sort((a, b) -> Integer.compare(b.score, a.score));
+        } else {
+            participantList.sort((a, b) -> Integer.compare(b.kills, a.kills));
+        }
 
         // Populate player rows
         int rowIndex = 0;
@@ -145,13 +176,15 @@ public class MatchHud extends CustomUIHud {
         final int deaths;
         final boolean alive;
         final boolean isBot;
+        final int score;
 
-        ParticipantInfo(String name, int kills, int deaths, boolean alive, boolean isBot) {
+        ParticipantInfo(String name, int kills, int deaths, boolean alive, boolean isBot, int score) {
             this.name = name;
             this.kills = kills;
             this.deaths = deaths;
             this.alive = alive;
             this.isBot = isBot;
+            this.score = score;
         }
     }
 

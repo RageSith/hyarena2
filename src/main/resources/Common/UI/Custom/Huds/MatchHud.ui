@@ -30,6 +30,48 @@ Group #MatchHud {
             Style: (FontSize: 22, TextColor: #f1c40f, Alignment: Center, RenderBold: true);
         }
 
+        // Score info bar (KOTH etc. — hidden by default)
+        Group #ScoreInfo {
+            Anchor: (Height: 36, Top: 6);
+            Visible: false;
+            LayoutMode: Top;
+
+            Group #ScoreRow {
+                Anchor: (Height: 18);
+                LayoutMode: Left;
+
+                Label {
+                    Text: "You:";
+                    Anchor: (Width: 30);
+                    Style: (FontSize: 11, TextColor: #96a9be);
+                }
+                Label #MyScore {
+                    Text: "0";
+                    Anchor: (Width: 50);
+                    Style: (FontSize: 12, TextColor: #2ecc71, RenderBold: true);
+                }
+
+                Group { FlexWeight: 1; }
+
+                Label {
+                    Text: "Best:";
+                    Anchor: (Width: 32);
+                    Style: (FontSize: 11, TextColor: #96a9be);
+                }
+                Label #BestScore {
+                    Text: "0";
+                    Anchor: (Width: 50);
+                    Style: (FontSize: 12, TextColor: #f1c40f, RenderBold: true);
+                }
+            }
+
+            Label #ScoreTarget {
+                Text: "";
+                Anchor: (Height: 14, Top: 2);
+                Style: (FontSize: 10, TextColor: #6b7d8e, Alignment: Center);
+            }
+        }
+
         $C.@ContentSeparator {
             @Anchor = (Top: 8);
         }

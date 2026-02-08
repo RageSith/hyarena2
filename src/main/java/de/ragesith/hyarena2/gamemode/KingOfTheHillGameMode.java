@@ -220,6 +220,21 @@ public class KingOfTheHillGameMode implements GameMode {
     }
 
     @Override
+    public int getParticipantScore(UUID participantId) {
+        return controlTicks.getOrDefault(participantId, 0) / 20; // ticks to seconds
+    }
+
+    @Override
+    public int getScoreTarget(ArenaConfig config) {
+        return config.getScoreTarget();
+    }
+
+    @Override
+    public String getScoreLabel() {
+        return "Pts";
+    }
+
+    @Override
     public boolean shouldRespawn(ArenaConfig config, Participant participant) {
         return true;
     }
@@ -231,10 +246,7 @@ public class KingOfTheHillGameMode implements GameMode {
 
     @Override
     public List<UUID> getWinners(ArenaConfig config, List<Participant> participants) {
-        if (controlTicks.isEmpty()) {
-            return new ArrayList<>();
-        }
-
+        // 1. Most zone control points
         int maxTicks = controlTicks.values().stream()
                 .mapToInt(Integer::intValue)
                 .max()
@@ -244,7 +256,6 @@ public class KingOfTheHillGameMode implements GameMode {
             return new ArrayList<>();
         }
 
-        // Find participant(s) with the most control ticks
         List<UUID> topControllers = controlTicks.entrySet().stream()
                 .filter(e -> e.getValue() == maxTicks)
                 .map(Map.Entry::getKey)
@@ -254,7 +265,27 @@ public class KingOfTheHillGameMode implements GameMode {
             return topControllers;
         }
 
-        // Tie — no winner
+        // 2. Tiebreaker: most kills
+        int maxKills = -1;
+        List<UUID> killLeaders = new ArrayList<>();
+        for (UUID uuid : topControllers) {
+            Participant p = findParticipant(participants, uuid);
+            if (p == null) continue;
+            int kills = p.getKills();
+            if (kills > maxKills) {
+                maxKills = kills;
+                killLeaders.clear();
+                killLeaders.add(uuid);
+            } else if (kills == maxKills) {
+                killLeaders.add(uuid);
+            }
+        }
+
+        if (killLeaders.size() == 1) {
+            return killLeaders;
+        }
+
+        // 3. Still tied — draw
         return new ArrayList<>();
     }
 
