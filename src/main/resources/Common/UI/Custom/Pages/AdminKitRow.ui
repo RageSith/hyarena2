@@ -1,0 +1,38 @@
+$C = "../Common.ui";
+
+Group #AdminKitRow {
+    Anchor: (Height: 56, Top: 4);
+    Padding: (Horizontal: 12, Vertical: 8);
+    Background: #141c26;
+    LayoutMode: Left;
+
+    // Kit info (left side)
+    Group #InfoGroup {
+        FlexWeight: 1;
+        LayoutMode: Top;
+
+        Label #RowKitName {
+            Text: "Kit Name";
+            Anchor: (Height: 22);
+            Style: (FontSize: 15, TextColor: #b7cedd, RenderBold: true, VerticalAlignment: Center);
+        }
+
+        Label #RowKitInfo {
+            Text: "warrior | No permission";
+            Anchor: (Height: 18);
+            Style: (FontSize: 11, TextColor: #96a9be, VerticalAlignment: Center);
+        }
+    }
+
+    // Edit button
+    $C.@SecondaryTextButton #RowEditBtn {
+        @Text = "Edit";
+        @Anchor = (Width: 90, Left: 8);
+    }
+
+    // Delete button
+    $C.@SecondaryTextButton #RowDeleteBtn {
+        @Text = "Delete";
+        @Anchor = (Width: 130, Left: 4);
+    }
+}

@@ -14,6 +14,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.arena.KillDetectionSystem;
 import de.ragesith.hyarena2.arena.MatchManager;
 import de.ragesith.hyarena2.boundary.BoundaryManager;
+import de.ragesith.hyarena2.command.AdminCommand;
 import de.ragesith.hyarena2.command.ArenaCommand;
 import de.ragesith.hyarena2.command.testing.TestMatchArenasCommand;
 import de.ragesith.hyarena2.command.testing.TestMatchCreateCommand;
@@ -168,6 +169,7 @@ public class HyArena2 extends JavaPlugin {
 
         // Register commands
         this.getCommandRegistry().registerCommand(new ArenaCommand(this));
+        this.getCommandRegistry().registerCommand(new AdminCommand(this));
 
         // Test match commands (Phase 2 testing)
         this.getCommandRegistry().registerCommand(new TestMatchArenasCommand(matchManager));

@@ -127,6 +127,64 @@ public class KitManager {
     }
 
     /**
+     * Saves a kit config to disk and updates the runtime map.
+     *
+     * @param config the kit configuration to save
+     * @return true if saved successfully
+     */
+    public boolean saveKit(KitConfig config) {
+        if (config == null || !config.isValid()) {
+            System.err.println("[KitManager] Cannot save invalid kit config");
+            return false;
+        }
+
+        // Save to disk
+        try {
+            Files.createDirectories(kitsDirectory);
+            Path file = kitsDirectory.resolve(config.getId() + ".json");
+            try (java.io.Writer writer = Files.newBufferedWriter(file)) {
+                GSON.toJson(config, writer);
+            }
+        } catch (IOException e) {
+            System.err.println("[KitManager] Failed to save kit " + config.getId() + ": " + e.getMessage());
+            return false;
+        }
+
+        // Update runtime map
+        kits.put(config.getId(), config);
+        System.out.println("[KitManager] Saved kit: " + config.getDisplayName() + " (" + config.getId() + ")");
+        return true;
+    }
+
+    /**
+     * Deletes a kit from disk and runtime.
+     *
+     * @param kitId the kit ID to delete
+     * @return true if deleted successfully
+     */
+    public boolean deleteKit(String kitId) {
+        Path file = kitsDirectory.resolve(kitId + ".json");
+        try {
+            boolean deleted = Files.deleteIfExists(file);
+            kits.remove(kitId);
+            if (deleted) {
+                System.out.println("[KitManager] Deleted kit: " + kitId);
+            }
+            return deleted;
+        } catch (IOException e) {
+            System.err.println("[KitManager] Failed to delete kit " + kitId + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Reloads all kits from disk.
+     */
+    public void reloadKits() {
+        loadKits();
+    }
+
+    /**
      * Gets a kit by ID.
      */
     public KitConfig getKit(String kitId) {

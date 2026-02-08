@@ -1,0 +1,60 @@
+$C = "../Common.ui";
+
+Group #AdminPanelPage {
+    $C.@PageOverlay {}
+
+    $C.@DecoratedContainer {
+        @CloseButton = true;
+        Anchor: (Width: 420, Height: 380);
+
+        Group #Title {
+            $C.@Title #TitleLabel {
+                @Text = "Admin Panel";
+                Anchor: (Top: 12, Height: 24);
+            }
+        }
+
+        Group #Content {
+            Padding: (Full: 20);
+            Anchor: (Top: 45);
+            LayoutMode: Top;
+
+            // Arena Management Button
+            $C.@TextButton #ArenaManagementBtn {
+                @Text = "Arena Management";
+                @Anchor = (Height: 44, Top: 4);
+            }
+
+            // Kit Management Button
+            $C.@TextButton #KitManagementBtn {
+                @Text = "Kit Management";
+                @Anchor = (Height: 44, Top: 8);
+            }
+
+            // Hub Settings Button
+            $C.@TextButton #HubSettingsBtn {
+                @Text = "Hub Settings";
+                @Anchor = (Height: 44, Top: 8);
+            }
+
+            // Separator
+            $C.@ContentSeparator {
+                @Anchor = (Top: 12);
+            }
+
+            // Reload All Configs Button
+            $C.@SecondaryTextButton #ReloadBtn {
+                @Text = "Reload All Configs";
+                @Anchor = (Height: 44, Top: 12);
+            }
+
+            // Status Message
+            Label #StatusMessage {
+                Text: "";
+                Anchor: (Height: 20, Top: 10);
+                Visible: false;
+                Style: (FontSize: 12, TextColor: #2ecc71, Alignment: Center);
+            }
+        }
+    }
+}

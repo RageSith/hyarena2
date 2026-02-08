@@ -1,0 +1,28 @@
+$C = "../Common.ui";
+
+Group #AdminSpawnRow {
+    Anchor: (Height: 38, Top: 8);
+    LayoutMode: Left;
+
+    Label #SpawnIndex {
+        Text: "#1";
+        Anchor: (Width: 28);
+        Style: (FontSize: 11, TextColor: #6b7d8e, VerticalAlignment: Center);
+    }
+
+    $C.@TextField #SpawnXField { @Anchor = (Width: 70); PlaceholderText: "X"; }
+    $C.@TextField #SpawnYField { @Anchor = (Width: 70, Left: 6); PlaceholderText: "Y"; }
+    $C.@TextField #SpawnZField { @Anchor = (Width: 70, Left: 6); PlaceholderText: "Z"; }
+    $C.@TextField #SpawnYawField { @Anchor = (Width: 60, Left: 6); PlaceholderText: "Yaw"; }
+    $C.@TextField #SpawnPitchField { @Anchor = (Width: 60, Left: 6); PlaceholderText: "Pitch"; }
+
+    $C.@SecondaryTextButton #SpawnSetBtn {
+        @Text = "Set";
+        @Anchor = (Width: 90, Left: 10);
+    }
+
+    $C.@SecondaryTextButton #SpawnRemoveBtn {
+        @Text = "X";
+        @Anchor = (Width: 56, Left: 8);
+    }
+}

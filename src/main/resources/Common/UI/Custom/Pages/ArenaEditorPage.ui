@@ -1,0 +1,388 @@
+$C = "../Common.ui";
+
+Group #ArenaEditorPage {
+    $C.@PageOverlay {}
+
+    $C.@DecoratedContainer {
+        @CloseButton = true;
+        Anchor: (Width: 780, Height: 600);
+
+        Group #Title {
+            $C.@Title #TitleLabel {
+                @Text = "Arena Editor";
+                Anchor: (Top: 12, Height: 24);
+            }
+        }
+
+        Group #Content {
+            Padding: (Full: 20);
+            Anchor: (Top: 40, Bottom: 70);
+
+            // Scrollable form
+            Group #FormScroll {
+                LayoutMode: TopScrolling;
+                ScrollbarStyle: $C.@DefaultScrollbarStyle;
+
+                // ===== Basic Info Section =====
+                Label #BasicInfoHeader {
+                    Text: "BASIC INFO";
+                    Anchor: (Height: 20);
+                    Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                }
+
+                // ID
+                Group #IdRow {
+                    Anchor: (Height: 38, Top: 10);
+                    LayoutMode: Left;
+                    Label { Text: "ID"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #IdField { FlexWeight: 1; PlaceholderText: "arena_id"; }
+                }
+
+                // Display Name
+                Group #DisplayNameRow {
+                    Anchor: (Height: 38, Top: 10);
+                    LayoutMode: Left;
+                    Label { Text: "Display Name"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #DisplayNameField { FlexWeight: 1; PlaceholderText: "My Arena"; }
+                }
+
+                // World Name
+                Group #WorldNameRow {
+                    Anchor: (Height: 38, Top: 10);
+                    LayoutMode: Left;
+                    Label { Text: "World Name"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #WorldNameField { FlexWeight: 1; PlaceholderText: "default"; }
+                }
+
+                // Game Mode (dropdown)
+                Group #GameModeRow {
+                    Anchor: (Height: 38, Top: 10);
+                    LayoutMode: Left;
+                    Label { Text: "Game Mode"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@DropdownBox #GameModeDropdown {
+                        Anchor: (Width: 200, Height: 32);
+                        Style: (
+                            ...@DefaultDropdownBoxStyle,
+                            SearchInputStyle: DropdownBoxSearchInputStyle(
+                                Anchor: (Height: 20),
+                                Padding: (Left: 28, Right: 24),
+                                PlaceholderText: %server.customUI.searchPlaceholder,
+                                PlaceholderStyle: (TextColor: #3d5a85, RenderUppercase: true, FontSize: 14),
+                                Icon: (Texture: "Common/SearchIcon.png", Width: 16, Height: 16, Offset: 9),
+                                ClearButtonStyle: $C.@ClearButtonStyle
+                            )
+                        );
+                        ShowSearchInput: true;
+                    }
+                    Group { FlexWeight: 1; }
+                }
+
+                // Min/Max Players
+                Group #PlayersRow {
+                    Anchor: (Height: 38, Top: 10);
+                    LayoutMode: Left;
+                    Label { Text: "Min Players"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@NumberField #MinPlayersField { @Anchor = (Width: 80); }
+                    Label { Text: "Max"; Anchor: (Width: 50, Left: 12); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center, Alignment: Center); }
+                    $C.@NumberField #MaxPlayersField { @Anchor = (Width: 80); }
+                    Group { FlexWeight: 1; }
+                }
+
+                // Wait Time
+                Group #WaitTimeRow {
+                    Anchor: (Height: 38, Top: 10);
+                    LayoutMode: Left;
+                    Label { Text: "Wait Time (s)"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@NumberField #WaitTimeField { @Anchor = (Width: 90); }
+                    Group { FlexWeight: 1; }
+                }
+
+                // Match Duration
+                Group #DurationRow {
+                    Anchor: (Height: 38, Top: 10);
+                    LayoutMode: Left;
+                    Label { Text: "Duration (s)"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@NumberField #DurationField { @Anchor = (Width: 90); }
+                    Group { FlexWeight: 1; }
+                }
+
+                // ===== Game Mode Settings Section =====
+                $C.@ContentSeparator { @Anchor = (Top: 18); }
+
+                Label #GameModeSettingsHeader {
+                    Text: "GAME MODE SETTINGS";
+                    Anchor: (Height: 20, Top: 12);
+                    Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                }
+
+                // Kill Target
+                Group #KillTargetRow {
+                    Anchor: (Height: 38, Top: 10);
+                    Visible: false;
+                    LayoutMode: Left;
+                    Label { Text: "Kill Target"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@NumberField #KillTargetField { @Anchor = (Width: 90); }
+                    Group { FlexWeight: 1; }
+                }
+
+                // Respawn Delay
+                Group #RespawnDelayRow {
+                    Anchor: (Height: 38, Top: 10);
+                    Visible: false;
+                    LayoutMode: Left;
+                    Label { Text: "Respawn (s)"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@NumberField #RespawnDelayField { @Anchor = (Width: 90); }
+                    Group { FlexWeight: 1; }
+                }
+
+                // Score Target (koth)
+                Group #ScoreTargetRow {
+                    Anchor: (Height: 38, Top: 10);
+                    Visible: false;
+                    LayoutMode: Left;
+                    Label { Text: "Score Target"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@NumberField #ScoreTargetField { @Anchor = (Width: 90); }
+                    Group { FlexWeight: 1; }
+                }
+
+                // Zone Rotation (koth)
+                Group #ZoneRotationRow {
+                    Anchor: (Height: 38, Top: 10);
+                    Visible: false;
+                    LayoutMode: Left;
+                    Label { Text: "Zone Rotate (s)"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@NumberField #ZoneRotationField { @Anchor = (Width: 90); }
+                    Group { FlexWeight: 1; }
+                }
+
+                // ===== Kit Settings Section =====
+                $C.@ContentSeparator { @Anchor = (Top: 18); }
+
+                Label #KitSettingsHeader {
+                    Text: "ALLOWED KITS";
+                    Anchor: (Height: 20, Top: 12);
+                    Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                }
+
+                Group #AllowedKitsList {
+                    Anchor: (Top: 6);
+                    LayoutMode: Top;
+                }
+
+                $C.@SecondaryTextButton #AddKitBtn {
+                    @Text = "+ Add Kit";
+                    @Anchor = (Height: 32, Top: 10, Width: 150);
+                }
+
+                // Random Kit Pool (kit_roulette only)
+                Group #RandomKitPoolSection {
+                    Visible: false;
+                    Anchor: (Top: 14);
+                    LayoutMode: Top;
+
+                    Label {
+                        Text: "RANDOM KIT POOL";
+                        Anchor: (Height: 20);
+                        Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                    }
+
+                    Group #RandomKitPoolList {
+                        Anchor: (Top: 6);
+                        LayoutMode: Top;
+                    }
+
+                    $C.@SecondaryTextButton #AddRandomKitBtn {
+                        @Text = "+ Add Kit";
+                        @Anchor = (Height: 32, Top: 10, Width: 150);
+                    }
+                }
+
+                // ===== Bot Settings Section =====
+                $C.@ContentSeparator { @Anchor = (Top: 18); }
+
+                Label #BotSettingsHeader {
+                    Text: "BOT SETTINGS";
+                    Anchor: (Height: 20, Top: 12);
+                    Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                }
+
+                // Bot Difficulty (dropdown)
+                Group #BotDifficultyRow {
+                    Anchor: (Height: 38, Top: 10);
+                    LayoutMode: Left;
+                    Label { Text: "Difficulty"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@DropdownBox #BotDifficultyDropdown {
+                        Anchor: (Width: 160, Height: 32);
+                        Style: (
+                            ...@DefaultDropdownBoxStyle,
+                            SearchInputStyle: DropdownBoxSearchInputStyle(
+                                Anchor: (Height: 20),
+                                Padding: (Left: 28, Right: 24),
+                                PlaceholderText: %server.customUI.searchPlaceholder,
+                                PlaceholderStyle: (TextColor: #3d5a85, RenderUppercase: true, FontSize: 14),
+                                Icon: (Texture: "Common/SearchIcon.png", Width: 16, Height: 16, Offset: 9),
+                                ClearButtonStyle: $C.@ClearButtonStyle
+                            )
+                        );
+                        ShowSearchInput: true;
+                    }
+                    Group { FlexWeight: 1; }
+                }
+
+                // Bot Model ID
+                Group #BotModelRow {
+                    Anchor: (Height: 38, Top: 10);
+                    LayoutMode: Left;
+                    Label { Text: "Bot Model ID"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #BotModelField { FlexWeight: 1; PlaceholderText: "npc_model_id"; }
+                }
+
+                // Auto Fill (checkbox)
+                Group #AutoFillRow {
+                    Anchor: (Height: 38, Top: 10);
+                    LayoutMode: Left;
+                    Label { Text: "Auto-Fill"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@CheckBox #AutoFillCheckbox {
+                    }
+                    Group { FlexWeight: 1; }
+                }
+
+                // Auto Fill Delay
+                Group #AutoFillDelayRow {
+                    Anchor: (Height: 38, Top: 10);
+                    LayoutMode: Left;
+                    Label { Text: "Fill Delay (s)"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@NumberField #AutoFillDelayField { @Anchor = (Width: 90); }
+                    Group { FlexWeight: 1; }
+                }
+
+                // Min Real Players
+                Group #MinRealPlayersRow {
+                    Anchor: (Height: 38, Top: 10);
+                    LayoutMode: Left;
+                    Label { Text: "Min Real Players"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@NumberField #MinRealPlayersField { @Anchor = (Width: 90); }
+                    Group { FlexWeight: 1; }
+                }
+
+                // ===== Spawn Points Section =====
+                $C.@ContentSeparator { @Anchor = (Top: 18); }
+
+                Label #SpawnPointsHeader {
+                    Text: "SPAWN POINTS";
+                    Anchor: (Height: 20, Top: 12);
+                    Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                }
+
+                Group #SpawnPointsList {
+                    Anchor: (Top: 6);
+                    LayoutMode: Top;
+                }
+
+                Group #SpawnPointButtons {
+                    Anchor: (Height: 38, Top: 14);
+                    LayoutMode: Left;
+
+                    $C.@SecondaryTextButton #AddSpawnBtn {
+                        @Text = "+ Add Spawn";
+                        @Anchor = (Width: 190);
+                    }
+
+                    $C.@SecondaryTextButton #AddSpawnHereBtn {
+                        @Text = "+ Add Here";
+                        @Anchor = (Width: 180, Left: 12);
+                    }
+
+                    Group { FlexWeight: 1; }
+                }
+
+                // ===== Bounds Section =====
+                $C.@ContentSeparator { @Anchor = (Top: 18); }
+
+                Label #BoundsHeader {
+                    Text: "BOUNDS";
+                    Anchor: (Height: 20, Top: 12);
+                    Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                }
+
+                // Min bounds
+                Group #BoundsMinRow {
+                    Anchor: (Height: 38, Top: 10);
+                    LayoutMode: Left;
+                    Label { Text: "Min"; Anchor: (Width: 40); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #BoundsMinXField { @Anchor = (Width: 80); PlaceholderText: "X"; }
+                    $C.@TextField #BoundsMinYField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Y"; }
+                    $C.@TextField #BoundsMinZField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Z"; }
+                    $C.@SecondaryTextButton #SetMinBtn { @Text = "Set Min"; @Anchor = (Width: 130, Left: 10); }
+                    Group { FlexWeight: 1; }
+                }
+
+                // Max bounds
+                Group #BoundsMaxRow {
+                    Anchor: (Height: 38, Top: 10);
+                    LayoutMode: Left;
+                    Label { Text: "Max"; Anchor: (Width: 40); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #BoundsMaxXField { @Anchor = (Width: 80); PlaceholderText: "X"; }
+                    $C.@TextField #BoundsMaxYField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Y"; }
+                    $C.@TextField #BoundsMaxZField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Z"; }
+                    $C.@SecondaryTextButton #SetMaxBtn { @Text = "Set Max"; @Anchor = (Width: 130, Left: 10); }
+                    Group { FlexWeight: 1; }
+                }
+
+                // ===== Capture Zones Section (koth only) =====
+                Group #CaptureZonesSection {
+                    Visible: false;
+                    Anchor: (Top: 18);
+                    LayoutMode: Top;
+
+                    $C.@ContentSeparator {}
+
+                    Label {
+                        Text: "CAPTURE ZONES";
+                        Anchor: (Height: 20, Top: 12);
+                        Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                    }
+
+                    Group #CaptureZonesList {
+                        Anchor: (Top: 6);
+                        LayoutMode: Top;
+                    }
+
+                    $C.@SecondaryTextButton #AddZoneBtn {
+                        @Text = "+ Add Zone";
+                        @Anchor = (Height: 32, Top: 10, Width: 150);
+                    }
+                }
+
+                // Status Message
+                Label #StatusMessage {
+                    Text: "";
+                    Anchor: (Height: 20, Top: 20);
+                    Visible: false;
+                    Style: (FontSize: 12, TextColor: #e74c3c, Alignment: Center);
+                }
+
+                // Bottom padding
+                Group { Anchor: (Height: 24); }
+            }
+        }
+
+        // Bottom Button Row
+        Group #ButtonRow {
+            Anchor: (Bottom: 16, Height: 44, Left: 20, Right: 20);
+            LayoutMode: Left;
+
+            $C.@SecondaryTextButton #CancelBtn {
+                @Text = "Cancel";
+                @Anchor = (Width: 140);
+            }
+
+            Group { FlexWeight: 1; }
+
+            $C.@TextButton #SaveBtn {
+                @Text = "Save";
+                @Anchor = (Width: 180);
+            }
+        }
+    }
+}

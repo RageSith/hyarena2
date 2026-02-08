@@ -23,13 +23,29 @@ import java.util.concurrent.TimeUnit;
  */
 public class HubManager {
 
-    private final HubConfig config;
+    private HubConfig config;
 
     // Delay for cross-world teleports (milliseconds) to allow client fade animations
     private static final long CROSS_WORLD_TELEPORT_DELAY_MS = 1500;
 
     public HubManager(HubConfig config) {
         this.config = config;
+    }
+
+    /**
+     * Updates the hub configuration at runtime.
+     * Called after saving hub.json from the admin UI.
+     */
+    public void updateConfig(HubConfig newConfig) {
+        this.config = newConfig;
+        System.out.println("[HubManager] Config updated at runtime");
+    }
+
+    /**
+     * Gets the current hub configuration.
+     */
+    public HubConfig getConfig() {
+        return config;
     }
 
     /**

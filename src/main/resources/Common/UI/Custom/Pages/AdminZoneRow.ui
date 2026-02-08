@@ -1,0 +1,41 @@
+$C = "../Common.ui";
+
+Group #AdminZoneRow {
+    Anchor: (Top: 10);
+    LayoutMode: Top;
+    Padding: (Full: 12);
+    Background: #0d1520;
+
+    // Zone name row
+    Group #ZoneNameRow {
+        Anchor: (Height: 38);
+        LayoutMode: Left;
+        Label { Text: "Name"; Anchor: (Width: 50); Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center); }
+        $C.@TextField #ZoneNameField { FlexWeight: 1; PlaceholderText: "Zone Name"; }
+        $C.@SecondaryTextButton #ZoneRemoveBtn { @Text = "X"; @Anchor = (Width: 56, Left: 8); }
+    }
+
+    // Zone min row
+    Group #ZoneMinRow {
+        Anchor: (Height: 38, Top: 8);
+        LayoutMode: Left;
+        Label { Text: "Min"; Anchor: (Width: 50); Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center); }
+        $C.@TextField #ZoneMinXField { @Anchor = (Width: 80); PlaceholderText: "X"; }
+        $C.@TextField #ZoneMinYField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Y"; }
+        $C.@TextField #ZoneMinZField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Z"; }
+        $C.@SecondaryTextButton #ZoneSetMinBtn { @Text = "Set"; @Anchor = (Width: 90, Left: 10); }
+        Group { FlexWeight: 1; }
+    }
+
+    // Zone max row
+    Group #ZoneMaxRow {
+        Anchor: (Height: 38, Top: 8);
+        LayoutMode: Left;
+        Label { Text: "Max"; Anchor: (Width: 50); Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center); }
+        $C.@TextField #ZoneMaxXField { @Anchor = (Width: 80); PlaceholderText: "X"; }
+        $C.@TextField #ZoneMaxYField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Y"; }
+        $C.@TextField #ZoneMaxZField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Z"; }
+        $C.@SecondaryTextButton #ZoneSetMaxBtn { @Text = "Set"; @Anchor = (Width: 90, Left: 10); }
+        Group { FlexWeight: 1; }
+    }
+}

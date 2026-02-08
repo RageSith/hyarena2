@@ -213,6 +213,65 @@ public class MatchManager {
     }
 
     /**
+     * Saves an arena config to disk and updates the runtime map.
+     * Creates or updates an arena.
+     *
+     * @param config the arena configuration to save
+     * @return true if saved successfully
+     */
+    public boolean saveArena(ArenaConfig config) {
+        if (config == null || !config.validate()) {
+            System.err.println("[MatchManager] Cannot save invalid arena config");
+            return false;
+        }
+
+        // Save to disk
+        configManager.saveConfig("arenas/" + config.getId(), config);
+
+        // Update runtime map
+        Arena arena = new Arena(config);
+        arenas.put(config.getId(), arena);
+
+        System.out.println("[MatchManager] Saved arena: " + config.getDisplayName() + " (" + config.getId() + ")");
+        return true;
+    }
+
+    /**
+     * Deletes an arena from disk and runtime.
+     * Fails if the arena is currently in use.
+     *
+     * @param arenaId the arena ID to delete
+     * @return true if deleted successfully
+     */
+    public boolean deleteArena(String arenaId) {
+        if (isArenaInUse(arenaId)) {
+            System.err.println("[MatchManager] Cannot delete arena in use: " + arenaId);
+            return false;
+        }
+
+        // Delete from disk
+        boolean deleted = configManager.deleteConfig("arenas/" + arenaId);
+
+        // Remove from runtime map
+        arenas.remove(arenaId);
+
+        if (deleted) {
+            System.out.println("[MatchManager] Deleted arena: " + arenaId);
+        }
+        return deleted;
+    }
+
+    /**
+     * Reloads all arenas from disk.
+     * Clears the runtime map and re-reads all arena JSON files.
+     */
+    public void reloadArenas() {
+        arenas.clear();
+        loadArenas();
+        System.out.println("[MatchManager] Reloaded " + arenas.size() + " arenas");
+    }
+
+    /**
      * Gets an arena by ID.
      */
     public Arena getArena(String id) {

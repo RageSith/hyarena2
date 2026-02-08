@@ -53,6 +53,30 @@ public class ArenaConfig {
     public int getZoneRotationSeconds() { return zoneRotationSeconds; }
     public List<String> getRandomKitPool() { return randomKitPool; }
 
+    // Setters
+    public void setId(String id) { this.id = id; }
+    public void setDisplayName(String displayName) { this.displayName = displayName; }
+    public void setWorldName(String worldName) { this.worldName = worldName; }
+    public void setGameMode(String gameMode) { this.gameMode = gameMode; }
+    public void setMinPlayers(int minPlayers) { this.minPlayers = minPlayers; }
+    public void setMaxPlayers(int maxPlayers) { this.maxPlayers = maxPlayers; }
+    public void setWaitTimeSeconds(int waitTimeSeconds) { this.waitTimeSeconds = waitTimeSeconds; }
+    public void setBotDifficulty(String botDifficulty) { this.botDifficulty = botDifficulty; }
+    public void setBotModelId(String botModelId) { this.botModelId = botModelId; }
+    public void setAutoFillEnabled(boolean autoFillEnabled) { this.autoFillEnabled = autoFillEnabled; }
+    public void setAutoFillDelaySeconds(int autoFillDelaySeconds) { this.autoFillDelaySeconds = autoFillDelaySeconds; }
+    public void setMinRealPlayers(int minRealPlayers) { this.minRealPlayers = minRealPlayers; }
+    public void setMatchDurationSeconds(int matchDurationSeconds) { this.matchDurationSeconds = matchDurationSeconds; }
+    public void setKillTarget(int killTarget) { this.killTarget = killTarget; }
+    public void setRespawnDelaySeconds(int respawnDelaySeconds) { this.respawnDelaySeconds = respawnDelaySeconds; }
+    public void setAllowedKits(List<String> allowedKits) { this.allowedKits = allowedKits; }
+    public void setSpawnPoints(List<SpawnPoint> spawnPoints) { this.spawnPoints = spawnPoints; }
+    public void setBounds(Bounds bounds) { this.bounds = bounds; }
+    public void setCaptureZones(List<CaptureZone> captureZones) { this.captureZones = captureZones; }
+    public void setScoreTarget(int scoreTarget) { this.scoreTarget = scoreTarget; }
+    public void setZoneRotationSeconds(int zoneRotationSeconds) { this.zoneRotationSeconds = zoneRotationSeconds; }
+    public void setRandomKitPool(List<String> randomKitPool) { this.randomKitPool = randomKitPool; }
+
     /**
      * Validates the arena configuration
      * @return true if valid, false otherwise
@@ -80,11 +104,27 @@ public class ArenaConfig {
         private float yaw;
         private float pitch;
 
+        public SpawnPoint() {}
+
+        public SpawnPoint(double x, double y, double z, float yaw, float pitch) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.yaw = yaw;
+            this.pitch = pitch;
+        }
+
         public double getX() { return x; }
         public double getY() { return y; }
         public double getZ() { return z; }
         public float getYaw() { return yaw; }
         public float getPitch() { return pitch; }
+
+        public void setX(double x) { this.x = x; }
+        public void setY(double y) { this.y = y; }
+        public void setZ(double z) { this.z = z; }
+        public void setYaw(float yaw) { this.yaw = yaw; }
+        public void setPitch(float pitch) { this.pitch = pitch; }
     }
 
     /**
@@ -99,6 +139,19 @@ public class ArenaConfig {
         private double maxY;
         private double maxZ;
 
+        public CaptureZone() {}
+
+        public CaptureZone(String displayName, double minX, double minY, double minZ,
+                           double maxX, double maxY, double maxZ) {
+            this.displayName = displayName;
+            this.minX = minX;
+            this.minY = minY;
+            this.minZ = minZ;
+            this.maxX = maxX;
+            this.maxY = maxY;
+            this.maxZ = maxZ;
+        }
+
         public String getDisplayName() { return displayName; }
         public double getMinX() { return minX; }
         public double getMinY() { return minY; }
@@ -106,6 +159,14 @@ public class ArenaConfig {
         public double getMaxX() { return maxX; }
         public double getMaxY() { return maxY; }
         public double getMaxZ() { return maxZ; }
+
+        public void setDisplayName(String displayName) { this.displayName = displayName; }
+        public void setMinX(double minX) { this.minX = minX; }
+        public void setMinY(double minY) { this.minY = minY; }
+        public void setMinZ(double minZ) { this.minZ = minZ; }
+        public void setMaxX(double maxX) { this.maxX = maxX; }
+        public void setMaxY(double maxY) { this.maxY = maxY; }
+        public void setMaxZ(double maxZ) { this.maxZ = maxZ; }
 
         public boolean contains(double x, double y, double z) {
             return x >= minX && x <= maxX &&
@@ -125,12 +186,30 @@ public class ArenaConfig {
         private double maxY;
         private double maxZ;
 
+        public Bounds() {}
+
+        public Bounds(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
+            this.minX = minX;
+            this.minY = minY;
+            this.minZ = minZ;
+            this.maxX = maxX;
+            this.maxY = maxY;
+            this.maxZ = maxZ;
+        }
+
         public double getMinX() { return minX; }
         public double getMinY() { return minY; }
         public double getMinZ() { return minZ; }
         public double getMaxX() { return maxX; }
         public double getMaxY() { return maxY; }
         public double getMaxZ() { return maxZ; }
+
+        public void setMinX(double minX) { this.minX = minX; }
+        public void setMinY(double minY) { this.minY = minY; }
+        public void setMinZ(double minZ) { this.minZ = minZ; }
+        public void setMaxX(double maxX) { this.maxX = maxX; }
+        public void setMaxY(double maxY) { this.maxY = maxY; }
+        public void setMaxZ(double maxZ) { this.maxZ = maxZ; }
 
         /**
          * Checks if a position is within the bounds

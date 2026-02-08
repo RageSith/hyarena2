@@ -16,6 +16,7 @@ All design decisions are documented in `/plan/`:
 - `01_requirements.md` - 37 answered requirement questions
 - `02_architecture.md` - 16 architecture decisions
 - `03_implementation_plan.md` - 12-phase implementation roadmap
+- `04_arena_config_reference.md` - every arena config field, per-mode docs, full JSON examples
 
 **Read these before making changes** - they define how the plugin should work.
 
@@ -190,6 +191,22 @@ Key reference files in old project:
 - Leaderboard page - Phase 7 API
 
 **Milestone**: Full UI flow working, HUDs show all match info.
+
+### Game Modes (post-Phase 6)
+- [x] Kit Roulette game mode (`kit_roulette`) - random kit from `randomKitPool` on every spawn/respawn
+- [x] Respawn system in Match.java - `respawnTimers` map, teleport + kit + heal + immunity flow
+- [x] `getNextKitId()` default method on GameMode interface - allows modes to override kit on spawn
+- [x] `randomKitPool` field on ArenaConfig - kit IDs for random assignment
+- [x] Registered in MatchManager, documented in `plan/04_arena_config_reference.md`
+
+**Available game modes:** `duel`, `lms`, `deathmatch`, `koth`, `kit_roulette`
+
+**Testing status:** Only `duel` is tested. All other modes (deathmatch, koth, lms, kit_roulette) are **untested** because we lack in-game tools for creating, managing, and editing arenas (no admin commands or arena editor yet).
+
+**Respawn system notes:**
+- Currently forces instant respawn (delay 0). Timer infrastructure exists for future non-zero delay once we have a death/spectate solution.
+- Only handles player participants — bots have their own despawn-on-death logic.
+- `getNextKitId()` is called on both initial spawn and every respawn.
 
 ### Phases 7-12: Not Started
 See `plan/03_implementation_plan.md` for full roadmap.

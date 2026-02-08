@@ -156,8 +156,15 @@ public class ConfigManager {
         }
     }
 
-    private <T> void saveConfig(String filename, T config) {
-        Path file = configRoot.resolve(filename);
+    /**
+     * Saves a config object to a JSON file.
+     *
+     * @param filename The config file path relative to config root
+     * @param config The config object to serialize
+     */
+    public <T> void saveConfig(String filename, T config) {
+        String fullPath = filename.endsWith(".json") ? filename : filename + ".json";
+        Path file = configRoot.resolve(fullPath);
 
         try {
             Files.createDirectories(file.getParent());
@@ -165,7 +172,25 @@ public class ConfigManager {
                 GSON.toJson(config, writer);
             }
         } catch (IOException e) {
-            System.err.println("[HyArena2] Failed to save " + filename + ": " + e.getMessage());
+            System.err.println("[HyArena2] Failed to save " + fullPath + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Deletes a config file.
+     *
+     * @param filename The config file path relative to config root
+     * @return true if the file was deleted successfully
+     */
+    public boolean deleteConfig(String filename) {
+        String fullPath = filename.endsWith(".json") ? filename : filename + ".json";
+        Path file = configRoot.resolve(fullPath);
+
+        try {
+            return Files.deleteIfExists(file);
+        } catch (IOException e) {
+            System.err.println("[HyArena2] Failed to delete " + fullPath + ": " + e.getMessage());
+            return false;
         }
     }
 }

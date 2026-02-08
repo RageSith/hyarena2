@@ -1,0 +1,13 @@
+$C = "../Common.ui";
+
+Group #AdminStringRow {
+    Anchor: (Height: 38, Top: 8);
+    LayoutMode: Left;
+
+    $C.@TextField #RowTextField { FlexWeight: 1; PlaceholderText: "value"; }
+
+    $C.@SecondaryTextButton #RowRemoveBtn {
+        @Text = "X";
+        @Anchor = (Width: 56, Left: 8);
+    }
+}
