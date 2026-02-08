@@ -91,6 +91,13 @@ public class AdminPanelPage extends InteractiveCustomUIPage<AdminPanelPage.PageE
 
         events.addEventBinding(
             CustomUIEventBindingType.Activating,
+            "#HologramBtn",
+            EventData.of("Action", "holograms"),
+            false
+        );
+
+        events.addEventBinding(
+            CustomUIEventBindingType.Activating,
             "#ReloadBtn",
             EventData.of("Action", "reload"),
             false
@@ -131,6 +138,10 @@ public class AdminPanelPage extends InteractiveCustomUIPage<AdminPanelPage.PageE
                     openHubSettings(ref, store, player);
                     break;
 
+                case "holograms":
+                    openHologramList(ref, store, player);
+                    break;
+
                 case "reload":
                     handleReload(player);
                     break;
@@ -156,6 +167,16 @@ public class AdminPanelPage extends InteractiveCustomUIPage<AdminPanelPage.PageE
         KitListPage page = new KitListPage(
             playerRef, playerUuid, kitManager, matchManager,
             hubManager, configManager, hudManager, scheduler,
+            this::openSelf
+        );
+        player.getPageManager().openCustomPage(ref, store, page);
+    }
+
+    private void openHologramList(Ref<EntityStore> ref, Store<EntityStore> store, Player player) {
+        shutdown();
+        HologramListPage page = new HologramListPage(
+            playerRef, playerUuid, hubManager, configManager,
+            hudManager, scheduler,
             this::openSelf
         );
         player.getPageManager().openCustomPage(ref, store, page);

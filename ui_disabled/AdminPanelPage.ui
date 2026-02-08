@@ -37,12 +37,6 @@ Group #AdminPanelPage {
                 @Anchor = (Height: 44, Top: 8);
             }
 
-            // Hologram Management Button
-            $C.@TextButton #HologramBtn {
-                @Text = "Holograms";
-                @Anchor = (Height: 44, Top: 8);
-            }
-
             // Separator
             $C.@ContentSeparator {
                 @Anchor = (Top: 12);

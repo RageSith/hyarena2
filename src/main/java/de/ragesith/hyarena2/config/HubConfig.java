@@ -1,5 +1,8 @@
 package de.ragesith.hyarena2.config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Configuration for the hub spawn area.
  * Loaded from hub.json.
@@ -21,6 +24,11 @@ public class HubConfig {
      * The boundary area that players are kept within.
      */
     private BoundingBox bounds;
+
+    /**
+     * Floating text holograms in the hub (labels above NPC statues, etc.).
+     */
+    private List<HologramEntry> holograms = new ArrayList<>();
 
     /**
      * Default constructor with defaults from HyArena1 config.
@@ -58,6 +66,15 @@ public class HubConfig {
         this.bounds = bounds;
     }
 
+    public List<HologramEntry> getHolograms() {
+        if (holograms == null) holograms = new ArrayList<>();
+        return holograms;
+    }
+
+    public void setHolograms(List<HologramEntry> holograms) {
+        this.holograms = holograms;
+    }
+
     // ========== Convenience Methods ==========
 
     /**
@@ -86,5 +103,34 @@ public class HubConfig {
      */
     public String getEffectiveWorldName() {
         return (worldName != null && !worldName.isEmpty()) ? worldName : "default";
+    }
+
+    /**
+     * A floating text hologram entry in the hub.
+     */
+    public static class HologramEntry {
+        private double x, y, z;
+        private String text;
+
+        public HologramEntry() {}
+
+        public HologramEntry(double x, double y, double z, String text) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.text = text;
+        }
+
+        public double getX() { return x; }
+        public void setX(double x) { this.x = x; }
+
+        public double getY() { return y; }
+        public void setY(double y) { this.y = y; }
+
+        public double getZ() { return z; }
+        public void setZ(double z) { this.z = z; }
+
+        public String getText() { return text; }
+        public void setText(String text) { this.text = text; }
     }
 }

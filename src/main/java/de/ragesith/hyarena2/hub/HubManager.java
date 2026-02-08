@@ -13,7 +13,10 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.config.HubConfig;
 import de.ragesith.hyarena2.config.Position;
+import de.ragesith.hyarena2.utils.HologramUtil;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -28,6 +31,10 @@ public class HubManager {
     // Delay for cross-world teleports (milliseconds) to allow client fade animations
     private static final long CROSS_WORLD_TELEPORT_DELAY_MS = 1500;
 
+    // Active hologram entity refs in the hub world
+    private final List<Ref<EntityStore>> hubHolograms = new ArrayList<>();
+    private boolean hologramsSpawned = false;
+
     public HubManager(HubConfig config) {
         this.config = config;
     }
@@ -38,6 +45,7 @@ public class HubManager {
      */
     public void updateConfig(HubConfig newConfig) {
         this.config = newConfig;
+        respawnHubHolograms();
         System.out.println("[HubManager] Config updated at runtime");
     }
 
@@ -250,5 +258,99 @@ public class HubManager {
         Vector3f rot = transform.getRotation();
 
         return new Position(pos.getX(), pos.getY(), pos.getZ(), rot.getY(), rot.getX());
+    }
+
+    // ========== Hub Holograms ==========
+
+    /**
+     * Spawns all hub holograms from config.
+     * Called when the first player joins (hub world guaranteed loaded).
+     */
+    public void spawnHubHolograms() {
+        if (hologramsSpawned) return;
+
+        List<HubConfig.HologramEntry> entries = config.getHolograms();
+        if (entries.isEmpty()) {
+            hologramsSpawned = true;
+            return;
+        }
+
+        World hubWorld = getHubWorld();
+        if (hubWorld == null) return;
+
+        hologramsSpawned = true;
+        hubWorld.execute(() -> {
+            for (HubConfig.HologramEntry entry : entries) {
+                if (entry.getText() == null || entry.getText().isEmpty()) continue;
+                Ref<EntityStore> ref = HologramUtil.spawnHologram(
+                    hubWorld, entry.getX(), entry.getY(), entry.getZ(), entry.getText()
+                );
+                if (ref != null) {
+                    hubHolograms.add(ref);
+                }
+            }
+            System.out.println("[HubManager] Spawned " + hubHolograms.size() + " hub holograms");
+        });
+    }
+
+    /**
+     * Despawns all hub holograms.
+     */
+    public void despawnHubHolograms() {
+        if (hubHolograms.isEmpty()) {
+            hologramsSpawned = false;
+            return;
+        }
+
+        World hubWorld = getHubWorld();
+        if (hubWorld == null) {
+            hubHolograms.clear();
+            hologramsSpawned = false;
+            return;
+        }
+
+        hubWorld.execute(() -> {
+            for (Ref<EntityStore> ref : hubHolograms) {
+                HologramUtil.despawnHologram(ref);
+            }
+            hubHolograms.clear();
+            hologramsSpawned = false;
+        });
+    }
+
+    /**
+     * Despawns and re-spawns all hub holograms.
+     * Called after admin edits or config reload.
+     */
+    public void respawnHubHolograms() {
+        World hubWorld = getHubWorld();
+        if (hubWorld == null) {
+            hubHolograms.clear();
+            hologramsSpawned = false;
+            return;
+        }
+
+        hubWorld.execute(() -> {
+            // Despawn existing
+            for (Ref<EntityStore> ref : hubHolograms) {
+                HologramUtil.despawnHologram(ref);
+            }
+            hubHolograms.clear();
+            hologramsSpawned = false;
+
+            // Spawn from current config
+            List<HubConfig.HologramEntry> entries = config.getHolograms();
+            for (HubConfig.HologramEntry entry : entries) {
+                if (entry.getText() == null || entry.getText().isEmpty()) continue;
+                Ref<EntityStore> ref = HologramUtil.spawnHologram(
+                    hubWorld, entry.getX(), entry.getY(), entry.getZ(), entry.getText()
+                );
+                if (ref != null) {
+                    hubHolograms.add(ref);
+                }
+            }
+            hologramsSpawned = true;
+            System.out.println("[HubManager] Respawned " + hubHolograms.size() + " hub holograms");
+        });
     }
 }

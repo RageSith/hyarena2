@@ -142,6 +142,11 @@ public class HyArena2 extends JavaPlugin {
 
         System.out.println("[HyArena2] KillDetectionSystem registered with EntityStoreRegistry");
 
+        // Register block protection systems
+        this.getEntityStoreRegistry().registerSystem(new de.ragesith.hyarena2.protection.BlockBreakProtectionSystem());
+        this.getEntityStoreRegistry().registerSystem(new de.ragesith.hyarena2.protection.BlockPlaceProtectionSystem());
+        System.out.println("[HyArena2] Block protection systems registered");
+
         // Create scheduler early so it's available for queue system
         scheduler = Executors.newScheduledThreadPool(2);
 
@@ -349,6 +354,8 @@ public class HyArena2 extends JavaPlugin {
         // Capture world reference on first player join
         if (this.world == null) {
             this.world = player.getWorld();
+            // Hub world is now guaranteed loaded — spawn hub holograms
+            hubManager.spawnHubHolograms();
         }
 
         // Check if this is a world change vs fresh join

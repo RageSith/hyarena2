@@ -1,44 +1,50 @@
 $C = "../Common.ui";
 
-Group #AdminArenaRow {
+Group #AdminHologramRow {
     Anchor: (Height: 56, Top: 4);
     Padding: (Horizontal: 12, Vertical: 8);
     Background: #141c26;
     LayoutMode: Left;
 
-    // Arena info (left side)
+    // Hologram info (left side)
     Group #InfoGroup {
         FlexWeight: 1;
         LayoutMode: Top;
 
-        Label #RowArenaName {
-            Text: "Arena Name";
+        Label #RowHoloText {
+            Text: "Hologram Text";
             Anchor: (Height: 22);
             Style: (FontSize: 15, TextColor: #b7cedd, RenderBold: true, VerticalAlignment: Center);
         }
 
-        Label #RowArenaInfo {
-            Text: "Duel | 2 Players";
+        Label #RowHoloPos {
+            Text: "0.0, 0.0, 0.0";
             Anchor: (Height: 18);
             Style: (FontSize: 11, TextColor: #96a9be, VerticalAlignment: Center);
         }
     }
 
+    // Set Pos button
+    $C.@SecondaryTextButton #RowSetPosBtn {
+        @Text = "Set Pos";
+        @Anchor = (Width: 70, Left: 8);
+    }
+
     // Teleport button
     $C.@SecondaryTextButton #RowTpBtn {
         @Text = "TP";
-        @Anchor = (Width: 50, Left: 8);
+        @Anchor = (Width: 50, Left: 4);
     }
 
     // Edit button
     $C.@SecondaryTextButton #RowEditBtn {
         @Text = "Edit";
-        @Anchor = (Width: 90, Left: 4);
+        @Anchor = (Width: 60, Left: 4);
     }
 
     // Delete button
     $C.@SecondaryTextButton #RowDeleteBtn {
         @Text = "Delete";
-        @Anchor = (Width: 130, Left: 4);
+        @Anchor = (Width: 80, Left: 4);
     }
 }

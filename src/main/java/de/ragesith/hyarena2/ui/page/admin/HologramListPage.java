@@ -5,43 +5,40 @@ import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.math.vector.Vector3d;
+import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.protocol.packets.interface_.Page;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
+import com.hypixel.hytale.server.core.modules.entity.EntityModule;
+import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
-import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
-import de.ragesith.hyarena2.arena.Arena;
-import de.ragesith.hyarena2.arena.ArenaConfig;
-import de.ragesith.hyarena2.arena.MatchManager;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.config.ConfigManager;
+import de.ragesith.hyarena2.config.HubConfig;
 import de.ragesith.hyarena2.config.Position;
 import de.ragesith.hyarena2.hub.HubManager;
-import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.ui.hud.HudManager;
 import de.ragesith.hyarena2.ui.page.CloseablePage;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 
 /**
- * Admin page listing all arenas with Edit/Delete/Create buttons.
+ * Admin page listing all hub holograms with Set Pos/TP/Edit/Delete buttons.
  */
-public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEventData> implements CloseablePage {
+public class HologramListPage extends InteractiveCustomUIPage<HologramListPage.PageEventData> implements CloseablePage {
 
     private final PlayerRef playerRef;
     private final UUID playerUuid;
-    private final MatchManager matchManager;
-    private final KitManager kitManager;
     private final HubManager hubManager;
     private final ConfigManager configManager;
     private final HudManager hudManager;
@@ -49,21 +46,16 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
     private final Runnable onBack;
 
     private volatile boolean active = true;
-    private List<Arena> arenaList;
+    private List<HubConfig.HologramEntry> holoList;
+    private int pendingDeleteIndex = -1;
 
-    // Track which arena is pending delete confirmation (null = none)
-    private String pendingDeleteId;
-
-    public ArenaListPage(PlayerRef playerRef, UUID playerUuid,
-                         MatchManager matchManager, KitManager kitManager,
-                         HubManager hubManager, ConfigManager configManager,
-                         HudManager hudManager, ScheduledExecutorService scheduler,
-                         Runnable onBack) {
+    public HologramListPage(PlayerRef playerRef, UUID playerUuid,
+                            HubManager hubManager, ConfigManager configManager,
+                            HudManager hudManager, ScheduledExecutorService scheduler,
+                            Runnable onBack) {
         super(playerRef, CustomPageLifetime.CantClose, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
-        this.matchManager = matchManager;
-        this.kitManager = kitManager;
         this.hubManager = hubManager;
         this.configManager = configManager;
         this.hudManager = hudManager;
@@ -74,53 +66,57 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
     @Override
     public void build(@Nonnull Ref<EntityStore> ref, @Nonnull UICommandBuilder cmd,
                       @Nonnull UIEventBuilder events, @Nonnull Store<EntityStore> store) {
-        cmd.append("Pages/ArenaListPage.ui");
+        cmd.append("Pages/HologramListPage.ui");
 
-        arenaList = new ArrayList<>(matchManager.getArenas());
-        arenaList.sort((a, b) -> a.getDisplayName().compareToIgnoreCase(b.getDisplayName()));
+        holoList = hubManager.getConfig().getHolograms();
+        cmd.set("#HoloCountLabel.Text", holoList.size() + " hologram" + (holoList.size() != 1 ? "s" : ""));
 
-        cmd.set("#ArenaCountLabel.Text", arenaList.size() + " arenas loaded");
+        for (int i = 0; i < holoList.size(); i++) {
+            HubConfig.HologramEntry entry = holoList.get(i);
 
-        for (int i = 0; i < arenaList.size(); i++) {
-            Arena arena = arenaList.get(i);
+            cmd.append("#HoloList", "Pages/AdminHologramRow.ui");
+            String row = "#HoloList[" + i + "]";
 
-            cmd.append("#ArenaList", "Pages/AdminArenaRow.ui");
-            String row = "#ArenaList[" + i + "]";
+            String displayText = entry.getText() != null ? entry.getText() : "(empty)";
+            cmd.set(row + " #RowHoloText.Text", displayText);
+            cmd.set(row + " #RowHoloPos.Text",
+                String.format("%.1f, %.1f, %.1f", entry.getX(), entry.getY(), entry.getZ()));
 
-            cmd.set(row + " #RowArenaName.Text", arena.getDisplayName());
-            String info = matchManager.getGameModeDisplayName(arena) + " | " + MatchManager.formatPlayerCount(arena);
-            cmd.set(row + " #RowArenaInfo.Text", info);
+            String idx = String.valueOf(i);
 
-            // Teleport button
+            events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                row + " #RowSetPosBtn",
+                EventData.of("Action", "setpos").append("Index", idx),
+                false
+            );
+
             events.addEventBinding(
                 CustomUIEventBindingType.Activating,
                 row + " #RowTpBtn",
-                EventData.of("Action", "teleport").append("Arena", arena.getId()),
+                EventData.of("Action", "teleport").append("Index", idx),
                 false
             );
 
-            // Edit button
             events.addEventBinding(
                 CustomUIEventBindingType.Activating,
                 row + " #RowEditBtn",
-                EventData.of("Action", "edit").append("Arena", arena.getId()),
+                EventData.of("Action", "edit").append("Index", idx),
                 false
             );
 
-            // Delete button — set text directly on the button element
-            if (arena.getId().equals(pendingDeleteId)) {
+            if (i == pendingDeleteIndex) {
                 cmd.set(row + " #RowDeleteBtn.Text", "Confirm?");
             }
 
             events.addEventBinding(
                 CustomUIEventBindingType.Activating,
                 row + " #RowDeleteBtn",
-                EventData.of("Action", "delete").append("Arena", arena.getId()),
+                EventData.of("Action", "delete").append("Index", idx),
                 false
             );
         }
 
-        // Bind buttons
         events.addEventBinding(
             CustomUIEventBindingType.Activating,
             "#CreateNewBtn",
@@ -153,6 +149,8 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
             Player player = store.getComponent(ref, Player.getComponentType());
             if (player == null) return;
 
+            int index = parseIndex(data.index);
+
             switch (data.action) {
                 case "close":
                     player.getPageManager().setPage(ref, store, Page.None);
@@ -164,115 +162,114 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
                     break;
 
                 case "create":
-                    openEditor(ref, store, player, null);
-                    break;
-
-                case "teleport":
-                    if (data.arena != null) {
-                        handleTeleport(ref, store, player, data.arena);
-                    }
+                    openEditor(ref, store, player, -1);
                     break;
 
                 case "edit":
-                    if (data.arena != null) {
-                        Arena arena = matchManager.getArena(data.arena);
-                        if (arena != null) {
-                            openEditor(ref, store, player, arena);
-                        } else {
-                            showStatus("Arena not found: " + data.arena, "#e74c3c");
-                        }
+                    if (index >= 0 && index < holoList.size()) {
+                        openEditor(ref, store, player, index);
+                    }
+                    break;
+
+                case "setpos":
+                    if (index >= 0 && index < holoList.size()) {
+                        handleSetPos(ref, store, player, index);
+                    }
+                    break;
+
+                case "teleport":
+                    if (index >= 0 && index < holoList.size()) {
+                        handleTeleport(ref, store, player, index);
                     }
                     break;
 
                 case "delete":
-                    handleDelete(data.arena);
+                    if (index >= 0 && index < holoList.size()) {
+                        handleDelete(index);
+                    }
                     break;
             }
         } catch (Exception e) {
-            System.err.println("[ArenaListPage] Error handling event: " + e.getMessage());
+            System.err.println("[HologramListPage] Error handling event: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    private void handleTeleport(Ref<EntityStore> ref, Store<EntityStore> store, Player player, String arenaId) {
-        Arena arena = matchManager.getArena(arenaId);
-        if (arena == null) {
-            showStatus("Arena not found: " + arenaId, "#e74c3c");
+    private void handleSetPos(Ref<EntityStore> ref, Store<EntityStore> store, Player player, int index) {
+        TransformComponent transform = store.getComponent(ref,
+            EntityModule.get().getTransformComponentType());
+        if (transform == null) {
+            showStatus("Could not read position", "#e74c3c");
             return;
         }
 
-        ArenaConfig config = arena.getConfig();
-        List<ArenaConfig.SpawnPoint> spawns = config.getSpawnPoints();
-        if (spawns == null || spawns.isEmpty()) {
-            showStatus("Arena has no spawn points", "#e74c3c");
-            return;
-        }
+        Vector3d pos = transform.getPosition();
+        HubConfig.HologramEntry entry = holoList.get(index);
+        entry.setX(pos.getX());
+        entry.setY(pos.getY());
+        entry.setZ(pos.getZ());
 
-        World targetWorld = Universe.get().getWorld(config.getWorldName());
-        if (targetWorld == null) {
-            showStatus("World not found: " + config.getWorldName(), "#e74c3c");
-            return;
-        }
+        saveAndRespawn();
+        showStatus("Position set! Holograms respawned.", "#2ecc71");
 
-        ArenaConfig.SpawnPoint sp = spawns.get(0);
-        Position pos = new Position(sp.getX(), sp.getY(), sp.getZ(), sp.getYaw(), sp.getPitch());
-
-        // Close the page and teleport
-        player.getPageManager().setPage(ref, store, Page.None);
-        shutdown();
-        hubManager.teleportPlayerToWorld(player, pos, targetWorld);
+        // Refresh the row position text
+        UICommandBuilder cmd = new UICommandBuilder();
+        cmd.set("#HoloList[" + index + "] #RowHoloPos.Text",
+            String.format("%.1f, %.1f, %.1f", pos.getX(), pos.getY(), pos.getZ()));
+        safeSendUpdate(cmd);
     }
 
-    private void openEditor(Ref<EntityStore> ref, Store<EntityStore> store, Player player, Arena arena) {
+    private void handleTeleport(Ref<EntityStore> ref, Store<EntityStore> store, Player player, int index) {
+        HubConfig.HologramEntry entry = holoList.get(index);
+        World hubWorld = hubManager.getHubWorld();
+        if (hubWorld == null) {
+            showStatus("Hub world not found", "#e74c3c");
+            return;
+        }
+
+        Position pos = new Position(entry.getX(), entry.getY(), entry.getZ(), 0, 0);
+        player.getPageManager().setPage(ref, store, Page.None);
         shutdown();
-        ArenaEditorPage editorPage = new ArenaEditorPage(
-            playerRef, playerUuid,
-            arena != null ? arena.getConfig() : null,
-            matchManager, kitManager, hubManager, configManager,
-            hudManager, scheduler,
+        hubManager.teleportPlayerToWorld(player, pos, hubWorld);
+    }
+
+    private void openEditor(Ref<EntityStore> ref, Store<EntityStore> store, Player player, int index) {
+        shutdown();
+        HubConfig.HologramEntry entry = (index >= 0 && index < holoList.size())
+            ? holoList.get(index) : null;
+        HologramEditorPage editorPage = new HologramEditorPage(
+            playerRef, playerUuid, entry, index,
+            hubManager, configManager, hudManager, scheduler,
             this::reopenSelf
         );
         player.getPageManager().openCustomPage(ref, store, editorPage);
     }
 
-    private void handleDelete(String arenaId) {
-        if (arenaId == null) return;
-
-        if (!arenaId.equals(pendingDeleteId)) {
-            // First click — show confirmation on the button
-            pendingDeleteId = arenaId;
-            for (int i = 0; i < arenaList.size(); i++) {
-                if (arenaList.get(i).getId().equals(arenaId)) {
-                    UICommandBuilder cmd = new UICommandBuilder();
-                    cmd.set("#ArenaList[" + i + "] #RowDeleteBtn.Text", "Confirm?");
-                    safeSendUpdate(cmd);
-                    break;
-                }
-            }
+    private void handleDelete(int index) {
+        if (index != pendingDeleteIndex) {
+            pendingDeleteIndex = index;
+            UICommandBuilder cmd = new UICommandBuilder();
+            cmd.set("#HoloList[" + index + "] #RowDeleteBtn.Text", "Confirm?");
+            safeSendUpdate(cmd);
             return;
         }
 
-        // Second click — actually delete
-        if (matchManager.isArenaInUse(arenaId)) {
-            showStatus("Cannot delete: arena is in use", "#e74c3c");
-            pendingDeleteId = null;
-            return;
-        }
+        // Confirmed delete
+        holoList.remove(index);
+        pendingDeleteIndex = -1;
+        saveAndRespawn();
+        reopenSelf();
+    }
 
-        boolean deleted = matchManager.deleteArena(arenaId);
-        pendingDeleteId = null;
-
-        if (deleted) {
-            reopenSelf();
-        } else {
-            showStatus("Failed to delete arena", "#e74c3c");
-        }
+    private void saveAndRespawn() {
+        configManager.saveConfig("hub.json", hubManager.getConfig());
+        hubManager.respawnHubHolograms();
     }
 
     private void showStatus(String message, String color) {
         UICommandBuilder cmd = new UICommandBuilder();
-        cmd.set("#ArenaCountLabel.Text", message);
-        cmd.set("#ArenaCountLabel.Style.TextColor", color);
+        cmd.set("#HoloCountLabel.Text", message);
+        cmd.set("#HoloCountLabel.Style.TextColor", color);
         safeSendUpdate(cmd);
     }
 
@@ -283,9 +280,9 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
         Player p = pStore.getComponent(pRef, Player.getComponentType());
         if (p == null) return;
 
-        ArenaListPage page = new ArenaListPage(
-            playerRef, playerUuid, matchManager, kitManager,
-            hubManager, configManager, hudManager, scheduler, onBack
+        HologramListPage page = new HologramListPage(
+            playerRef, playerUuid, hubManager, configManager,
+            hudManager, scheduler, onBack
         );
         p.getPageManager().openCustomPage(pRef, pStore, page);
     }
@@ -296,6 +293,15 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
             sendUpdate(cmd, false);
         } catch (Exception e) {
             active = false;
+        }
+    }
+
+    private int parseIndex(String s) {
+        if (s == null) return -1;
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return -1;
         }
     }
 
@@ -317,14 +323,14 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
 
     public static class PageEventData {
         public String action;
-        public String arena;
+        public String index;
 
         public static final BuilderCodec<PageEventData> CODEC =
             BuilderCodec.builder(PageEventData.class, PageEventData::new)
                 .append(new KeyedCodec<>("Action", Codec.STRING),
                     (d, v) -> d.action = v, d -> d.action).add()
-                .append(new KeyedCodec<>("Arena", Codec.STRING),
-                    (d, v) -> d.arena = v, d -> d.arena).add()
+                .append(new KeyedCodec<>("Index", Codec.STRING),
+                    (d, v) -> d.index = v, d -> d.index).add()
                 .build();
     }
 }

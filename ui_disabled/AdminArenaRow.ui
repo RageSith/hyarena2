@@ -24,21 +24,15 @@ Group #AdminArenaRow {
         }
     }
 
-    // Teleport button
-    $C.@SecondaryTextButton #RowTpBtn {
-        @Text = "TP";
-        @Anchor = (Width: 50, Left: 8);
-    }
-
     // Edit button
     $C.@SecondaryTextButton #RowEditBtn {
         @Text = "Edit";
-        @Anchor = (Width: 90, Left: 4);
+        @Anchor = (Width: 70, Left: 8);
     }
 
     // Delete button
     $C.@SecondaryTextButton #RowDeleteBtn {
         @Text = "Delete";
-        @Anchor = (Width: 130, Left: 4);
+        @Anchor = (Width: 80, Left: 4);
     }
 }

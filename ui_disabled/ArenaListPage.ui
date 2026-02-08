@@ -1,0 +1,57 @@
+$C = "../Common.ui";
+
+Group #ArenaListPage {
+    $C.@PageOverlay {}
+
+    $C.@DecoratedContainer {
+        @CloseButton = true;
+        Anchor: (Width: 600, Height: 480);
+
+        Group #Title {
+            $C.@Title #TitleLabel {
+                @Text = "Arena Management";
+                Anchor: (Top: 12, Height: 24);
+            }
+        }
+
+        Group #Content {
+            Padding: (Full: 20);
+            Anchor: (Top: 40, Bottom: 70);
+            LayoutMode: Top;
+
+            // Create New Button
+            $C.@TextButton #CreateNewBtn {
+                @Text = "Create New Arena";
+                @Anchor = (Height: 40);
+            }
+
+            // Arena count label
+            Label #ArenaCountLabel {
+                Text: "0 arenas loaded";
+                Anchor: (Height: 20, Top: 8);
+                Style: (FontSize: 12, TextColor: #6b7d8e);
+            }
+
+            // Scrollable arena list
+            Group #ArenaList {
+                Anchor: (Top: 6);
+                FlexWeight: 1;
+                LayoutMode: TopScrolling;
+                ScrollbarStyle: $C.@DefaultScrollbarStyle;
+            }
+        }
+
+        // Bottom Button Row
+        Group #ButtonRow {
+            Anchor: (Bottom: 16, Height: 44, Left: 20, Right: 20);
+            LayoutMode: Left;
+
+            $C.@SecondaryTextButton #BackBtn {
+                @Text = "Back";
+                @Anchor = (Width: 120);
+            }
+
+            Group { FlexWeight: 1; }
+        }
+    }
+}

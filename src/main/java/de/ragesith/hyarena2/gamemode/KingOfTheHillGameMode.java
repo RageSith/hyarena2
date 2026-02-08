@@ -7,18 +7,21 @@ import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.protocol.DebugShape;
 import com.hypixel.hytale.protocol.packets.player.ClearDebugShapes;
 import com.hypixel.hytale.protocol.packets.player.DisplayDebug;
+import com.hypixel.hytale.protocol.packets.interface_.NotificationStyle;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.modules.entity.EntityModule;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
+import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
-import com.hypixel.hytale.server.core.util.EventTitleUtil;
+import com.hypixel.hytale.server.core.util.NotificationUtil;
 import de.ragesith.hyarena2.arena.ArenaConfig;
 import de.ragesith.hyarena2.bot.BotParticipant;
 import de.ragesith.hyarena2.config.Position;
 import de.ragesith.hyarena2.participant.Participant;
 import de.ragesith.hyarena2.participant.ParticipantType;
+import de.ragesith.hyarena2.utils.HologramUtil;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -41,6 +44,8 @@ public class KingOfTheHillGameMode implements GameMode {
     private static final double EDGE_THICKNESS = 0.03;
 
     private final Map<UUID, Integer> controlTicks = new HashMap<>();
+    private final List<Ref<EntityStore>> zoneNameHolograms = new ArrayList<>();
+    private String worldName;
     private int activeZoneIndex = 0;
     private UUID currentController = null;
     private boolean contested = false;
@@ -90,6 +95,7 @@ public class KingOfTheHillGameMode implements GameMode {
     public void onGameplayBegin(ArenaConfig config, List<Participant> participants) {
         List<ArenaConfig.CaptureZone> zones = config.getCaptureZones();
         String zoneName = (zones != null && !zones.isEmpty()) ? zones.get(0).getDisplayName() : "the hill";
+        this.worldName = config.getWorldName();
 
         for (Participant p : participants) {
             p.sendMessage("<gradient:#2ecc71:#27ae60><b>FIGHT!</b></gradient>");
@@ -98,6 +104,9 @@ public class KingOfTheHillGameMode implements GameMode {
                 p.sendMessage("<color:#e8c872>Active zone: " + zoneName + "</color>");
             }
         }
+
+        // Spawn zone name holograms above each capture zone
+        spawnZoneNameHolograms(config);
     }
 
     @Override
@@ -450,6 +459,53 @@ public class KingOfTheHillGameMode implements GameMode {
                 // Silently ignore
             }
         }
+
+        // Despawn zone name holograms
+        despawnZoneNameHolograms();
+    }
+
+    /**
+     * Spawns floating text holograms above each capture zone.
+     */
+    private void spawnZoneNameHolograms(ArenaConfig config) {
+        List<ArenaConfig.CaptureZone> zones = config.getCaptureZones();
+        if (zones == null || zones.isEmpty()) return;
+
+        World world = Universe.get().getWorld(worldName);
+        if (world == null) return;
+
+        world.execute(() -> {
+            for (ArenaConfig.CaptureZone zone : zones) {
+                double cx = (Math.min(zone.getMinX(), zone.getMaxX()) + Math.max(zone.getMinX(), zone.getMaxX())) / 2.0;
+                double topY = Math.max(zone.getMinY(), zone.getMaxY()) + 1.5;
+                double cz = (Math.min(zone.getMinZ(), zone.getMaxZ()) + Math.max(zone.getMinZ(), zone.getMaxZ())) / 2.0;
+
+                Ref<EntityStore> ref = HologramUtil.spawnHologram(world, cx, topY, cz, zone.getDisplayName());
+                if (ref != null) {
+                    zoneNameHolograms.add(ref);
+                }
+            }
+        });
+    }
+
+    /**
+     * Removes all zone name hologram entities.
+     */
+    private void despawnZoneNameHolograms() {
+        if (zoneNameHolograms.isEmpty()) return;
+
+        World world = worldName != null ? Universe.get().getWorld(worldName) : null;
+        if (world == null) {
+            zoneNameHolograms.clear();
+            return;
+        }
+
+        world.execute(() -> {
+            for (Ref<EntityStore> ref : zoneNameHolograms) {
+                HologramUtil.despawnHologram(ref);
+            }
+            zoneNameHolograms.clear();
+        });
     }
 
     /**
@@ -497,7 +553,7 @@ public class KingOfTheHillGameMode implements GameMode {
     }
 
     /**
-     * Shows a zone status event title to all player participants.
+     * Shows a zone status notification to all player participants.
      */
     private void showZoneStatus(List<Participant> participants, String zoneName, String status) {
         for (Participant p : participants) {
@@ -505,12 +561,13 @@ public class KingOfTheHillGameMode implements GameMode {
             PlayerRef playerRef = Universe.get().getPlayer(p.getUniqueId());
             if (playerRef != null) {
                 try {
-                    EventTitleUtil.showEventTitleToPlayer(playerRef,
+                    NotificationUtil.sendNotification(
+                        playerRef.getPacketHandler(),
                         Message.raw(status),
                         Message.raw(zoneName),
-                        true, null, 1, 0, 0.5f);
+                        NotificationStyle.Warning
+                    );
                 } catch (Exception e) {
-                    // Fallback to chat
                     p.sendMessage("<color:#e8c872>" + zoneName + ": " + status + "</color>");
                 }
             }

@@ -1,0 +1,95 @@
+$C = "../Common.ui";
+
+Group #HologramEditorPage {
+    $C.@PageOverlay {}
+
+    $C.@DecoratedContainer {
+        @CloseButton = true;
+        Anchor: (Width: 480, Height: 380);
+
+        Group #Title {
+            $C.@Title #TitleLabel {
+                @Text = "Edit Hologram";
+                Anchor: (Top: 12, Height: 24);
+            }
+        }
+
+        Group #Content {
+            Padding: (Full: 20);
+            Anchor: (Top: 40, Bottom: 70);
+
+            Group #FormScroll {
+                LayoutMode: TopScrolling;
+                ScrollbarStyle: $C.@DefaultScrollbarStyle;
+
+                // Text
+                Label {
+                    Text: "HOLOGRAM TEXT";
+                    Anchor: (Height: 20);
+                    Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                }
+
+                Group {
+                    Anchor: (Height: 32, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "Text"; Anchor: (Width: 60); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #TextField { FlexWeight: 1; PlaceholderText: "Hologram label"; }
+                }
+
+                // Position
+                $C.@ContentSeparator { @Anchor = (Top: 10); }
+
+                Label {
+                    Text: "POSITION";
+                    Anchor: (Height: 20, Top: 8);
+                    Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                }
+
+                Group {
+                    Anchor: (Height: 32, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "X"; Anchor: (Width: 30); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #XField { @Anchor = (Width: 90); PlaceholderText: "0"; }
+                    Label { Text: "Y"; Anchor: (Width: 30, Left: 8); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #YField { @Anchor = (Width: 90); PlaceholderText: "0"; }
+                    Label { Text: "Z"; Anchor: (Width: 30, Left: 8); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #ZField { @Anchor = (Width: 90); PlaceholderText: "0"; }
+                    Group { FlexWeight: 1; }
+                }
+
+                $C.@SecondaryTextButton #SetPosBtn {
+                    @Text = "Set to Current Position";
+                    @Anchor = (Height: 32, Top: 8, Width: 200);
+                }
+
+                // Status Message
+                Label #StatusMessage {
+                    Text: "";
+                    Anchor: (Height: 20, Top: 16);
+                    Visible: false;
+                    Style: (FontSize: 12, TextColor: #2ecc71, Alignment: Center);
+                }
+
+                Group { Anchor: (Height: 20); }
+            }
+        }
+
+        // Bottom Button Row
+        Group #ButtonRow {
+            Anchor: (Bottom: 16, Height: 44, Left: 20, Right: 20);
+            LayoutMode: Left;
+
+            $C.@SecondaryTextButton #CancelBtn {
+                @Text = "Cancel";
+                @Anchor = (Width: 120);
+            }
+
+            Group { FlexWeight: 1; }
+
+            $C.@TextButton #SaveBtn {
+                @Text = "Save";
+                @Anchor = (Width: 160);
+            }
+        }
+    }
+}

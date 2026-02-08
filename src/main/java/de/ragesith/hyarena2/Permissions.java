@@ -19,6 +19,9 @@ public final class Permissions {
     /** Can use chat in matches */
     public static final String CHAT = "hyarena.chat";
 
+    /** Can place and break blocks */
+    public static final String BUILD = "hyarena.build";
+
     // ========== Bypass Permissions ==========
 
     /** Bypass hub boundary restrictions */

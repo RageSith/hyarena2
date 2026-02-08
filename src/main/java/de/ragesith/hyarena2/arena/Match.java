@@ -67,6 +67,7 @@ public class Match {
     private int victoryDelayTicks;
     private List<UUID> winners;
     private final Set<Integer> sentTimeWarnings = new HashSet<>(); // Track which warnings have been sent
+    private int nextSpawnIndex = 0; // Dedicated counter for spawn point assignment
 
     // Pending bot queue — bots queued by Matchmaker, drained on arena world thread in tickWaiting()
     private final List<PendingBot> pendingBots = new ArrayList<>();
@@ -170,8 +171,9 @@ public class Match {
         }
         participants.put(playerUuid, participant);
 
-        // Get spawn point
-        int spawnIndex = participants.size() - 1;
+        // Get spawn point (use dedicated counter to avoid index collisions)
+        int spawnIndex = nextSpawnIndex % arena.getSpawnPoints().size();
+        nextSpawnIndex++;
         ArenaConfig.SpawnPoint spawnConfig = arena.getSpawnPoints().get(spawnIndex);
 
         // Convert to Position
