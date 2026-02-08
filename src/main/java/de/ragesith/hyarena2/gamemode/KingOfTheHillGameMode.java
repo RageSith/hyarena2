@@ -79,7 +79,7 @@ public class KingOfTheHillGameMode implements GameMode {
 
         for (Participant p : participants) {
             p.sendMessage("<gradient:#2ecc71:#27ae60><b>FIGHT!</b></gradient>");
-            p.sendMessage("<color:#f1c40f>First to " + config.getScoreTarget() + " seconds of control wins!</color>");
+            p.sendMessage("<color:#f1c40f>First to " + config.getScoreTarget() + " score wins!</color>");
             if (zones != null && zones.size() > 1) {
                 p.sendMessage("<color:#e8c872>Active zone: " + zoneName + "</color>");
             }
@@ -169,10 +169,10 @@ public class KingOfTheHillGameMode implements GameMode {
             // Score milestone to controller
             if (currentController != null) {
                 int ticks = controlTicks.getOrDefault(currentController, 0);
-                int seconds = ticks / 20;
+                int score = ticks / 20;
                 Participant controller = findParticipant(participants, currentController);
                 if (controller != null) {
-                    controller.sendMessage("<color:#2ecc71>Score: " + seconds + "/" + config.getScoreTarget() + "</color>");
+                    controller.sendMessage("<color:#2ecc71>Score: " + score + "/" + config.getScoreTarget() + "</color>");
                 }
             }
         }
@@ -221,7 +221,7 @@ public class KingOfTheHillGameMode implements GameMode {
 
     @Override
     public int getParticipantScore(UUID participantId) {
-        return controlTicks.getOrDefault(participantId, 0) / 20; // ticks to seconds
+        return controlTicks.getOrDefault(participantId, 0) / 20;
     }
 
     @Override
@@ -297,8 +297,8 @@ public class KingOfTheHillGameMode implements GameMode {
 
         Participant winner = winners.get(0);
         int ticks = controlTicks.getOrDefault(winner.getUniqueId(), 0);
-        int seconds = ticks / 20;
-        return "<gradient:#f1c40f:#f39c12><b>" + winner.getName() + "</b></gradient> <color:#f1c40f>controls the hill with " + seconds + " seconds!</color>";
+        int score = ticks / 20;
+        return "<gradient:#f1c40f:#f39c12><b>" + winner.getName() + "</b></gradient> <color:#f1c40f>controls the hill with " + score + " score!</color>";
     }
 
     /**

@@ -184,16 +184,15 @@ public class HudManager {
     }
 
     /**
-     * Shows the victory HUD for a player after a match ends.
+     * Shows the victory screen as an interactive page for a player after a match ends.
+     * The page persists after teleport to hub and must be dismissed manually by the player.
      * @param playerUuid the player's UUID
      * @param match the finished match
      * @param isWinner whether this player won
      * @param winnerName the name of the winner (or null for draw)
-     * @param worldThreadExecutor executor to run UI updates on the world thread
      */
-    public void showVictoryHud(UUID playerUuid, Match match, boolean isWinner, String winnerName,
-                               Consumer<Runnable> worldThreadExecutor) {
-        // Shut down existing victory HUD if any
+    public void showVictoryHud(UUID playerUuid, Match match, boolean isWinner, String winnerName) {
+        // Shut down existing victory page if any
         VictoryHud oldHud = victoryHuds.remove(playerUuid);
         if (oldHud != null) {
             oldHud.shutdown();
@@ -207,18 +206,27 @@ public class HudManager {
             return;
         }
 
-        Player player = getPlayer(playerRef);
+        Ref<EntityStore> ref = playerRef.getReference();
+        if (ref == null) {
+            return;
+        }
+
+        Store<EntityStore> store = ref.getStore();
+        if (store == null) {
+            return;
+        }
+
+        Player player = store.getComponent(ref, Player.getComponentType());
         if (player == null) {
             return;
         }
 
-        VictoryHud hud = new VictoryHud(playerRef, playerUuid, match, isWinner, winnerName,
-            scheduler, worldThreadExecutor);
+        VictoryHud hud = new VictoryHud(playerRef, playerUuid, match, isWinner, winnerName, this);
         victoryHuds.put(playerUuid, hud);
 
         try {
-            player.getHudManager().setCustomHud(playerRef, hud);
-            System.out.println("[HudManager] Showed VictoryHud for " + playerUuid + " (winner: " + isWinner + ")");
+            player.getPageManager().openCustomPage(ref, store, hud);
+            System.out.println("[HudManager] Showed VictoryHud page for " + playerUuid + " (winner: " + isWinner + ")");
         } catch (Exception e) {
             System.err.println("[HudManager] Failed to show VictoryHud: " + e.getMessage());
             victoryHuds.remove(playerUuid);

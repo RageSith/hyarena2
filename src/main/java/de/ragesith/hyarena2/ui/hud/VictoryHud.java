@@ -1,66 +1,57 @@
 package de.ragesith.hyarena2.ui.hud;
 
-import com.hypixel.hytale.server.core.entity.entities.player.hud.CustomUIHud;
+import com.hypixel.hytale.codec.Codec;
+import com.hypixel.hytale.codec.KeyedCodec;
+import com.hypixel.hytale.codec.builder.BuilderCodec;
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
+import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
+import com.hypixel.hytale.protocol.packets.interface_.Page;
+import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
+import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
+import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.arena.Match;
+import de.ragesith.hyarena2.gamemode.GameMode;
 import de.ragesith.hyarena2.participant.Participant;
+import de.ragesith.hyarena2.ui.page.CloseablePage;
 
+import javax.annotation.Nonnull;
 import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 /**
- * HUD overlay shown during ENDING state displaying victory/defeat info.
- * Shows winner name, final stats, and countdown to hub return.
+ * Victory/defeat overlay shown as an interactive page during ENDING state.
+ * Displays winner name, final stats, and a close button.
+ * Persists after teleport to hub — player dismisses manually.
  */
-public class VictoryHud extends CustomUIHud {
+public class VictoryHud extends InteractiveCustomUIPage<VictoryHud.PageEventData> implements CloseablePage {
 
     private final UUID playerUuid;
     private final Match match;
     private final boolean isWinner;
     private final String winnerName;
-    private final ScheduledExecutorService sharedScheduler;
-    private final Consumer<Runnable> worldThreadExecutor;
-    private ScheduledFuture<?> refreshTask;
-
-    // Countdown state
-    private int countdownSeconds;
-    private static final int COUNTDOWN_DURATION = 3;
-
-    // Flag to prevent updates after shutdown
-    private volatile boolean active = true;
+    private final HudManager hudManager;
 
     public VictoryHud(PlayerRef playerRef, UUID playerUuid, Match match, boolean isWinner, String winnerName,
-                      ScheduledExecutorService scheduler, Consumer<Runnable> worldThreadExecutor) {
-        super(playerRef);
+                      HudManager hudManager) {
+        super(playerRef, CustomPageLifetime.CanDismiss, PageEventData.CODEC);
         this.playerUuid = playerUuid;
         this.match = match;
         this.isWinner = isWinner;
         this.winnerName = winnerName;
-        this.sharedScheduler = scheduler;
-        this.worldThreadExecutor = worldThreadExecutor;
-        this.countdownSeconds = COUNTDOWN_DURATION;
+        this.hudManager = hudManager;
     }
 
     @Override
-    public void build(UICommandBuilder cmd) {
+    public void build(@Nonnull Ref<EntityStore> ref, @Nonnull UICommandBuilder cmd,
+                      @Nonnull UIEventBuilder events, @Nonnull Store<EntityStore> store) {
         // Load UI file
         cmd.append("Huds/VictoryHud.ui");
 
-        // Set initial content
-        updateContent(cmd);
-
-        // Start countdown refresh
-        startAutoRefresh();
-    }
-
-    /**
-     * Updates the HUD content.
-     */
-    private void updateContent(UICommandBuilder cmd) {
         // Victory/Defeat title
         if (isWinner) {
             cmd.set("#ResultTitle.Text", "VICTORY!");
@@ -91,77 +82,63 @@ public class VictoryHud extends CustomUIHud {
             cmd.set("#DamageValue.Text", "0");
         }
 
-        // Countdown
-        updateCountdown(cmd);
-    }
-
-    /**
-     * Updates the countdown display.
-     */
-    private void updateCountdown(UICommandBuilder cmd) {
-        if (countdownSeconds > 0) {
-            cmd.set("#Countdown.Text", "Returning to hub in " + countdownSeconds + "...");
-        } else {
-            cmd.set("#Countdown.Text", "Returning to hub...");
+        // Game-mode-specific score (KOTH etc.)
+        GameMode gm = match.getGameMode();
+        String scoreLabel = gm.getScoreLabel();
+        if (scoreLabel != null) {
+            int score = gm.getParticipantScore(playerUuid);
+            int target = gm.getScoreTarget(match.getArena().getConfig());
+            cmd.set("#ScoreRow.Visible", true);
+            cmd.set("#ScoreLabel.Text", scoreLabel);
+            cmd.set("#ScoreValue.Text", target > 0 ? score + "/" + target : String.valueOf(score));
         }
+
+        // Close button event binding
+        events.addEventBinding(
+            CustomUIEventBindingType.Activating,
+            "#CloseButton",
+            EventData.of("Action", "close"),
+            false
+        );
+
+        // Register with HudManager for cleanup
+        hudManager.registerPage(playerUuid, this);
     }
 
-    /**
-     * Starts the countdown refresh task.
-     */
-    private void startAutoRefresh() {
-        if (refreshTask != null || sharedScheduler == null) {
+    @Override
+    public void handleDataEvent(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store, PageEventData data) {
+        if (data == null || data.action == null) {
             return;
         }
 
-        // Refresh every 1 second for countdown
-        refreshTask = sharedScheduler.scheduleAtFixedRate(() -> {
-            if (!active) {
-                return;
+        if ("close".equals(data.action)) {
+            Player player = store.getComponent(ref, Player.getComponentType());
+            if (player != null) {
+                player.getPageManager().setPage(ref, store, Page.None);
             }
-
-            try {
-                // Decrement countdown
-                if (countdownSeconds > 0) {
-                    countdownSeconds--;
-                }
-
-                // Update on world thread
-                if (worldThreadExecutor != null) {
-                    worldThreadExecutor.accept(() -> {
-                        if (!active) {
-                            return;
-                        }
-                        try {
-                            UICommandBuilder cmd = new UICommandBuilder();
-                            updateCountdown(cmd);
-                            update(false, cmd);
-                        } catch (Exception e) {
-                            // UI might not be ready, skip
-                        }
-                    });
-                }
-            } catch (Exception e) {
-                // HUD might be closed
-            }
-        }, 1, 1, TimeUnit.SECONDS);
-    }
-
-    /**
-     * Stops the refresh task.
-     */
-    private void stopAutoRefresh() {
-        if (refreshTask != null) {
-            refreshTask.cancel(true);
-            refreshTask = null;
         }
     }
 
-    /**
-     * Shuts down this HUD.
-     */
+    @Override
+    public void onDismiss(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
+        // Player dismissed the page (ESC or close button) — show LobbyHud
+        hudManager.unregisterPage(playerUuid, this);
+        hudManager.showLobbyHud(playerUuid);
+    }
+
+    @Override
     public void shutdown() {
-        active = false;
-        stopAutoRefresh();
+        // Called from HudManager cleanup (disconnect, page replacement) — no LobbyHud
+        hudManager.unregisterPage(playerUuid, this);
+    }
+
+    public static class PageEventData {
+        public String action;
+
+        public static final BuilderCodec<PageEventData> CODEC =
+            BuilderCodec.builder(PageEventData.class, PageEventData::new)
+                .append(new KeyedCodec<>("Action", Codec.STRING),
+                    (d, v) -> d.action = v, d -> d.action).add()
+                .build();
     }
 }

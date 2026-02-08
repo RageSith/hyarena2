@@ -99,7 +99,7 @@ public class MatchHud extends CustomUIHud {
             String targetSuffix = scoreTarget > 0 ? "/" + scoreTarget : "";
             cmd.set("#MyScore.Text", myScore + targetSuffix);
             cmd.set("#BestScore.Text", bestScore + targetSuffix);
-            cmd.set("#ScoreTarget.Text", scoreTarget > 0 ? "Target: " + scoreTarget + "s" : "");
+            cmd.set("#ScoreTarget.Text", scoreTarget > 0 ? "Target: " + scoreTarget : "");
         } else {
             cmd.set("#ScoreInfo.Visible", false);
         }

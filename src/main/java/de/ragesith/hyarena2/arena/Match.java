@@ -511,8 +511,8 @@ public class Match {
 
         state = MatchState.FINISHED;
 
-        // Hide VictoryHuds before teleporting
-        hideAllVictoryHuds();
+        // VictoryHud pages are NOT hidden here — they persist after teleport
+        // and the player dismisses them manually (close button or ESC).
 
         // Despawn all bots first
         if (botManager != null) {
@@ -539,10 +539,7 @@ public class Match {
                             World hubWorld = hubManager.getHubWorld();
                             PlayerMovementControl.enableMovementForPlayer(playerRef, hubWorld);
                         }
-                        // Show LobbyHud (handles same-world arenas where no world change event fires)
-                        if (hudManager != null) {
-                            hudManager.showLobbyHud(participantUuid);
-                        }
+                        // LobbyHud is shown when player dismisses VictoryHud page
                         participant.sendMessage("<color:#2ecc71>Thanks for playing!</color>");
                     });
                 }
@@ -1122,28 +1119,10 @@ public class Match {
             return;
         }
 
-        World world = arena.getWorld();
-        java.util.function.Consumer<Runnable> worldExecutor = world::execute;
-
         for (Participant participant : getParticipants()) {
             if (participant.getType() == ParticipantType.PLAYER) {
                 boolean isWinner = winners.contains(participant.getUniqueId());
-                hudManager.showVictoryHud(participant.getUniqueId(), this, isWinner, winnerName, worldExecutor);
-            }
-        }
-    }
-
-    /**
-     * Hides VictoryHud from all player participants.
-     */
-    private void hideAllVictoryHuds() {
-        if (hudManager == null) {
-            return;
-        }
-
-        for (Participant participant : getParticipants()) {
-            if (participant.getType() == ParticipantType.PLAYER) {
-                hudManager.hideVictoryHud(participant.getUniqueId());
+                hudManager.showVictoryHud(participant.getUniqueId(), this, isWinner, winnerName);
             }
         }
     }
