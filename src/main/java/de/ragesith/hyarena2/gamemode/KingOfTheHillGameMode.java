@@ -9,6 +9,8 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.arena.ArenaConfig;
+import de.ragesith.hyarena2.bot.BotParticipant;
+import de.ragesith.hyarena2.config.Position;
 import de.ragesith.hyarena2.participant.Participant;
 import de.ragesith.hyarena2.participant.ParticipantType;
 
@@ -105,16 +107,24 @@ public class KingOfTheHillGameMode implements GameMode {
 
         ArenaConfig.CaptureZone activeZone = zones.get(activeZoneIndex);
 
-        // Scan positions of alive PLAYER participants
-        List<UUID> playersInZone = new ArrayList<>();
+        // Scan positions of all alive participants (players and bots)
+        List<UUID> participantsInZone = new ArrayList<>();
         for (Participant p : participants) {
-            if (!p.isAlive() || p.getType() != ParticipantType.PLAYER) {
+            if (!p.isAlive()) {
                 continue;
             }
 
-            Vector3d pos = getPlayerPosition(p.getUniqueId());
-            if (pos != null && activeZone.contains(pos.getX(), pos.getY(), pos.getZ())) {
-                playersInZone.add(p.getUniqueId());
+            if (p.getType() == ParticipantType.BOT) {
+                BotParticipant bot = (BotParticipant) p;
+                Position botPos = bot.getCurrentPosition();
+                if (botPos != null && activeZone.contains(botPos.getX(), botPos.getY(), botPos.getZ())) {
+                    participantsInZone.add(p.getUniqueId());
+                }
+            } else {
+                Vector3d pos = getPlayerPosition(p.getUniqueId());
+                if (pos != null && activeZone.contains(pos.getX(), pos.getY(), pos.getZ())) {
+                    participantsInZone.add(p.getUniqueId());
+                }
             }
         }
 
@@ -122,11 +132,11 @@ public class KingOfTheHillGameMode implements GameMode {
         UUID previousController = currentController;
         boolean previousContested = contested;
 
-        if (playersInZone.isEmpty()) {
+        if (participantsInZone.isEmpty()) {
             currentController = null;
             contested = false;
-        } else if (playersInZone.size() == 1) {
-            currentController = playersInZone.get(0);
+        } else if (participantsInZone.size() == 1) {
+            currentController = participantsInZone.get(0);
             contested = false;
             controlTicks.merge(currentController, 1, Integer::sum);
         } else {

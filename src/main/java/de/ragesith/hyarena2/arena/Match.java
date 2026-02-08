@@ -715,15 +715,15 @@ public class Match {
             broadcast("<color:#e74c3c>" + victim.getName() + "</color> <color:#7f8c8d>died</color>");
         }
 
-        // Handle respawning for player participants
-        if (victim.getType() == ParticipantType.PLAYER && gameMode.shouldRespawn(arena.getConfig(), victim)) {
+        // Handle respawning
+        if (gameMode.shouldRespawn(arena.getConfig(), victim)) {
             // Instant respawn (delay 0 = next tick). Timer infrastructure exists for future delay support.
             respawnTimers.put(victim.getUniqueId(), 0);
-            victim.sendMessage("<color:#f39c12>Respawning...</color>");
-        }
-
-        // If victim is a bot and no respawn allowed, despawn the bot entity
-        if (victim.getType() == ParticipantType.BOT && !gameMode.shouldRespawn(arena.getConfig(), victim)) {
+            if (victim.getType() == ParticipantType.PLAYER) {
+                victim.sendMessage("<color:#f39c12>Respawning...</color>");
+            }
+        } else if (victim.getType() == ParticipantType.BOT) {
+            // No respawn — despawn the bot entity
             if (botManager != null) {
                 BotParticipant bot = botManager.getBot(victimUuid);
                 if (bot != null) {
@@ -838,7 +838,7 @@ public class Match {
     }
 
     /**
-     * Processes respawn timers: ticks down each entry and respawns players when timer reaches 0.
+     * Processes respawn timers: ticks down each entry and respawns participants when timer reaches 0.
      */
     private void processRespawnTimers() {
         if (respawnTimers.isEmpty()) {
@@ -848,7 +848,7 @@ public class Match {
         Iterator<Map.Entry<UUID, Integer>> it = respawnTimers.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<UUID, Integer> entry = it.next();
-            UUID playerUuid = entry.getKey();
+            UUID uuid = entry.getKey();
             int remaining = entry.getValue() - 1;
 
             if (remaining > 0) {
@@ -856,11 +856,11 @@ public class Match {
                 continue;
             }
 
-            // Timer expired — respawn this player
+            // Timer expired — respawn this participant
             it.remove();
 
-            Participant participant = participants.get(playerUuid);
-            if (participant == null || participant.getType() != ParticipantType.PLAYER) {
+            Participant participant = participants.get(uuid);
+            if (participant == null) {
                 continue;
             }
 
@@ -878,38 +878,53 @@ public class Match {
                 spawn.getYaw(), spawn.getPitch()
             );
 
-            // Teleport player to spawn point (same world)
-            Player player = getPlayerFromUuid(playerUuid);
-            if (player == null) {
-                continue;
+            if (participant.getType() == ParticipantType.BOT) {
+                respawnBot(uuid, participant, spawnPos);
+            } else {
+                respawnPlayer(uuid, participant, spawnPos);
             }
+        }
+    }
 
-            World arenaWorld = arena.getWorld();
-            hubManager.teleportPlayerToWorld(player, spawnPos, arenaWorld, () -> {
-                // Short settle delay, then apply kit, heal, grant immunity, mark alive
-                CompletableFuture.delayedExecutor(300, TimeUnit.MILLISECONDS).execute(() -> {
-                    arenaWorld.execute(() -> {
-                        String kitId = participant.getSelectedKitId();
-                        if (kitId != null && kitManager != null) {
-                            Player p = getPlayerFromUuid(playerUuid);
-                            if (p != null) {
-                                kitManager.applyKit(p, kitId);
-                            }
+    private void respawnPlayer(UUID playerUuid, Participant participant, Position spawnPos) {
+        Player player = getPlayerFromUuid(playerUuid);
+        if (player == null) {
+            return;
+        }
+
+        World arenaWorld = arena.getWorld();
+        hubManager.teleportPlayerToWorld(player, spawnPos, arenaWorld, () -> {
+            CompletableFuture.delayedExecutor(300, TimeUnit.MILLISECONDS).execute(() -> {
+                arenaWorld.execute(() -> {
+                    String kitId = participant.getSelectedKitId();
+                    if (kitId != null && kitManager != null) {
+                        Player p = getPlayerFromUuid(playerUuid);
+                        if (p != null) {
+                            kitManager.applyKit(p, kitId);
                         }
+                    }
 
-                        // Heal to full after kit applies
-                        CompletableFuture.delayedExecutor(200, TimeUnit.MILLISECONDS).execute(() -> {
-                            arenaWorld.execute(() -> {
-                                healPlayer(playerUuid, arenaWorld);
-                                participant.grantImmunity(SPAWN_IMMUNITY_MS);
-                                participant.setAlive(true);
-                                System.out.println("[Match] Respawned " + participant.getName());
-                            });
+                    CompletableFuture.delayedExecutor(200, TimeUnit.MILLISECONDS).execute(() -> {
+                        arenaWorld.execute(() -> {
+                            healPlayer(playerUuid, arenaWorld);
+                            participant.grantImmunity(SPAWN_IMMUNITY_MS);
+                            participant.setAlive(true);
+                            System.out.println("[Match] Respawned " + participant.getName());
                         });
                     });
                 });
             });
-        }
+        });
+    }
+
+    private void respawnBot(UUID botUuid, Participant participant, Position spawnPos) {
+        if (botManager == null) return;
+
+        BotParticipant bot = botManager.getBot(botUuid);
+        if (bot == null) return;
+
+        botManager.respawnBot(bot, arena, spawnPos);
+        System.out.println("[Match] Respawned bot " + participant.getName());
     }
 
     /**

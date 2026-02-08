@@ -198,6 +198,42 @@ public class BotManager {
     }
 
     /**
+     * Respawns a dead bot: despawns old entity, resets state, spawns new entity at given position.
+     */
+    public void respawnBot(BotParticipant bot, Arena arena, Position spawnPosition) {
+        if (bot == null || arena == null || spawnPosition == null) {
+            return;
+        }
+
+        // Remove old entity UUID mapping
+        UUID oldEntityUuid = bot.getEntityUuid();
+        if (oldEntityUuid != null) {
+            entityUuidToBotMap.remove(oldEntityUuid);
+            npcMaxHealthMap.remove(oldEntityUuid);
+        }
+
+        // Despawn old NPC entity
+        despawnBotEntity(bot);
+
+        // Reset internal state
+        bot.resetHealth();
+        bot.setSpawnPosition(spawnPosition);
+        bot.setCurrentPosition(spawnPosition.copy());
+        if (bot.getAI() != null) {
+            bot.getAI().reset();
+        }
+
+        // Spawn new NPC entity at new position
+        spawnBotEntity(bot, arena, spawnPosition);
+
+        // Grant immunity
+        bot.grantImmunity(3000);
+
+        System.out.println("[BotManager] Respawned bot " + bot.getName() + " at " +
+            String.format("%.1f, %.1f, %.1f", spawnPosition.getX(), spawnPosition.getY(), spawnPosition.getZ()));
+    }
+
+    /**
      * Despawns a bot.
      */
     public void despawnBot(BotParticipant bot) {

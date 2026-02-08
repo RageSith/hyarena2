@@ -238,7 +238,6 @@ public class BotParticipant implements Participant {
         if (this.health <= 0) {
             this.health = 0;
             this.alive = false;
-            this.deaths++;
             return true;
         }
         return false;
