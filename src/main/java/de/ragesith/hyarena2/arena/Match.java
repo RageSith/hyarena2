@@ -33,6 +33,7 @@ import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.participant.Participant;
 import de.ragesith.hyarena2.participant.ParticipantType;
 import de.ragesith.hyarena2.participant.PlayerParticipant;
+import de.ragesith.hyarena2.bot.BotDifficulty;
 import de.ragesith.hyarena2.bot.BotManager;
 import de.ragesith.hyarena2.bot.BotParticipant;
 
@@ -66,6 +67,9 @@ public class Match {
     private int victoryDelayTicks;
     private List<UUID> winners;
     private final Set<Integer> sentTimeWarnings = new HashSet<>(); // Track which warnings have been sent
+
+    // Pending bot queue — bots queued by Matchmaker, drained on arena world thread in tickWaiting()
+    private final List<PendingBot> pendingBots = new ArrayList<>();
 
     private static final int TICKS_PER_SECOND = 20;
     private static final int VICTORY_DELAY_SECONDS = 3;
@@ -282,6 +286,85 @@ public class Match {
     }
 
     /**
+     * Queues a bot to be spawned on the arena world thread during the next tick.
+     * Called by Matchmaker from the hub world thread — actual spawn happens in drainPendingBots().
+     */
+    public synchronized void queueBot(Position spawnPosition, String kitId, BotDifficulty difficulty) {
+        pendingBots.add(new PendingBot(spawnPosition, kitId, difficulty));
+        System.out.println("[DEBUG Match] queueBot() called - pendingBots size: " + pendingBots.size() +
+            ", thread: " + Thread.currentThread().getName() +
+            ", pos: " + String.format("%.1f,%.1f,%.1f", spawnPosition.getX(), spawnPosition.getY(), spawnPosition.getZ()));
+    }
+
+    /**
+     * Drains the pending bot queue by spawning bots on the arena world thread.
+     * Called from tickWaiting() which runs on the correct world thread.
+     */
+    private void drainPendingBots() {
+        if (pendingBots.isEmpty()) return;
+        if (botManager == null) {
+            System.err.println("[DEBUG Match] drainPendingBots() - botManager is NULL! Cannot spawn " + pendingBots.size() + " bots");
+            return;
+        }
+
+        // Wait for at least one real player to arrive before spawning bots.
+        // Players loading into the world trigger chunk loading — without loaded chunks,
+        // NPC entities spawn into unloaded chunks and get garbage-collected by the engine.
+        boolean hasArrivedPlayer = false;
+        for (Participant p : getParticipants()) {
+            if (p.getType() == ParticipantType.PLAYER && arrivedPlayers.contains(p.getUniqueId())) {
+                hasArrivedPlayer = true;
+                break;
+            }
+        }
+        if (!hasArrivedPlayer) {
+            if (waitingTicks % TICKS_PER_SECOND == 0) {
+                System.out.println("[DEBUG Match] drainPendingBots() - waiting for a player to arrive before spawning " +
+                    pendingBots.size() + " bots (chunks need to be loaded)");
+            }
+            return;
+        }
+
+        System.out.println("[DEBUG Match] drainPendingBots() - spawning " + pendingBots.size() + " bots" +
+            ", thread: " + Thread.currentThread().getName() +
+            ", arena world: " + arena.getWorld().getName() +
+            ", match state: " + state);
+
+        // Copy and clear pending list BEFORE spawning, so that addBot() → checkAndStartIfReady()
+        // sees an empty pendingBots list and can actually start the match.
+        List<PendingBot> toSpawn = new ArrayList<>(pendingBots);
+        pendingBots.clear();
+
+        // Pre-load chunks at each bot spawn position to prevent spawning into unloaded chunks
+        World arenaWorld = arena.getWorld();
+        for (PendingBot pending : toSpawn) {
+            try {
+                int bx = (int) pending.spawnPosition.getX();
+                int by = (int) pending.spawnPosition.getY();
+                int bz = (int) pending.spawnPosition.getZ();
+                arenaWorld.getBlockType(bx, by, bz);
+                System.out.println("[DEBUG Match] Pre-loaded chunk at bot spawn: " + bx + "," + by + "," + bz);
+            } catch (Exception e) {
+                System.err.println("[DEBUG Match] Failed to pre-load chunk for bot spawn: " + e.getMessage());
+            }
+        }
+
+        for (PendingBot pending : toSpawn) {
+            System.out.println("[DEBUG Match] Calling botManager.spawnBot() for pos " +
+                String.format("%.1f,%.1f,%.1f", pending.spawnPosition.getX(), pending.spawnPosition.getY(), pending.spawnPosition.getZ()));
+            BotParticipant bot = botManager.spawnBot(this, pending.spawnPosition, pending.kitId, pending.difficulty);
+            if (bot != null) {
+                boolean added = addBot(bot);
+                System.out.println("[DEBUG Match] Bot " + bot.getName() + " spawned, addBot result: " + added +
+                    ", entityRef: " + (bot.getEntityRef() != null ? "valid=" + bot.getEntityRef().isValid() : "null") +
+                    ", entityUuid: " + bot.getEntityUuid());
+            } else {
+                System.err.println("[DEBUG Match] botManager.spawnBot() returned null!");
+            }
+        }
+    }
+
+    /**
      * Sets the bot manager for bot cleanup.
      */
     public void setBotManager(BotManager botManager) {
@@ -307,6 +390,11 @@ public class Match {
      */
     private void checkAndStartIfReady() {
         if (state != MatchState.WAITING) {
+            return;
+        }
+
+        // Wait for queued bots to spawn first
+        if (!pendingBots.isEmpty()) {
             return;
         }
 
@@ -514,15 +602,12 @@ public class Match {
         // VictoryHud pages are NOT hidden here — they persist after teleport
         // and the player dismisses them manually (close button or ESC).
 
-        // Despawn all bots first
-        if (botManager != null) {
-            botManager.despawnAllBotsInMatch(this);
-        }
-
-        // Teleport all player participants back to hub and unfreeze
+        // Teleport all player participants back to hub FIRST.
+        // Bot entities must still exist when players leave to prevent
+        // interaction chain crashes from stale entity references.
         for (Participant participant : getParticipants()) {
             if (participant.getType() == ParticipantType.BOT) {
-                continue; // Bots handled above
+                continue; // Bots despawned after players leave
             }
             if (participant.isValid()) {
                 UUID participantUuid = participant.getUniqueId();
@@ -546,6 +631,17 @@ public class Match {
             }
         }
 
+        // Despawn bots after a delay to ensure players have fully left the arena world.
+        // Cross-world teleports take ~1.5s; 2s delay provides safety margin.
+        if (botManager != null) {
+            World arenaWorld = arena.getWorld();
+            CompletableFuture.delayedExecutor(2000, TimeUnit.MILLISECONDS).execute(() -> {
+                arenaWorld.execute(() -> {
+                    botManager.despawnAllBotsInMatch(this);
+                });
+            });
+        }
+
         // Fire event
         eventBus.publish(new MatchFinishedEvent(matchId));
     }
@@ -556,15 +652,12 @@ public class Match {
     public synchronized void cancel(String reason) {
         broadcast("<color:#e74c3c>Match cancelled: " + reason + "</color>");
 
-        // Despawn all bots first
-        if (botManager != null) {
-            botManager.despawnAllBotsInMatch(this);
-        }
-
-        // Teleport all player participants back to hub and unfreeze
+        // Teleport all player participants back to hub FIRST.
+        // Bot entities must still exist when players leave to prevent
+        // interaction chain crashes from stale entity references.
         for (Participant participant : getParticipants()) {
             if (participant.getType() == ParticipantType.BOT) {
-                continue; // Bots handled above
+                continue; // Bots despawned after players leave
             }
             if (participant.isValid()) {
                 UUID participantUuid = participant.getUniqueId();
@@ -588,6 +681,16 @@ public class Match {
                     });
                 }
             }
+        }
+
+        // Despawn bots after a delay to ensure players have fully left the arena world.
+        if (botManager != null) {
+            World arenaWorld = arena.getWorld();
+            CompletableFuture.delayedExecutor(2000, TimeUnit.MILLISECONDS).execute(() -> {
+                arenaWorld.execute(() -> {
+                    botManager.despawnAllBotsInMatch(this);
+                });
+            });
         }
 
         // Mark as finished for cleanup
@@ -692,12 +795,14 @@ public class Match {
                 victim.sendMessage("<color:#f39c12>Respawning...</color>");
             }
         } else if (victim.getType() == ParticipantType.BOT) {
-            // No respawn — despawn the bot entity
+            // No respawn — neutralize the bot but don't remove the entity yet.
+            // Entity removal is deferred to finish()/cancel() after players leave,
+            // to prevent interaction chain crashes from stale entity references.
             if (botManager != null) {
                 BotParticipant bot = botManager.getBot(victimUuid);
                 if (bot != null) {
-                    System.out.println("[Match] Despawning dead bot: " + victim.getName());
-                    botManager.despawnBot(bot);
+                    System.out.println("[Match] Bot killed (entity removal deferred): " + victim.getName());
+                    botManager.neutralizeBot(bot);
                 }
             }
         }
@@ -709,6 +814,12 @@ public class Match {
      * Called every tick by MatchManager.
      */
     public void tick() {
+        // Log first tick to confirm Match.tick() is being called
+        if (tickCount == 0 && waitingTicks == 0 && countdownTicks == 0) {
+            System.out.println("[DEBUG Match] FIRST tick() called! state=" + state +
+                ", thread: " + Thread.currentThread().getName() +
+                ", arena: " + arena.getId() + " (world: " + arena.getWorld().getName() + ")");
+        }
         switch (state) {
             case WAITING:
                 tickWaiting();
@@ -726,6 +837,26 @@ public class Match {
     }
 
     private void tickWaiting() {
+        // Log once per second
+        if (waitingTicks % TICKS_PER_SECOND == 0) {
+            int botCount = (int) getParticipants().stream().filter(p -> p.getType() == ParticipantType.BOT).count();
+            System.out.println("[DEBUG Match] tickWaiting() tick=" + waitingTicks +
+                ", thread: " + Thread.currentThread().getName() +
+                ", pendingBots: " + pendingBots.size() +
+                ", participants: " + participants.size() +
+                ", arrived: " + arrivedPlayers.size() +
+                ", bots: " + botCount +
+                ", botManager: " + (botManager != null ? "set" : "NULL"));
+        }
+
+        // Drain pending bots (spawns them on this world thread)
+        drainPendingBots();
+
+        // Tick bots for freeze enforcement
+        if (botManager != null) {
+            botManager.tickBotsForMatch(this);
+        }
+
         waitingTicks++;
 
         // Cancel if waiting too long (e.g., player disconnect during teleport)
@@ -736,6 +867,11 @@ public class Match {
     }
 
     private void tickStarting() {
+        // Tick bots for freeze enforcement
+        if (botManager != null) {
+            botManager.tickBotsForMatch(this);
+        }
+
         countdownTicks--;
 
         // Send countdown notifications at intervals
@@ -763,6 +899,11 @@ public class Match {
 
     private void tickInProgress() {
         tickCount++;
+
+        // Tick bots (AI, position sync, targeting)
+        if (botManager != null) {
+            botManager.tickBotsForMatch(this);
+        }
 
         // Let game mode tick
         gameMode.onTick(arena.getConfig(), getParticipants(), tickCount);
@@ -969,6 +1110,7 @@ public class Match {
 
     /**
      * Freezes all participants (disables movement).
+     * Already on arena world thread via Match.tick().
      */
     private void freezeAllParticipants() {
         System.out.println("[Match] Freezing " + participants.size() + " participants");
@@ -984,11 +1126,11 @@ public class Match {
                 BotParticipant bot = botManager.getBot(participant.getUniqueId());
                 if (bot != null && bot.getEntityRef() != null && bot.getEntityRef().isValid()) {
                     Ref<EntityStore> entityRef = bot.getEntityRef();
-                    world.execute(() -> {
-                        Store<EntityStore> store = world.getEntityStore().getStore();
+                    Store<EntityStore> store = entityRef.getStore();
+                    if (store != null) {
                         PlayerMovementControl.disableMovementForEntity(entityRef, store);
                         System.out.println("[Match] Froze bot: " + participant.getName());
-                    });
+                    }
                 }
             }
         }
@@ -996,6 +1138,7 @@ public class Match {
 
     /**
      * Freezes all participants without HUD (for match ended).
+     * Already on arena world thread via Match.tick().
      */
     private void freezeAllParticipantsNoHud() {
         System.out.println("[Match] Freezing " + participants.size() + " participants (no HUD)");
@@ -1011,11 +1154,11 @@ public class Match {
                 BotParticipant bot = botManager.getBot(participant.getUniqueId());
                 if (bot != null && bot.getEntityRef() != null && bot.getEntityRef().isValid()) {
                     Ref<EntityStore> entityRef = bot.getEntityRef();
-                    world.execute(() -> {
-                        Store<EntityStore> store = world.getEntityStore().getStore();
+                    Store<EntityStore> store = entityRef.getStore();
+                    if (store != null) {
                         PlayerMovementControl.disableMovementForEntity(entityRef, store);
                         System.out.println("[Match] Froze bot (no HUD): " + participant.getName());
-                    });
+                    }
                 }
             }
         }
@@ -1023,6 +1166,7 @@ public class Match {
 
     /**
      * Unfreezes all participants (enables movement).
+     * Already on arena world thread via Match.tick().
      */
     private void unfreezeAllParticipants() {
         System.out.println("[Match] Unfreezing " + participants.size() + " participants");
@@ -1038,11 +1182,11 @@ public class Match {
                 BotParticipant bot = botManager.getBot(participant.getUniqueId());
                 if (bot != null && bot.getEntityRef() != null && bot.getEntityRef().isValid()) {
                     Ref<EntityStore> entityRef = bot.getEntityRef();
-                    world.execute(() -> {
-                        Store<EntityStore> store = world.getEntityStore().getStore();
+                    Store<EntityStore> store = entityRef.getStore();
+                    if (store != null) {
                         PlayerMovementControl.enableMovementForEntity(entityRef, store);
                         System.out.println("[Match] Unfroze bot: " + participant.getName());
-                    });
+                    }
                 }
             }
         }
@@ -1150,5 +1294,20 @@ public class Match {
      */
     public int getMatchDurationSeconds() {
         return arena.getConfig().getMatchDurationSeconds();
+    }
+
+    /**
+     * Data class for bots queued by Matchmaker (from hub thread) awaiting spawn on arena world thread.
+     */
+    private static class PendingBot {
+        final Position spawnPosition;
+        final String kitId;
+        final BotDifficulty difficulty;
+
+        PendingBot(Position spawnPosition, String kitId, BotDifficulty difficulty) {
+            this.spawnPosition = spawnPosition;
+            this.kitId = kitId;
+            this.difficulty = difficulty;
+        }
     }
 }

@@ -18,7 +18,6 @@ import de.ragesith.hyarena2.arena.Match;
 import de.ragesith.hyarena2.arena.MatchManager;
 import de.ragesith.hyarena2.bot.BotDifficulty;
 import de.ragesith.hyarena2.bot.BotManager;
-import de.ragesith.hyarena2.bot.BotParticipant;
 import de.ragesith.hyarena2.config.Position;
 
 import javax.annotation.Nonnull;
@@ -90,21 +89,9 @@ public class TestBotSpawnCommand extends AbstractPlayerCommand {
         ArenaConfig.SpawnPoint sp = spawnPoints.get(spawnIndex);
         Position spawnPos = new Position(sp.getX(), sp.getY(), sp.getZ(), sp.getYaw(), sp.getPitch());
 
-        // Spawn bot
-        BotParticipant bot = botManager.spawnBot(match, spawnPos, kitId, difficulty);
-        if (bot == null) {
-            player.sendMessage(TinyMsg.parse("<color:#e74c3c>Failed to spawn bot.</color>"));
-            return;
-        }
+        // Queue bot for spawn on arena world thread (next Match.tick() will spawn it)
+        match.queueBot(spawnPos, kitId, difficulty);
 
-        // Add bot to match
-        if (!match.addBot(bot)) {
-            botManager.despawnBot(bot);
-            player.sendMessage(TinyMsg.parse("<color:#e74c3c>Failed to add bot to match.</color>"));
-            return;
-        }
-
-        player.sendMessage(TinyMsg.parse("<color:#2ecc71>Spawned bot </color><color:#f1c40f>" + bot.getName() +
-            "</color><color:#2ecc71> (difficulty: " + difficulty + ") in match.</color>"));
+        player.sendMessage(TinyMsg.parse("<color:#2ecc71>Queued bot (difficulty: " + difficulty + ") - will spawn next tick.</color>"));
     }
 }

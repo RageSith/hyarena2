@@ -261,20 +261,9 @@ public class HyArena2 extends JavaPlugin {
             }
         }, 1000, 1000, TimeUnit.MILLISECONDS);
 
-        // Bot ticker task - runs based on config interval
-        int botTickIntervalMs = configManager.getGlobalConfig().getBotTickIntervalMs();
-        scheduler.scheduleAtFixedRate(() -> {
-            try {
-                if (botManager != null) {
-                    botManager.tickAllBots();
-                }
-            } catch (Exception e) {
-                System.err.println("[HyArena2] Error in bot tick: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }, botTickIntervalMs, botTickIntervalMs, TimeUnit.MILLISECONDS);
+        // Bot ticking is now driven by Match.tick() on the arena world thread — no separate scheduler needed.
 
-        System.out.println("[HyArena2] Scheduled tasks started (boundary check every " + boundaryCheckIntervalMs + "ms, matchmaker every 1s, bot tick every " + botTickIntervalMs + "ms)");
+        System.out.println("[HyArena2] Scheduled tasks started (boundary check every " + boundaryCheckIntervalMs + "ms, matchmaker every 1s)");
     }
 
     /**

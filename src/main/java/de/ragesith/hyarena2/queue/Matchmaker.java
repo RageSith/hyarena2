@@ -13,7 +13,6 @@ import de.ragesith.hyarena2.arena.Match;
 import de.ragesith.hyarena2.arena.MatchManager;
 import de.ragesith.hyarena2.bot.BotDifficulty;
 import de.ragesith.hyarena2.bot.BotManager;
-import de.ragesith.hyarena2.bot.BotParticipant;
 import de.ragesith.hyarena2.config.Position;
 import de.ragesith.hyarena2.event.EventBus;
 import de.ragesith.hyarena2.event.queue.QueueMatchFoundEvent;
@@ -296,14 +295,14 @@ public class Matchmaker {
     }
 
     /**
-     * Fills remaining match slots with bots.
+     * Queues bots for the match — actual spawn happens on the arena world thread in Match.tick().
      */
     private void fillWithBots(Match match, Arena arena, int startIndex, int botCount) {
         ArenaConfig config = arena.getConfig();
         BotDifficulty difficulty = BotDifficulty.fromString(config.getBotDifficulty());
         List<ArenaConfig.SpawnPoint> spawnPoints = arena.getSpawnPoints();
 
-        System.out.println("[Matchmaker] Spawning " + botCount + " bots for match " + match.getMatchId());
+        System.out.println("[Matchmaker] Queuing " + botCount + " bots for match " + match.getMatchId());
 
         for (int i = 0; i < botCount; i++) {
             int spawnIndex = startIndex + i;
@@ -322,18 +321,9 @@ public class Matchmaker {
                 kitId = allowedKits.get(0);
             }
 
-            // Spawn bot
-            BotParticipant bot = botManager.spawnBot(match, spawnPos, kitId, difficulty);
-            if (bot != null) {
-                if (match.addBot(bot)) {
-                    System.out.println("[Matchmaker] Added bot " + bot.getName() + " to match");
-                } else {
-                    botManager.despawnBot(bot);
-                    System.err.println("[Matchmaker] Failed to add bot to match");
-                }
-            } else {
-                System.err.println("[Matchmaker] Failed to spawn bot");
-            }
+            // Queue bot for spawn on arena world thread
+            match.queueBot(spawnPos, kitId, difficulty);
+            System.out.println("[Matchmaker] Queued bot " + (i + 1) + "/" + botCount + " for match");
         }
     }
 
