@@ -662,45 +662,47 @@ public class BotManager {
         UUID botId = bot.getUniqueId();
         String prevState = botNpcState.get(botId);
 
-        if (!enemiesInZone.isEmpty()) {
-            // FIGHT: enemies on zone — target nearest zone enemy
-            NearestTarget nearest = findNearestTargetFromSet(bot, match, store, enemiesInZone);
-            if (nearest != null) {
-                applyEnemyTarget(bot, role, nearest, store);
-                // Only set Combat state on transition (avoids interrupting attack sequences)
-                if (!"Combat".equals(prevState)) {
-                    role.getStateSupport().setState(bot.getEntityRef(), "Combat", "Default", store);
-                    botNpcState.put(botId, "Combat");
-                }
-                if (shouldLog) {
-                    System.out.println("[BotObjective] " + bot.getName() + " → FIGHTING " + nearest.participant.getName() + " (on zone)");
-                }
-            }
-        } else if (botInZone) {
-            // Check for nearby enemies within defend range (attack without leaving zone)
-            NearestTarget nearbyEnemy = findNearestTarget(bot, match, store);
-            boolean enemyInDefendRange = nearbyEnemy != null && nearbyEnemy.distance <= DEFEND_RANGE;
-
-            if (enemyInDefendRange) {
-                // DEFEND: enemy within reach — attack in place without leaving zone
-                applyEnemyTarget(bot, role, nearbyEnemy, store);
-                if (!"Defend".equals(prevState)) {
-                    role.getStateSupport().setState(bot.getEntityRef(), "Defend", "Default", store);
-                    botNpcState.put(botId, "Defend");
-                }
-                if (shouldLog) {
-                    System.out.println("[BotObjective] " + bot.getName() + " → DEFENDING against " + nearbyEnemy.participant.getName() + " (staying on zone)");
+        if (botInZone) {
+            // Bot is ON the zone — decide: fight, defend, or idle
+            if (!enemiesInZone.isEmpty()) {
+                // FIGHT: enemies also on zone — full combat to contest
+                NearestTarget nearest = findNearestTargetFromSet(bot, match, store, enemiesInZone);
+                if (nearest != null) {
+                    applyEnemyTarget(bot, role, nearest, store);
+                    if (!"Combat".equals(prevState)) {
+                        role.getStateSupport().setState(bot.getEntityRef(), "Combat", "Default", store);
+                        botNpcState.put(botId, "Combat");
+                    }
+                    if (shouldLog) {
+                        System.out.println("[BotObjective] " + bot.getName() + " → FIGHTING " + nearest.participant.getName() + " (on zone)");
+                    }
                 }
             } else {
-                // HOLD: no enemies nearby — idle and capture
-                if (!"Idle".equals(prevState)) {
-                    BotAI ai = bot.getAI();
-                    if (ai != null) ai.clearTarget();
-                    clearNpcTarget(role, bot.getEntityRef(), store);
-                    botNpcState.put(botId, "Idle");
-                }
-                if (shouldLog) {
-                    System.out.println("[BotObjective] " + bot.getName() + " → HOLDING at zone (scoring)");
+                // No enemies in zone — check for nearby threats
+                NearestTarget nearbyEnemy = findNearestTarget(bot, match, store);
+                boolean enemyInDefendRange = nearbyEnemy != null && nearbyEnemy.distance <= DEFEND_RANGE;
+
+                if (enemyInDefendRange) {
+                    // DEFEND: enemy within reach — attack in place without leaving zone
+                    applyEnemyTarget(bot, role, nearbyEnemy, store);
+                    if (!"Defend".equals(prevState)) {
+                        role.getStateSupport().setState(bot.getEntityRef(), "Defend", "Default", store);
+                        botNpcState.put(botId, "Defend");
+                    }
+                    if (shouldLog) {
+                        System.out.println("[BotObjective] " + bot.getName() + " → DEFENDING against " + nearbyEnemy.participant.getName() + " (staying on zone)");
+                    }
+                } else {
+                    // HOLD: no enemies nearby — idle and capture
+                    if (!"Idle".equals(prevState)) {
+                        BotAI ai = bot.getAI();
+                        if (ai != null) ai.clearTarget();
+                        clearNpcTarget(role, bot.getEntityRef(), store);
+                        botNpcState.put(botId, "Idle");
+                    }
+                    if (shouldLog) {
+                        System.out.println("[BotObjective] " + bot.getName() + " → HOLDING at zone (scoring)");
+                    }
                 }
             }
         } else {
@@ -917,11 +919,11 @@ public class BotManager {
     private Position getBotZoneTarget(UUID botId, BotObjective objective) {
         double[] offset = botZoneOffsets.get(botId);
         if (offset == null) {
-            // Generate random offset within ±40% of zone half-width/half-depth
+            // Generate random offset within ±20% of zone half-width/half-depth
             double halfX = (objective.maxX() - objective.minX()) / 2.0;
             double halfZ = (objective.maxZ() - objective.minZ()) / 2.0;
-            double offX = (objectiveRandom.nextDouble() * 2 - 1) * halfX * 0.4;
-            double offZ = (objectiveRandom.nextDouble() * 2 - 1) * halfZ * 0.4;
+            double offX = (objectiveRandom.nextDouble() * 2 - 1) * halfX * 0.2;
+            double offZ = (objectiveRandom.nextDouble() * 2 - 1) * halfZ * 0.2;
             offset = new double[]{offX, offZ};
             botZoneOffsets.put(botId, offset);
         }
