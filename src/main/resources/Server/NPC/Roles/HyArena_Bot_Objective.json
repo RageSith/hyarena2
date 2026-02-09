@@ -1,0 +1,100 @@
+{
+  "Type": "Generic",
+  "StartState": "Idle",
+  "DefaultSubState": "Default",
+  "Appearance": "Blook_Skeleton_Pirate_Captain",
+  "MaxHealth": 100,
+  "DefaultPlayerAttitude": "Hostile",
+  "DefaultNPCAttitude": "Neutral",
+  "NameTranslationKey": "server.npcRoles.HyArena_Bot_Objective.name",
+  "Invulnerable": false,
+  "DropList": "Empty",
+  "ApplyAvoidance": true,
+  "ApplySeparation": true,
+  "SeparationDistance": 2.0,
+  "Inertia": 1.0,
+  "KnockbackScale": 1.0,
+  "BreathesInAir": true,
+  "BreathesInWater": false,
+  "InventorySize": 3,
+  "HotbarSize": 3,
+  "HotbarItems": [
+    "Weapon_Axe_Mithril"
+  ],
+  "DeathAnimationTime": 5.0,
+  "DespawnAnimationTime": 0.8,
+  "SpawnLockTime": 1.5,
+  "SpawnViewDistance": 75,
+  "CollisionDistance": 5,
+  "MotionControllerList": [
+    {
+      "Type": "Walk",
+      "MaxWalkSpeed": 5,
+      "Acceleration": 25,
+      "MaxRotationSpeed": 180,
+      "MinJumpHeight": 1.2,
+      "Gravity": 10,
+      "MaxFallSpeed": 15
+    }
+  ],
+  "InteractionInstruction": {
+    "Instructions": [
+      {
+        "Sensor": {
+          "Type": "And",
+          "Sensors": [
+            { "Type": "State", "State": "Idle" },
+            { "Type": "Target" }
+          ]
+        },
+        "Actions": [
+          {
+            "Type": "State",
+            "State": "Follow"
+          }
+        ]
+      }
+    ]
+  },
+  "Instructions": [
+    {
+      "Name": "FollowBehavior",
+      "Sensor": {
+        "Type": "And",
+        "Sensors": [
+          {
+            "Type": "Target"
+          },
+          {
+            "Type": "State",
+            "State": "Follow"
+          }
+        ]
+      },
+      "BodyMotion": {
+        "Type": "Seek",
+        "StopDistance": 1.0,
+        "SlowDownDistance": 3.0,
+        "AbortDistance": 200.0
+      },
+      "HeadMotion": {
+        "Type": "Observe",
+        "AngleRange": [-45.0, 45.0]
+      }
+    },
+    {
+      "Name": "IdleBehavior",
+      "Sensor": {
+        "Type": "State",
+        "State": "Idle"
+      },
+      "BodyMotion": {
+        "Type": "Nothing"
+      },
+      "HeadMotion": {
+        "Type": "Observe",
+        "AngleRange": [-45.0, 45.0]
+      }
+    }
+  ]
+}

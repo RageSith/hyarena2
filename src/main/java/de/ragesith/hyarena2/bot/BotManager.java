@@ -1,13 +1,20 @@
 package de.ragesith.hyarena2.bot;
 
+import com.hypixel.hytale.component.AddReason;
+import com.hypixel.hytale.component.Holder;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.RemoveReason;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.server.core.asset.type.attitude.Attitude;
+import com.hypixel.hytale.server.core.entity.InteractionChain;
 import com.hypixel.hytale.server.core.entity.UUIDComponent;
+import com.hypixel.hytale.server.core.entity.entities.ProjectileComponent;
+import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
+import com.hypixel.hytale.server.core.modules.entity.component.Intangible;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
+import com.hypixel.hytale.server.core.modules.entity.tracker.NetworkId;
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap;
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatValue;
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatsModule;
@@ -20,15 +27,16 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.NPCPlugin;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import com.hypixel.hytale.server.npc.role.Role;
-import com.hypixel.hytale.server.core.entity.InteractionChain;
 import com.hypixel.hytale.server.npc.role.support.CombatSupport;
 import com.hypixel.hytale.server.npc.role.support.MarkedEntitySupport;
 import com.hypixel.hytale.server.npc.role.support.WorldSupport;
 import de.ragesith.hyarena2.arena.Arena;
+import de.ragesith.hyarena2.arena.ArenaConfig;
 import de.ragesith.hyarena2.arena.Match;
 import de.ragesith.hyarena2.arena.MatchState;
 import de.ragesith.hyarena2.config.Position;
 import de.ragesith.hyarena2.event.EventBus;
+import de.ragesith.hyarena2.gamemode.GameMode;
 import de.ragesith.hyarena2.participant.Participant;
 import de.ragesith.hyarena2.participant.ParticipantType;
 
@@ -66,6 +74,13 @@ public class BotManager {
 
     // Tracks previous tick's attacking state per bot for edge detection (fire damage on false→true)
     private final Map<UUID, Boolean> wasAttacking = new ConcurrentHashMap<>();
+
+    // One invisible marker entity per bot (for objective navigation with individual offsets)
+    private final Map<UUID, Ref<EntityStore>> objectiveMarkers = new ConcurrentHashMap<>();
+
+    // Random XZ offset per bot within zone bounds (so bots don't stack on the same point)
+    private final Map<UUID, double[]> botZoneOffsets = new ConcurrentHashMap<>();
+    private final Random objectiveRandom = new Random();
 
     // Cached reflection field for reading CombatSupport.activeAttack (protected)
     private static Field activeAttackField;
@@ -132,6 +147,9 @@ public class BotManager {
         return bot;
     }
 
+    // Role name for objective-aware bots (Generic role with Follow + Idle instructions)
+    private static final String OBJECTIVE_BOT_ROLE = "HyArena_Bot_Objective";
+
     /**
      * Spawns the visual NPC entity for a bot.
      * MUST be called on the arena world thread.
@@ -147,12 +165,30 @@ public class BotManager {
             return;
         }
 
-        // Get bot model from arena config or use default
-        String botModel = arena.getConfig().getBotModelId();
-        if (botModel == null || botModel.isEmpty()) {
-            botModel = DEFAULT_BOT_MODEL;
+        // Determine which role to use:
+        // - Objective modes (KOTH): use HyArena_Bot_Objective (has Follow + Idle)
+        // - Non-objective modes (Duel, DM, LMS): use arena's botModelId (Template_Intelligent combat AI)
+        String botModel;
+        Match match = botMatches.get(bot.getUniqueId());
+        boolean useObjectiveRole = false;
+        if (match != null) {
+            BotObjective objective = match.getGameMode().getBotObjective(arena.getConfig());
+            if (objective != null) {
+                botModel = OBJECTIVE_BOT_ROLE;
+                useObjectiveRole = true;
+            } else {
+                botModel = arena.getConfig().getBotModelId();
+                if (botModel == null || botModel.isEmpty()) {
+                    botModel = DEFAULT_BOT_MODEL;
+                }
+            }
+        } else {
+            botModel = arena.getConfig().getBotModelId();
+            if (botModel == null || botModel.isEmpty()) {
+                botModel = DEFAULT_BOT_MODEL;
+            }
         }
-        System.out.println("[DEBUG BotManager] Using model: " + botModel);
+        System.out.println("[DEBUG BotManager] Using role: " + botModel + " (objectiveRole=" + useObjectiveRole + ")");
 
         try {
             Store<EntityStore> store = world.getEntityStore().getStore();
@@ -194,9 +230,9 @@ public class BotManager {
                 captureNpcMaxHealth(bot, store, entityRef);
 
                 // Freeze bot at spawn if match is in WAITING/STARTING state
-                Match match = botMatches.get(bot.getUniqueId());
-                if (match != null) {
-                    MatchState matchState = match.getState();
+                Match botMatch = botMatches.get(bot.getUniqueId());
+                if (botMatch != null) {
+                    MatchState matchState = botMatch.getState();
                     if (matchState == MatchState.WAITING || matchState == MatchState.STARTING) {
                         freezeBotAtSpawn(bot, store);
                     }
@@ -316,10 +352,22 @@ public class BotManager {
         // Remove visual entity
         despawnBotEntity(bot);
 
+        // Clean up objective marker for this bot
+        Ref<EntityStore> marker = objectiveMarkers.remove(botId);
+        if (marker != null && marker.isValid()) {
+            try {
+                marker.getStore().removeEntity(marker, RemoveReason.REMOVE);
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
+        botZoneOffsets.remove(botId);
+
         // Remove from tracking
         activeBots.remove(botId);
         botMatches.remove(botId);
         wasAttacking.remove(botId);
+        objectiveLogCounter.remove(botId);
 
         System.out.println("[BotManager] Despawned bot " + bot.getName());
     }
@@ -380,6 +428,7 @@ public class BotManager {
         }
 
         System.out.println("[BotManager] Despawning " + toRemove.size() + " bots from match " + matchId);
+        // despawnBot() handles per-bot marker cleanup
         toRemove.forEach(this::despawnBot);
     }
 
@@ -559,44 +608,118 @@ public class BotManager {
         }
     }
 
+    // Throttle objective logging (once per second per bot)
+    private final Map<UUID, Integer> objectiveLogCounter = new ConcurrentHashMap<>();
+
     /**
-     * Updates the bot's NPC target to chase the nearest participant.
+     * Updates the bot's NPC target with objective awareness.
+     * In non-objective modes: finds nearest enemy (existing behavior).
+     * In objective modes (KOTH): always walks to/stays at objective zone.
+     * TODO: Add zone-based fighting once movement is verified working.
      */
     private void updateBotTarget(BotParticipant bot, Match match, Store<EntityStore> store) {
         NPCEntity npcEntity = bot.getNpcEntity();
-        if (npcEntity == null) {
-            return;
-        }
+        if (npcEntity == null) return;
 
         Role role = npcEntity.getRole();
-        if (role == null) {
-            return;
-        }
+        if (role == null) return;
 
         Position botPos = bot.getCurrentPosition();
-        if (botPos == null) {
+        if (botPos == null) return;
+
+        ArenaConfig config = match.getArena().getConfig();
+        BotObjective objective = match.getGameMode().getBotObjective(config);
+
+        if (objective == null) {
+            // Non-objective mode: chase nearest enemy (existing behavior)
+            NearestTarget nearest = findNearestTarget(bot, match, store);
+            applyEnemyTarget(bot, role, nearest, store);
             return;
         }
 
-        // Find nearest alive participant
-        Participant nearestTarget = null;
+        // Logging throttle: once per second
+        int logCount = objectiveLogCounter.merge(bot.getUniqueId(), 1, Integer::sum);
+        boolean shouldLog = (logCount % 20 == 1);
+
+        // Objective mode (TEST): always walk to zone, no fighting
+        boolean botInZone = objective.isInsideZone(botPos);
+        double distToCenter = botPos.distanceTo(objective.position());
+
+        if (shouldLog) {
+            System.out.println("[BotObjective] " + bot.getName() +
+                " | pos: " + String.format("%.1f,%.1f,%.1f", botPos.getX(), botPos.getY(), botPos.getZ()) +
+                " | zone center: " + String.format("%.1f,%.1f,%.1f",
+                    objective.position().getX(), objective.position().getY(), objective.position().getZ()) +
+                " | dist: " + String.format("%.1f", distToCenter) +
+                " | inZone: " + botInZone +
+                " | zoneBounds: " + String.format("%.0f,%.0f,%.0f -> %.0f,%.0f,%.0f",
+                    objective.minX(), objective.minY(), objective.minZ(),
+                    objective.maxX(), objective.maxY(), objective.maxZ()));
+        }
+
+        // Clear BotAI combat target so it doesn't interfere
+        BotAI ai = bot.getAI();
+        if (ai != null) {
+            ai.clearTarget();
+        }
+
+        // Compute this bot's individual target position (zone center + random offset)
+        Position botTarget = getBotZoneTarget(bot.getUniqueId(), objective);
+
+        if (botInZone) {
+            // At zone — hold position, clear NPC target
+            clearNpcTarget(role, bot.getEntityRef(), store);
+            if (shouldLog) {
+                System.out.println("[BotObjective] " + bot.getName() + " → HOLDING at zone");
+            }
+        } else {
+            // Not at zone — walk to it via invisible marker (per-bot, with offset)
+            Ref<EntityStore> marker = getOrCreateObjectiveMarker(bot.getUniqueId(), botTarget, store);
+            if (marker != null && marker.isValid()) {
+                setNpcObjectiveTarget(role, marker, bot.getEntityRef(), store);
+                if (shouldLog) {
+                    try {
+                        TransformComponent markerTransform = store.getComponent(marker, TransformComponent.getComponentType());
+                        if (markerTransform != null) {
+                            Vector3d markerPos = markerTransform.getPosition();
+                            System.out.println("[BotObjective] " + bot.getName() +
+                                " → WALKING to zone | target at: " +
+                                String.format("%.1f,%.1f,%.1f", markerPos.getX(), markerPos.getY(), markerPos.getZ()) +
+                                " | marker valid: " + marker.isValid());
+                        }
+                    } catch (Exception e) {
+                        System.out.println("[BotObjective] " + bot.getName() +
+                            " → WALKING to zone | marker read error: " + e.getMessage());
+                    }
+                }
+            } else {
+                if (shouldLog) {
+                    System.out.println("[BotObjective] " + bot.getName() +
+                        " → WALKING to zone | marker FAILED (null or invalid)");
+                }
+            }
+        }
+    }
+
+    /**
+     * Finds the nearest alive enemy participant relative to this bot.
+     */
+    private NearestTarget findNearestTarget(BotParticipant bot, Match match, Store<EntityStore> store) {
+        Position botPos = bot.getCurrentPosition();
+        if (botPos == null) return null;
+
+        Participant nearestParticipant = null;
         Ref<EntityStore> nearestRef = null;
         double nearestDistance = Double.MAX_VALUE;
 
         for (Participant participant : match.getParticipants()) {
-            if (participant.getUniqueId().equals(bot.getUniqueId())) {
-                continue; // Don't target self
-            }
-            if (!participant.isAlive()) {
-                continue;
-            }
+            if (participant.getUniqueId().equals(bot.getUniqueId())) continue;
+            if (!participant.isAlive()) continue;
 
-            // Get position based on type
             Position targetPos = null;
             Ref<EntityStore> targetRef = null;
 
             if (participant.getType() == ParticipantType.PLAYER) {
-                // Get player position
                 PlayerRef playerRef = Universe.get().getPlayer(participant.getUniqueId());
                 if (playerRef != null) {
                     targetRef = playerRef.getReference();
@@ -613,7 +736,6 @@ public class BotManager {
                     }
                 }
             } else if (participant.getType() == ParticipantType.BOT) {
-                // Get bot position
                 BotParticipant otherBot = activeBots.get(participant.getUniqueId());
                 if (otherBot != null) {
                     targetPos = otherBot.getCurrentPosition();
@@ -625,41 +747,207 @@ public class BotManager {
                 double distance = botPos.distanceTo(targetPos);
                 if (distance < nearestDistance) {
                     nearestDistance = distance;
-                    nearestTarget = participant;
+                    nearestParticipant = participant;
                     nearestRef = targetRef;
                 }
             }
         }
 
-        // Update AI target
+        if (nearestParticipant == null) return null;
+        return new NearestTarget(nearestParticipant, nearestRef, nearestDistance);
+    }
+
+    /**
+     * Applies an enemy as the bot's NPC target (combat mode).
+     * Sets LockedTarget + HOSTILE attitude + updates BotAI.
+     */
+    private void applyEnemyTarget(BotParticipant bot, Role role, NearestTarget nearest, Store<EntityStore> store) {
+        // Update BotAI target
         BotAI ai = bot.getAI();
-        if (ai != null && nearestTarget != null) {
+        if (ai != null && nearest != null) {
             Position targetPos = null;
-            if (nearestTarget.getType() == ParticipantType.BOT) {
-                BotParticipant targetBot = activeBots.get(nearestTarget.getUniqueId());
+            if (nearest.participant.getType() == ParticipantType.BOT) {
+                BotParticipant targetBot = activeBots.get(nearest.participant.getUniqueId());
                 if (targetBot != null) {
                     targetPos = targetBot.getCurrentPosition();
                 }
             }
-            ai.setTarget(nearestTarget.getUniqueId(), targetPos);
+            ai.setTarget(nearest.participant.getUniqueId(), targetPos);
         }
 
         // Set NPC target for movement
-        if (nearestRef != null && nearestRef.isValid()) {
+        if (nearest != null && nearest.entityRef != null && nearest.entityRef.isValid()) {
             try {
                 MarkedEntitySupport markedSupport = role.getMarkedEntitySupport();
                 if (markedSupport != null) {
-                    markedSupport.setMarkedEntity(MarkedEntitySupport.DEFAULT_TARGET_SLOT, nearestRef);
+                    markedSupport.setMarkedEntity(MarkedEntitySupport.DEFAULT_TARGET_SLOT, nearest.entityRef);
                 }
 
-                // Set hostile attitude
                 WorldSupport worldSupport = role.getWorldSupport();
                 if (worldSupport != null) {
-                    worldSupport.overrideAttitude(nearestRef, Attitude.HOSTILE, 60.0);
+                    worldSupport.overrideAttitude(nearest.entityRef, Attitude.HOSTILE, 60.0);
                 }
             } catch (Exception e) {
                 // Ignore targeting errors
             }
+        }
+    }
+
+    // Log available states once per NPC model to avoid spam
+    private final Set<String> loggedRoleStates = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Sets the invisible objective marker as the NPC's target and activates Follow state.
+     * Requires the HyArena_Bot_Objective role which defines Follow + Idle instructions.
+     * Follow uses: Target sensor (checks LockedTarget) + State sensor (checks Follow state)
+     * → Seek body motion (pathfinds toward the marker entity).
+     */
+    private void setNpcObjectiveTarget(Role role, Ref<EntityStore> markerRef, Ref<EntityStore> botEntityRef, Store<EntityStore> store) {
+        try {
+            // Set marker as LockedTarget — provides the "LiveEntity" feature for Seek body motion
+            MarkedEntitySupport markedSupport = role.getMarkedEntitySupport();
+            if (markedSupport != null) {
+                markedSupport.setMarkedEntity(MarkedEntitySupport.DEFAULT_TARGET_SLOT, markerRef);
+            }
+
+            // Log available states once per role for debugging
+            var stateHelper = role.getStateSupport().getStateHelper();
+            String roleName = "unknown";
+            try {
+                NPCEntity npcEntity = store.getComponent(botEntityRef, NPCEntity.getComponentType());
+                if (npcEntity != null) roleName = npcEntity.getRoleName();
+            } catch (Exception e) { /* ignore */ }
+            if (loggedRoleStates.add(roleName)) {
+                String[] statesToCheck = {"Follow", "Chase", "Combat", "Attack", "Idle", "Patrol", "Wander"};
+                StringBuilder sb = new StringBuilder("[BotObjective] Available states for role '" + roleName + "': ");
+                for (String s : statesToCheck) {
+                    sb.append(s).append("=").append(stateHelper.getStateIndex(s) >= 0 ? "YES" : "no").append(", ");
+                }
+                System.out.println(sb.toString());
+            }
+
+            // Set Follow state — our custom role defines FollowBehavior instruction
+            // that fires when: Target sensor (LockedTarget exists) AND State sensor (in Follow state)
+            if (stateHelper.getStateIndex("Follow") >= 0) {
+                role.getStateSupport().setState(botEntityRef, "Follow", "Default", store);
+            } else {
+                System.err.println("[BotObjective] WARNING: Follow state not available for role '" + roleName +
+                    "' — bot won't pathfind to objective. Is HyArena_Bot_Objective role loaded?");
+            }
+        } catch (Exception e) {
+            System.err.println("[BotObjective] setNpcObjectiveTarget error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Clears the NPC target so it holds position at the objective.
+     * Sets Idle state explicitly — our custom role's IdleBehavior instruction
+     * fires (BodyMotion: Nothing) so the bot stands still.
+     */
+    private void clearNpcTarget(Role role, Ref<EntityStore> botEntityRef, Store<EntityStore> store) {
+        try {
+            MarkedEntitySupport markedSupport = role.getMarkedEntitySupport();
+            if (markedSupport != null) {
+                markedSupport.setMarkedEntity(MarkedEntitySupport.DEFAULT_TARGET_SLOT, null);
+            }
+
+            // Set Idle state so the NPC holds position
+            var stateHelper = role.getStateSupport().getStateHelper();
+            if (stateHelper.getStateIndex("Idle") >= 0) {
+                role.getStateSupport().setState(botEntityRef, "Idle", "Default", store);
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+    }
+
+    /**
+     * Computes an individual target position for a bot within the zone.
+     * Each bot gets a persistent random XZ offset so they spread out naturally.
+     * Offset is regenerated if zone changes (handled by clamping to new bounds).
+     */
+    private Position getBotZoneTarget(UUID botId, BotObjective objective) {
+        double[] offset = botZoneOffsets.get(botId);
+        if (offset == null) {
+            // Generate random offset within ±40% of zone half-width/half-depth
+            double halfX = (objective.maxX() - objective.minX()) / 2.0;
+            double halfZ = (objective.maxZ() - objective.minZ()) / 2.0;
+            double offX = (objectiveRandom.nextDouble() * 2 - 1) * halfX * 0.4;
+            double offZ = (objectiveRandom.nextDouble() * 2 - 1) * halfZ * 0.4;
+            offset = new double[]{offX, offZ};
+            botZoneOffsets.put(botId, offset);
+        }
+
+        // Apply offset to zone center, clamped within bounds (with 0.5 margin)
+        double margin = 0.5;
+        double tx = Math.max(objective.minX() + margin,
+                   Math.min(objective.maxX() - margin, objective.position().getX() + offset[0]));
+        double tz = Math.max(objective.minZ() + margin,
+                   Math.min(objective.maxZ() - margin, objective.position().getZ() + offset[1]));
+        return new Position(tx, objective.position().getY(), tz);
+    }
+
+    /**
+     * Gets or creates an invisible marker entity for a specific bot.
+     * One marker per bot (not per match) so each bot walks to its own offset position.
+     * Position is updated each tick to handle zone rotation.
+     */
+    private Ref<EntityStore> getOrCreateObjectiveMarker(UUID botId, Position target, Store<EntityStore> store) {
+        Ref<EntityStore> existing = objectiveMarkers.get(botId);
+
+        if (existing != null && existing.isValid()) {
+            // Update position (handles zone rotation)
+            try {
+                TransformComponent t = store.getComponent(existing, TransformComponent.getComponentType());
+                if (t != null) {
+                    t.setPosition(new Vector3d(target.getX(), target.getY(), target.getZ()));
+                }
+            } catch (Exception e) {
+                // Ignore
+            }
+            return existing;
+        }
+
+        // Spawn new invisible marker
+        try {
+            Holder<EntityStore> holder = EntityStore.REGISTRY.newHolder();
+            ProjectileComponent proj = new ProjectileComponent("Projectile");
+            holder.putComponent(ProjectileComponent.getComponentType(), proj);
+            holder.putComponent(TransformComponent.getComponentType(),
+                new TransformComponent(
+                    new Vector3d(target.getX(), target.getY(), target.getZ()),
+                    new Vector3f(0, 0, 0)));
+            holder.ensureComponent(UUIDComponent.getComponentType());
+            holder.ensureComponent(Intangible.getComponentType());
+            holder.ensureComponent(MovementStatesComponent.getComponentType());
+            holder.addComponent(NetworkId.getComponentType(),
+                new NetworkId(store.getExternalData().takeNextNetworkId()));
+            proj.initialize();
+
+            Ref<EntityStore> ref = store.addEntity(holder, AddReason.SPAWN);
+            if (ref != null) {
+                objectiveMarkers.put(botId, ref);
+                System.out.println("[BotManager] Spawned objective marker for bot " + botId);
+            }
+            return ref;
+        } catch (Exception e) {
+            System.err.println("[BotManager] Failed to spawn objective marker: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Holds info about the nearest enemy target found during scanning.
+     */
+    private static class NearestTarget {
+        final Participant participant;
+        final Ref<EntityStore> entityRef;
+        final double distance;
+
+        NearestTarget(Participant participant, Ref<EntityStore> entityRef, double distance) {
+            this.participant = participant;
+            this.entityRef = entityRef;
+            this.distance = distance;
         }
     }
 

@@ -1,6 +1,7 @@
 package de.ragesith.hyarena2.gamemode;
 
 import de.ragesith.hyarena2.arena.ArenaConfig;
+import de.ragesith.hyarena2.bot.BotObjective;
 import de.ragesith.hyarena2.participant.Participant;
 
 import java.util.List;
@@ -124,6 +125,15 @@ public interface GameMode {
      * Returns the label for the score column (e.g., "Pts"), or null if no score system.
      */
     default String getScoreLabel() {
+        return null;
+    }
+
+    /**
+     * Returns objective information for bot AI decision-making.
+     * Bots will try to move toward the objective position when not in combat.
+     * Returns null if the game mode has no spatial objectives (Duel, Deathmatch).
+     */
+    default BotObjective getBotObjective(ArenaConfig config) {
         return null;
     }
 

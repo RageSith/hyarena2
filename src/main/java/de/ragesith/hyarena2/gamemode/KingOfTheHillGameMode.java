@@ -17,6 +17,7 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.core.util.NotificationUtil;
 import de.ragesith.hyarena2.arena.ArenaConfig;
+import de.ragesith.hyarena2.bot.BotObjective;
 import de.ragesith.hyarena2.bot.BotParticipant;
 import de.ragesith.hyarena2.config.Position;
 import de.ragesith.hyarena2.participant.Participant;
@@ -89,6 +90,27 @@ public class KingOfTheHillGameMode implements GameMode {
             p.setAlive(true);
             controlTicks.put(p.getUniqueId(), 0);
         }
+    }
+
+    @Override
+    public BotObjective getBotObjective(ArenaConfig config) {
+        List<ArenaConfig.CaptureZone> zones = config.getCaptureZones();
+        if (zones == null || zones.isEmpty()) return null;
+
+        ArenaConfig.CaptureZone zone = zones.get(activeZoneIndex);
+        double x1 = Math.min(zone.getMinX(), zone.getMaxX());
+        double x2 = Math.max(zone.getMinX(), zone.getMaxX());
+        double y1 = Math.min(zone.getMinY(), zone.getMaxY());
+        double y2 = Math.max(zone.getMinY(), zone.getMaxY());
+        double z1 = Math.min(zone.getMinZ(), zone.getMaxZ());
+        double z2 = Math.max(zone.getMinZ(), zone.getMaxZ());
+
+        double cx = (x1 + x2) / 2.0;
+        double cy = y1; // Ground level
+        double cz = (z1 + z2) / 2.0;
+        double rx = (x2 - x1) / 2.0;
+
+        return new BotObjective(new Position(cx, cy, cz), rx, "capture", x1, y1, z1, x2, y2, z2);
     }
 
     @Override
