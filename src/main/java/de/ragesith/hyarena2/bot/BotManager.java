@@ -20,6 +20,8 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.NPCPlugin;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import com.hypixel.hytale.server.npc.role.Role;
+import com.hypixel.hytale.server.core.entity.InteractionChain;
+import com.hypixel.hytale.server.npc.role.support.CombatSupport;
 import com.hypixel.hytale.server.npc.role.support.MarkedEntitySupport;
 import com.hypixel.hytale.server.npc.role.support.WorldSupport;
 import de.ragesith.hyarena2.arena.Arena;
@@ -30,6 +32,7 @@ import de.ragesith.hyarena2.event.EventBus;
 import de.ragesith.hyarena2.participant.Participant;
 import de.ragesith.hyarena2.participant.ParticipantType;
 
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -61,8 +64,20 @@ public class BotManager {
     // NPC entity health tracking (for proportional damage)
     private final Map<UUID, Float> npcMaxHealthMap = new ConcurrentHashMap<>();
 
-    // Separate cooldown tracker for bot-on-bot combat (independent of BotAI's lastAttackTime)
-    private final Map<UUID, Long> botCombatLastAttack = new ConcurrentHashMap<>();
+    // Tracks previous tick's attacking state per bot for edge detection (fire damage on false→true)
+    private final Map<UUID, Boolean> wasAttacking = new ConcurrentHashMap<>();
+
+    // Cached reflection field for reading CombatSupport.activeAttack (protected)
+    private static Field activeAttackField;
+    static {
+        try {
+            activeAttackField = CombatSupport.class.getDeclaredField("activeAttack");
+            activeAttackField.setAccessible(true);
+        } catch (Exception e) {
+            System.err.println("[BotManager] Could not access CombatSupport.activeAttack field: " + e.getMessage());
+            activeAttackField = null;
+        }
+    }
 
     public BotManager(EventBus eventBus) {
         this.eventBus = eventBus;
@@ -304,7 +319,7 @@ public class BotManager {
         // Remove from tracking
         activeBots.remove(botId);
         botMatches.remove(botId);
-        botCombatLastAttack.remove(botId);
+        wasAttacking.remove(botId);
 
         System.out.println("[BotManager] Despawned bot " + bot.getName());
     }
@@ -649,97 +664,117 @@ public class BotManager {
     }
 
     /**
-     * Checks if a target position is within the attacker's field of view cone.
-     * @param attackerPos the attacker's position (includes yaw)
-     * @param targetPos the target's position
-     * @param fovDegrees the total field of view angle (e.g., 90 = +/-45 from center)
-     * @return true if target is within the FOV cone
+     * Checks if the NPC is executing an actual attack interaction (not blocking).
+     * Uses reflection to read the activeAttack InteractionChain from CombatSupport,
+     * then checks initialRootInteraction.getId() for "Attack" substring.
+     * Both attacks and blocks use InteractionType.Primary for NPCs, so we must
+     * inspect the interaction name to distinguish them.
      */
-    private boolean isTargetInFOV(Position attackerPos, Position targetPos, float fovDegrees) {
-        if (attackerPos == null || targetPos == null) return false;
+    private boolean isActuallyAttacking(CombatSupport combatSupport) {
+        if (!combatSupport.isExecutingAttack()) return false;
+        if (activeAttackField == null) return true; // Fallback: trust isExecutingAttack
 
-        double dx = targetPos.getX() - attackerPos.getX();
-        double dz = targetPos.getZ() - attackerPos.getZ();
+        try {
+            InteractionChain chain = (InteractionChain) activeAttackField.get(combatSupport);
+            if (chain == null) return false;
 
-        // atan2 gives angle in radians; Hytale: yaw 0 = +Z, yaw 90 = -X (clockwise from +Z)
-        float angleToTarget = (float) Math.toDegrees(Math.atan2(-dx, dz));
+            var initialRoot = chain.getInitialRootInteraction();
+            if (initialRoot == null) return false;
 
-        float attackerYaw = attackerPos.getYaw();
+            String id = initialRoot.getId();
+            if (id == null) return false;
 
-        float angleDiff = angleToTarget - attackerYaw;
-        while (angleDiff > 180) angleDiff -= 360;
-        while (angleDiff < -180) angleDiff += 360;
-
-        return Math.abs(angleDiff) <= fovDegrees / 2.0f;
+            // Attack interactions contain "Attack" in the ID (e.g. "Root_NPC_Skeleton_Sand_Guard_Attack")
+            // Block interactions contain "Block" (e.g. "Shield_Block")
+            return id.contains("Attack");
+        } catch (Exception e) {
+            return combatSupport.isExecutingAttack(); // Fallback
+        }
     }
 
     /**
-     * Manually applies damage between bots since Hytale's NPC-on-NPC combat
-     * doesn't reliably generate damage events.
-     * Checks FOV (bot must be facing target) and range to stay in sync with attack animations.
+     * Checks if the NPC is currently blocking (Shield_Block interaction).
+     */
+    private boolean isBlocking(BotParticipant bot) {
+        NPCEntity npcEntity = bot.getNpcEntity();
+        if (npcEntity == null) return false;
+
+        Role role = npcEntity.getRole();
+        if (role == null) return false;
+
+        CombatSupport combatSupport = role.getCombatSupport();
+        if (combatSupport == null || !combatSupport.isExecutingAttack()) return false;
+        if (activeAttackField == null) return false;
+
+        try {
+            InteractionChain chain = (InteractionChain) activeAttackField.get(combatSupport);
+            if (chain == null) return false;
+
+            var initialRoot = chain.getInitialRootInteraction();
+            if (initialRoot == null) return false;
+
+            String id = initialRoot.getId();
+            return id != null && id.contains("Block");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Applies bot-on-bot damage using edge detection on attack animations.
+     * Fires damage once per swing (on false→true transition of isActuallyAttacking).
+     * Damage is negated if the victim is currently blocking.
      */
     private void applyBotCombatDamage(BotParticipant attacker, Match match) {
         if (!attacker.isAlive()) return;
 
-        Position attackerPos = attacker.getCurrentPosition();
-        if (attackerPos == null) return;
+        NPCEntity npcEntity = attacker.getNpcEntity();
+        if (npcEntity == null) return;
 
-        // Check attack cooldown (separate from BotAI's lastAttackTime)
-        long now = System.currentTimeMillis();
-        long lastAttack = botCombatLastAttack.getOrDefault(attacker.getUniqueId(), 0L);
-        if (now - lastAttack < attacker.getDifficulty().getAttackCooldownMs()) return;
+        Role role = npcEntity.getRole();
+        if (role == null) return;
 
-        // Find nearest alive bot in front of attacker (90 degree FOV cone)
-        BotParticipant nearestBot = null;
-        double nearestDistance = Double.MAX_VALUE;
+        CombatSupport combatSupport = role.getCombatSupport();
+        MarkedEntitySupport markedSupport = role.getMarkedEntitySupport();
+        if (combatSupport == null || markedSupport == null) return;
 
-        for (Participant participant : match.getParticipants()) {
-            if (participant.getUniqueId().equals(attacker.getUniqueId())) continue;
-            if (participant.getType() != ParticipantType.BOT) continue;
-            if (!participant.isAlive() || participant.isImmune()) continue;
+        UUID attackerId = attacker.getUniqueId();
+        boolean attacking = isActuallyAttacking(combatSupport);
+        boolean wasAttackingPrev = wasAttacking.getOrDefault(attackerId, false);
+        wasAttacking.put(attackerId, attacking);
 
-            BotParticipant otherBot = activeBots.get(participant.getUniqueId());
-            if (otherBot == null) continue;
+        // Edge detection: only fire damage on the false→true transition (start of swing)
+        if (!attacking || wasAttackingPrev) return;
 
-            Position otherPos = otherBot.getCurrentPosition();
-            if (otherPos == null) continue;
+        // Read the engine's current target
+        Ref<EntityStore> targetRef = markedSupport.getMarkedEntityRef(MarkedEntitySupport.DEFAULT_TARGET_SLOT);
+        if (targetRef == null || !targetRef.isValid()) return;
 
-            // FOV check — only consider targets the NPC is facing
-            if (!isTargetInFOV(attackerPos, otherPos, 90f)) continue;
+        Store<EntityStore> store = targetRef.getStore();
+        if (store == null) return;
 
-            double dx = otherPos.getX() - attackerPos.getX();
-            double dy = otherPos.getY() - attackerPos.getY();
-            double dz = otherPos.getZ() - attackerPos.getZ();
-            double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        UUIDComponent targetUuidComp = store.getComponent(targetRef, UUIDComponent.getComponentType());
+        if (targetUuidComp == null) return;
 
-            if (distance < nearestDistance) {
-                nearestDistance = distance;
-                nearestBot = otherBot;
-            }
-        }
+        BotParticipant victimBot = getBotByEntityUuid(targetUuidComp.getUuid());
+        if (victimBot == null || !victimBot.isAlive() || victimBot.isImmune()) return;
 
-        if (nearestBot == null) return;
+        // Victim is blocking → damage negated
+        if (isBlocking(victimBot)) return;
 
-        // Attack range check (melee = 3 blocks)
-        if (nearestDistance > 3.0) return;
+        // Apply damage scaled by attacker difficulty
+        double damage = attacker.getDifficulty().getBaseDamage();
 
-        // Apply damage
-        double damage = 10.0;
-        botCombatLastAttack.put(attacker.getUniqueId(), now);
-        System.out.println("[DEBUG BOT-COMBAT] HIT! " + attacker.getName() + " -> " + nearestBot.getName() +
-            " | dmg=" + damage + " | dist=" + String.format("%.1f", nearestDistance) +
-            " | victimHP=" + nearestBot.getHealth() + "/" + nearestBot.getMaxHealth());
-
-        boolean died = nearestBot.takeDamage(damage);
+        boolean died = victimBot.takeDamage(damage);
         attacker.addDamageDealt(damage);
 
         // Update NPC entity health bar
-        applyDamageToNpcEntity(nearestBot, damage);
+        applyDamageToNpcEntity(victimBot, damage);
 
         if (died) {
-            match.recordKill(nearestBot.getUniqueId(), attacker.getUniqueId());
+            match.recordKill(victimBot.getUniqueId(), attacker.getUniqueId());
         } else {
-            match.recordDamage(nearestBot.getUniqueId(), attacker.getUniqueId(), damage);
+            match.recordDamage(victimBot.getUniqueId(), attacker.getUniqueId(), damage);
         }
     }
 

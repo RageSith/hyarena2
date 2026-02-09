@@ -13,7 +13,8 @@ public enum BotDifficulty {
         0.8,    // movementSpeedMultiplier
         0.8,    // healthMultiplier
         1000,   // attackCooldownMs
-        0.30    // retreatThreshold (30% health)
+        0.30,   // retreatThreshold (30% health)
+        15.0    // baseDamage
     ),
     MEDIUM(
         800,    // reactionTimeMs
@@ -23,7 +24,8 @@ public enum BotDifficulty {
         1.0,    // movementSpeedMultiplier
         1.0,    // healthMultiplier
         900,    // attackCooldownMs
-        0.25    // retreatThreshold (25% health)
+        0.25,   // retreatThreshold (25% health)
+        20.0    // baseDamage
     ),
     HARD(
         300,    // reactionTimeMs
@@ -33,7 +35,8 @@ public enum BotDifficulty {
         1.2,    // movementSpeedMultiplier
         1.4,    // healthMultiplier
         600,    // attackCooldownMs
-        0.15    // retreatThreshold (15% health)
+        0.15,   // retreatThreshold (15% health)
+        28.0    // baseDamage
     );
 
     private final int reactionTimeMs;
@@ -44,10 +47,11 @@ public enum BotDifficulty {
     private final double healthMultiplier;
     private final int attackCooldownMs;
     private final double retreatThreshold;
+    private final double baseDamage;
 
     BotDifficulty(int reactionTimeMs, double aimAccuracy, double attackRange,
                   double chaseRange, double movementSpeedMultiplier, double healthMultiplier,
-                  int attackCooldownMs, double retreatThreshold) {
+                  int attackCooldownMs, double retreatThreshold, double baseDamage) {
         this.reactionTimeMs = reactionTimeMs;
         this.aimAccuracy = aimAccuracy;
         this.attackRange = attackRange;
@@ -56,6 +60,7 @@ public enum BotDifficulty {
         this.healthMultiplier = healthMultiplier;
         this.attackCooldownMs = attackCooldownMs;
         this.retreatThreshold = retreatThreshold;
+        this.baseDamage = baseDamage;
     }
 
     /**
@@ -116,6 +121,13 @@ public enum BotDifficulty {
      */
     public double getRetreatThreshold() {
         return retreatThreshold;
+    }
+
+    /**
+     * Base damage per hit.
+     */
+    public double getBaseDamage() {
+        return baseDamage;
     }
 
     /**

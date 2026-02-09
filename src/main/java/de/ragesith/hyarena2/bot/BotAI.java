@@ -290,8 +290,8 @@ public class BotAI {
 
         // Check if attack hits (based on accuracy)
         if (random.nextDouble() <= difficulty.getAimAccuracy()) {
-            // Calculate damage (base damage from kit or default)
-            double baseDamage = 10.0; // Default melee damage
+            // Damage scaled by difficulty
+            double baseDamage = difficulty.getBaseDamage();
 
             // Notify via callback (handleBotDamage tracks damage dealt)
             if (damageCallback != null) {
