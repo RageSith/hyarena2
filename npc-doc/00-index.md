@@ -16,6 +16,10 @@
 | 6 | [06-actions.md](06-actions.md) | Actions (Attack, State, Spawn, Die, Inventory, OverrideAttitude, etc.) |
 | 7 | [07-entity-filters.md](07-entity-filters.md) | Entity Filters (Attitude, Combat, LineOfSight, ViewSector, etc.) |
 | 8 | [08-instructions.md](08-instructions.md) | Instructions & Misc (Instruction, Reference, Random, StateTransitions, etc.) |
+| 9 | [09-moving-npcs.md](09-moving-npcs.md) | Moving NPCs (leash, invisible markers, Follow state) |
+| 10 | [10-npc-api-patterns.md](10-npc-api-patterns.md) | NPC API Patterns (spawn, target, state, attitude) |
+| 11 | [11-objective-aware-bots.md](11-objective-aware-bots.md) | Objective-Aware Bots Design (original design doc) |
+| 12 | [12-custom-bot-roles.md](12-custom-bot-roles.md) | Custom Bot Roles: HyArena_Bot_Objective (implementation, role format, lessons) |
 
 ---
 

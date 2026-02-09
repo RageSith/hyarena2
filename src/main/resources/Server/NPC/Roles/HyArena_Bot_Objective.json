@@ -5,7 +5,7 @@
   "Appearance": "Blook_Skeleton_Pirate_Captain",
   "MaxHealth": 100,
   "DefaultPlayerAttitude": "Hostile",
-  "DefaultNPCAttitude": "Neutral",
+  "DefaultNPCAttitude": "Hostile",
   "NameTranslationKey": "server.npcRoles.HyArena_Bot_Objective.name",
   "Invulnerable": false,
   "DropList": "Empty",
@@ -13,7 +13,7 @@
   "ApplySeparation": true,
   "SeparationDistance": 2.0,
   "Inertia": 1.0,
-  "KnockbackScale": 1.0,
+  "KnockbackScale": 0.5,
   "BreathesInAir": true,
   "BreathesInWater": false,
   "InventorySize": 3,
@@ -26,12 +26,29 @@
   "SpawnLockTime": 1.5,
   "SpawnViewDistance": 75,
   "CollisionDistance": 5,
+  "BusyStates": ["Combat", "Defend"],
+  "InteractionVars": {
+    "Melee_Damage": {
+      "Interactions": [
+        {
+          "Parent": "NPC_Attack_Melee_Damage",
+          "DamageCalculator": {
+            "Type": "Absolute",
+            "BaseDamage": {
+              "Physical": 10
+            },
+            "RandomPercentageModifier": 0.1
+          }
+        }
+      ]
+    }
+  },
   "MotionControllerList": [
     {
       "Type": "Walk",
       "MaxWalkSpeed": 5,
       "Acceleration": 25,
-      "MaxRotationSpeed": 180,
+      "MaxRotationSpeed": 360,
       "MinJumpHeight": 1.2,
       "Gravity": 10,
       "MaxFallSpeed": 15
@@ -40,6 +57,21 @@
   "InteractionInstruction": {
     "Instructions": [
       {
+        "$Comment": "React to damage while idle — defend in place (don't chase off zone)",
+        "Sensor": {
+          "Type": "And",
+          "Sensors": [
+            { "Type": "State", "State": "Idle" },
+            { "Type": "Damage", "Combat": true, "TargetSlot": "LockedTarget" }
+          ]
+        },
+        "Actions": [
+          { "Type": "AddToHostileTargetMemory" },
+          { "Type": "State", "State": "Defend" }
+        ]
+      },
+      {
+        "$Comment": "Idle + target assigned by Java → Follow",
         "Sensor": {
           "Type": "And",
           "Sensors": [
@@ -48,27 +80,186 @@
           ]
         },
         "Actions": [
-          {
-            "Type": "State",
-            "State": "Follow"
-          }
+          { "Type": "State", "State": "Follow" }
+        ]
+      },
+      {
+        "$Comment": "React to damage while following — defend against attackers",
+        "Sensor": {
+          "Type": "And",
+          "Sensors": [
+            { "Type": "State", "State": "Follow" },
+            { "Type": "Damage", "Combat": true, "TargetSlot": "LockedTarget" }
+          ]
+        },
+        "Actions": [
+          { "Type": "AddToHostileTargetMemory" },
+          { "Type": "State", "State": "Combat" }
+        ]
+      },
+      {
+        "$Comment": "Combat target lost — return to idle so Java can re-evaluate",
+        "Sensor": {
+          "Type": "And",
+          "Sensors": [
+            { "Type": "State", "State": "Combat" },
+            { "Type": "Not", "Sensor": { "Type": "Target" } }
+          ]
+        },
+        "Actions": [
+          { "Type": "State", "State": "Idle" }
+        ]
+      },
+      {
+        "$Comment": "Defend target lost — return to idle so Java can re-evaluate",
+        "Sensor": {
+          "Type": "And",
+          "Sensors": [
+            { "Type": "State", "State": "Defend" },
+            { "Type": "Not", "Sensor": { "Type": "Target" } }
+          ]
+        },
+        "Actions": [
+          { "Type": "State", "State": "Idle" }
         ]
       }
     ]
   },
   "Instructions": [
     {
+      "Name": "CombatBehavior",
+      "Sensor": {
+        "Type": "And",
+        "Sensors": [
+          { "Type": "Target" },
+          { "Type": "State", "State": "Combat" }
+        ]
+      },
+      "Instructions": [
+        {
+          "$Comment": "Attack when target is in melee range",
+          "Continue": true,
+          "Sensor": {
+            "Type": "Target",
+            "Range": 2.5
+          },
+          "ActionsBlocking": true,
+          "Actions": [
+            {
+              "Type": "Timeout",
+              "Delay": [0.15, 0.25]
+            },
+            {
+              "Type": "Attack",
+              "Attack": "Root_NPC_Attack_Melee",
+              "AttackPauseRange": [0.8, 1.2]
+            },
+            {
+              "Type": "Timeout",
+              "Delay": [0.2, 0.4]
+            }
+          ],
+          "HeadMotion": {
+            "Type": "Aim"
+          }
+        },
+        {
+          "$Comment": "Strafe and block while in combat range",
+          "Sensor": {
+            "Type": "Target",
+            "Range": 8.0
+          },
+          "BodyMotion": {
+            "Type": "MaintainDistance",
+            "DesiredDistanceRange": [1.0, 1.8],
+            "StrafingDurationRange": [0.5, 1.0],
+            "StrafingFrequencyRange": [2.0, 4.0],
+            "RelativeForwardsSpeed": 0.7,
+            "RelativeBackwardsSpeed": 0.5
+          },
+          "HeadMotion": {
+            "Type": "Watch"
+          },
+          "BlockAbility": "Shield_Block",
+          "BlockProbability": 40
+        },
+        {
+          "$Comment": "Chase target when out of combat range",
+          "Sensor": {
+            "Type": "Target"
+          },
+          "BodyMotion": {
+            "Type": "Seek",
+            "StopDistance": 1.5,
+            "SlowDownDistance": 3.0,
+            "AbortDistance": 50.0
+          },
+          "HeadMotion": {
+            "Type": "Watch"
+          }
+        }
+      ]
+    },
+    {
+      "Name": "DefendBehavior",
+      "Sensor": {
+        "Type": "And",
+        "Sensors": [
+          { "Type": "Target" },
+          { "Type": "State", "State": "Defend" }
+        ]
+      },
+      "Instructions": [
+        {
+          "$Comment": "Attack nearby target without moving off the zone",
+          "Continue": true,
+          "Sensor": {
+            "Type": "Target",
+            "Range": 2.5
+          },
+          "ActionsBlocking": true,
+          "Actions": [
+            {
+              "Type": "Timeout",
+              "Delay": [0.15, 0.25]
+            },
+            {
+              "Type": "Attack",
+              "Attack": "Root_NPC_Attack_Melee",
+              "AttackPauseRange": [0.8, 1.2]
+            },
+            {
+              "Type": "Timeout",
+              "Delay": [0.2, 0.4]
+            }
+          ],
+          "HeadMotion": {
+            "Type": "Aim"
+          }
+        },
+        {
+          "$Comment": "Hold position and block — do not chase",
+          "Sensor": {
+            "Type": "Target"
+          },
+          "BodyMotion": {
+            "Type": "Nothing"
+          },
+          "HeadMotion": {
+            "Type": "Watch"
+          },
+          "BlockAbility": "Shield_Block",
+          "BlockProbability": 50
+        }
+      ]
+    },
+    {
       "Name": "FollowBehavior",
       "Sensor": {
         "Type": "And",
         "Sensors": [
-          {
-            "Type": "Target"
-          },
-          {
-            "Type": "State",
-            "State": "Follow"
-          }
+          { "Type": "Target" },
+          { "Type": "State", "State": "Follow" }
         ]
       },
       "BodyMotion": {
@@ -88,13 +279,30 @@
         "Type": "State",
         "State": "Idle"
       },
-      "BodyMotion": {
-        "Type": "Nothing"
-      },
-      "HeadMotion": {
-        "Type": "Observe",
-        "AngleRange": [-45.0, 45.0]
-      }
+      "Instructions": [
+        {
+          "$Comment": "React to damage — defend in place",
+          "Sensor": {
+            "Type": "Damage",
+            "Combat": true,
+            "TargetSlot": "LockedTarget"
+          },
+          "Actions": [
+            { "Type": "AddToHostileTargetMemory" },
+            { "Type": "State", "State": "Defend" }
+          ]
+        },
+        {
+          "$Comment": "Default idle — stand still and look around",
+          "BodyMotion": {
+            "Type": "Nothing"
+          },
+          "HeadMotion": {
+            "Type": "Observe",
+            "AngleRange": [-45.0, 45.0]
+          }
+        }
+      ]
     }
   ]
 }

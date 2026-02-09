@@ -46,6 +46,7 @@ public class KingOfTheHillGameMode implements GameMode {
 
     private final Map<UUID, Integer> controlTicks = new HashMap<>();
     private final List<Ref<EntityStore>> zoneNameHolograms = new ArrayList<>();
+    private final List<UUID> participantsInZoneLive = new ArrayList<>();
     private String worldName;
     private int activeZoneIndex = 0;
     private UUID currentController = null;
@@ -110,7 +111,8 @@ public class KingOfTheHillGameMode implements GameMode {
         double cz = (z1 + z2) / 2.0;
         double rx = (x2 - x1) / 2.0;
 
-        return new BotObjective(new Position(cx, cy, cz), rx, "capture", x1, y1, z1, x2, y2, z2);
+        return new BotObjective(new Position(cx, cy, cz), rx, "capture", x1, y1, z1, x2, y2, z2,
+            currentController, contested, List.copyOf(participantsInZoneLive));
     }
 
     @Override
@@ -176,6 +178,10 @@ public class KingOfTheHillGameMode implements GameMode {
                 }
             }
         }
+
+        // Store for bot access (getBotObjective reads this)
+        participantsInZoneLive.clear();
+        participantsInZoneLive.addAll(participantsInZone);
 
         // Scoring logic
         UUID previousController = currentController;
