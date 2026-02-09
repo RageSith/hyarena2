@@ -2,8 +2,13 @@ package de.ragesith.hyarena2.bot;
 
 import de.ragesith.hyarena2.arena.ArenaConfig;
 import de.ragesith.hyarena2.config.Position;
+import de.ragesith.hyarena2.participant.Participant;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 
 /**
  * Priority-based decision engine for bot AI.
@@ -17,6 +22,12 @@ public class BotBrain {
 
     // Current decision state
     private BrainDecision currentDecision = BrainDecision.IDLE;
+
+    // Threat tracking — maps attacker participant UUID → tick of last damage received
+    private final Map<UUID, Long> threats = new HashMap<>();
+    private long currentTick = 0;
+    private static final long THREAT_TIMEOUT_TICKS = 60;  // 3 seconds at 20 TPS
+    private static final double THREAT_DISTANCE = 5.0;    // max range to consider a threat active
 
     // Roam state
     private Position roamWaypoint;          // Current roam target (null = needs new one)
@@ -50,6 +61,12 @@ public class BotBrain {
      * Returns the highest-priority applicable decision.
      */
     public BrainDecision evaluate(BrainContext ctx) {
+        // Tick counter for threat timestamps
+        currentTick++;
+
+        // Prune stale threats
+        pruneThreats(ctx);
+
         // 1. Block energy regen when NOT blocking
         if (!currentlyBlocking) {
             blockEnergy = Math.min(difficulty.getBlockMaxEnergy(), blockEnergy + BLOCK_REGEN_RATE);
@@ -88,8 +105,14 @@ public class BotBrain {
         if (ctx.nearestEnemy != null && ctx.nearestEnemy.distance <= difficulty.getChaseRange()) {
             if (ctx.objective != null) {
                 if (!ctx.botInZone) {
-                    // Not on zone — never fight, always walk to zone.
-                    // BLOCK (step 3) handles reactive defense if attacked en route.
+                    // Not on zone — only fight if actively being damaged (threat system)
+                    if (hasActiveThreats()) {
+                        idleTicks = 0;
+                        roamWaypoint = null;
+                        currentDecision = BrainDecision.COMBAT;
+                        return currentDecision;
+                    }
+                    // No threats — fall through to step 5 (walk to zone)
                 } else {
                     // On zone — only COMBAT if enemies are contesting (also in zone).
                     // Other enemies fall through to step 5 for DEFEND_ZONE (fight in place).
@@ -215,6 +238,90 @@ public class BotBrain {
         blockEnergy = difficulty.getBlockMaxEnergy();
         currentlyBlocking = false;
         preBlockDecision = null;
+        threats.clear();
+        currentTick = 0;
+    }
+
+    // ========== Threat System ==========
+
+    /**
+     * Registers an attacker as a threat. Called when this bot takes damage.
+     */
+    public void registerThreat(UUID attackerUuid) {
+        if (attackerUuid != null) {
+            threats.put(attackerUuid, currentTick);
+        }
+    }
+
+    /**
+     * Returns true if the threat map is non-empty (after pruning).
+     */
+    public boolean hasActiveThreats() {
+        return !threats.isEmpty();
+    }
+
+    /**
+     * Returns the threat map (attacker UUID → last damage tick).
+     */
+    public Map<UUID, Long> getThreats() {
+        return threats;
+    }
+
+    /**
+     * Removes stale threats: dead, too far, or timed out.
+     */
+    private void pruneThreats(BrainContext ctx) {
+        if (threats.isEmpty()) return;
+
+        Iterator<Map.Entry<UUID, Long>> it = threats.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<UUID, Long> entry = it.next();
+            UUID attackerUuid = entry.getKey();
+            long lastDamageTick = entry.getValue();
+
+            // Timeout: no damage for 3 seconds
+            if ((currentTick - lastDamageTick) > THREAT_TIMEOUT_TICKS) {
+                it.remove();
+                continue;
+            }
+
+            // Dead check
+            if (ctx.match != null) {
+                Participant attacker = ctx.match.getParticipant(attackerUuid);
+                if (attacker == null || !attacker.isAlive()) {
+                    it.remove();
+                    continue;
+                }
+            }
+
+            // Distance check — requires bot position and attacker position
+            if (ctx.botPos != null && ctx.match != null) {
+                Participant attacker = ctx.match.getParticipant(attackerUuid);
+                if (attacker != null) {
+                    Position attackerPos = getParticipantPosition(attacker, ctx);
+                    if (attackerPos != null) {
+                        double dist = ctx.botPos.distanceTo(attackerPos);
+                        if (dist > THREAT_DISTANCE) {
+                            it.remove();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Gets a participant's current position (for threat distance checks).
+     */
+    private Position getParticipantPosition(Participant participant, BrainContext ctx) {
+        // For bots, currentPosition is tracked on BotParticipant
+        if (participant instanceof BotParticipant botP) {
+            return botP.getCurrentPosition();
+        }
+        // For players, we can't easily get position without Store access here.
+        // The threat distance check will skip players whose position can't be resolved.
+        // BotManager resolves exact positions when building the threatTarget in BrainContext.
+        return null;
     }
 
     /**

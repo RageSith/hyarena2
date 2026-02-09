@@ -251,6 +251,11 @@ public class KillDetectionSystem extends DamageEventSystem {
         // Apply damage to bot's internal health
         boolean died = botVictim.takeDamage(damageAmount);
 
+        // Register attacker as a threat on the victim's brain
+        if (botVictim.getBrain() != null && attackerUuid != null) {
+            botVictim.getBrain().registerThreat(attackerUuid);
+        }
+
         // Also update the NPC entity health bar
         if (botManager != null) {
             botManager.applyDamageToNpcEntity(botVictim, damageAmount);

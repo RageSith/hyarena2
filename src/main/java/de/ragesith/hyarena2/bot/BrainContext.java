@@ -25,11 +25,12 @@ public class BrainContext {
     public final boolean enemyIsAttacking;         // current target's attack state
     public final boolean botIsAttacking;           // bot's own attack state
     public final ArenaConfig.Bounds arenaBounds;   // for roam waypoint generation
+    public final NearestEnemy threatTarget;        // resolved lowest-HP active threat (null if none)
 
     public BrainContext(BotParticipant bot, Match match, Store<EntityStore> store, Position botPos,
                         BotObjective objective, NearestEnemy nearestEnemy, List<UUID> enemiesInZone,
                         boolean botInZone, boolean enemyIsAttacking, boolean botIsAttacking,
-                        ArenaConfig.Bounds arenaBounds) {
+                        ArenaConfig.Bounds arenaBounds, NearestEnemy threatTarget) {
         this.bot = bot;
         this.match = match;
         this.store = store;
@@ -41,5 +42,6 @@ public class BrainContext {
         this.enemyIsAttacking = enemyIsAttacking;
         this.botIsAttacking = botIsAttacking;
         this.arenaBounds = arenaBounds;
+        this.threatTarget = threatTarget;
     }
 }

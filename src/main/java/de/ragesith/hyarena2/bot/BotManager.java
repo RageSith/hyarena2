@@ -179,17 +179,8 @@ public class BotManager {
             return;
         }
 
-        // Objective modes use custom role; non-objective modes use arena's configured model
-        Match botMatch = botMatches.get(bot.getUniqueId());
-        String botModel;
-        if (botMatch != null && botMatch.getGameMode().getBotObjective(arena.getConfig()) != null) {
-            botModel = OBJECTIVE_BOT_ROLE;
-        } else {
-            botModel = arena.getConfig().getBotModelId();
-            if (botModel == null || botModel.isEmpty()) {
-                botModel = DEFAULT_BOT_MODEL;
-            }
-        }
+        // All game modes use the objective bot role (Follow/Idle/Combat states controlled by Java brain)
+        String botModel = OBJECTIVE_BOT_ROLE;
 
         try {
             Store<EntityStore> store = world.getEntityStore().getStore();
@@ -226,6 +217,7 @@ public class BotManager {
                 captureNpcMaxHealth(bot, store, entityRef);
 
                 // Freeze bot at spawn if match is in WAITING/STARTING state
+                Match botMatch = botMatches.get(bot.getUniqueId());
                 if (botMatch != null) {
                     MatchState matchState = botMatch.getState();
                     if (matchState == MatchState.WAITING || matchState == MatchState.STARTING) {
@@ -1098,8 +1090,89 @@ public class BotManager {
             }
         }
 
+        // Resolve threat target — lowest-HP active threat from the brain's threat map
+        NearestEnemy threatTarget = resolveThreatTarget(bot, match, store);
+
         return new BrainContext(bot, match, store, botPos, objective, nearest,
-            enemiesInZone, botInZone, enemyAttacking, botAttacking, config.getBounds());
+            enemiesInZone, botInZone, enemyAttacking, botAttacking, config.getBounds(), threatTarget);
+    }
+
+    /**
+     * Resolves the lowest-HP active threat from the bot's brain threat map.
+     * Returns a NearestEnemy for the best threat target, or null if no active threats.
+     */
+    private NearestEnemy resolveThreatTarget(BotParticipant bot, Match match, Store<EntityStore> store) {
+        BotBrain brain = bot.getBrain();
+        if (brain == null || !brain.hasActiveThreats()) return null;
+
+        Position botPos = bot.getCurrentPosition();
+        if (botPos == null) return null;
+
+        Participant bestParticipant = null;
+        Ref<EntityStore> bestRef = null;
+        Position bestPos = null;
+        double bestHealth = Double.MAX_VALUE;
+        double bestDistance = 0;
+
+        for (UUID threatUuid : brain.getThreats().keySet()) {
+            Participant participant = match.getParticipant(threatUuid);
+            if (participant == null || !participant.isAlive()) continue;
+
+            Position targetPos = null;
+            Ref<EntityStore> targetRef = null;
+            double health = Double.MAX_VALUE;
+
+            if (participant.getType() == ParticipantType.PLAYER) {
+                PlayerRef playerRef = Universe.get().getPlayer(participant.getUniqueId());
+                if (playerRef != null) {
+                    targetRef = playerRef.getReference();
+                    if (targetRef != null && targetRef.isValid()) {
+                        try {
+                            TransformComponent transform = store.getComponent(targetRef, TransformComponent.getComponentType());
+                            if (transform != null) {
+                                Vector3d pos = transform.getPosition();
+                                targetPos = new Position(pos.getX(), pos.getY(), pos.getZ());
+                            }
+                            // Player health from entity stats
+                            EntityStatMap stats = store.getComponent(targetRef,
+                                EntityStatsModule.get().getEntityStatMapComponentType());
+                            if (stats != null) {
+                                int healthIndex = EntityStatType.getAssetMap().getIndex("health");
+                                EntityStatValue healthStat = stats.get(healthIndex);
+                                if (healthStat != null) {
+                                    health = healthStat.get();
+                                }
+                            }
+                        } catch (Exception e) {
+                            // Ignore
+                        }
+                    }
+                }
+            } else if (participant.getType() == ParticipantType.BOT) {
+                BotParticipant otherBot = activeBots.get(participant.getUniqueId());
+                if (otherBot != null) {
+                    targetPos = otherBot.getCurrentPosition();
+                    targetRef = otherBot.getEntityRef();
+                    health = otherBot.getHealth();
+                }
+            }
+
+            if (targetPos == null) continue;
+
+            double distance = botPos.distanceTo(targetPos);
+
+            // Pick lowest HP threat
+            if (health < bestHealth) {
+                bestHealth = health;
+                bestParticipant = participant;
+                bestRef = targetRef;
+                bestPos = targetPos;
+                bestDistance = distance;
+            }
+        }
+
+        if (bestParticipant == null) return null;
+        return new NearestEnemy(bestParticipant, bestRef, bestDistance, bestPos);
     }
 
     /**
@@ -1115,14 +1188,6 @@ public class BotManager {
         UUID botId = bot.getUniqueId();
         String prevState = botNpcState.get(botId);
 
-        // Log block exit
-        if ("Block".equals(prevState) && decision != BrainDecision.BLOCK) {
-            BotBrain brain = bot.getBrain();
-            double energy = brain != null ? brain.getBlockEnergy() : -1;
-            System.out.println("[BotBrain] " + bot.getName() + " BLOCK END → " + decision +
-                " (energy: " + String.format("%.0f", energy) + ")");
-        }
-
         switch (decision) {
             case BLOCK -> {
                 // Ensure enemy is set as target so the NPC faces them while blocking
@@ -1132,23 +1197,24 @@ public class BotManager {
                 if (!"Block".equals(prevState)) {
                     role.getStateSupport().setState(bot.getEntityRef(), "Block", "Default", store);
                     botNpcState.put(botId, "Block");
-                    BotBrain brain = bot.getBrain();
-                    double energy = brain != null ? brain.getBlockEnergy() : -1;
-                    System.out.println("[BotBrain] " + bot.getName() + " BLOCK START (energy: " +
-                        String.format("%.0f", energy) + ", isBlocking()=" + isBlocking(bot) + ")");
                 }
             }
 
             case COMBAT -> {
-                if (ctx.nearestEnemy != null) {
-                    // For objective modes with enemies in zone, prefer zone enemies
-                    NearestEnemy target = ctx.nearestEnemy;
-                    if (ctx.objective != null && ctx.botInZone && !ctx.enemiesInZone.isEmpty()) {
-                        NearestEnemy zoneEnemy = findNearestEnemyFromSet(bot, ctx.match, store, ctx.enemiesInZone);
-                        if (zoneEnemy != null) {
-                            target = zoneEnemy;
-                        }
+                // Choose target based on context:
+                // 1. Off-zone with active threats → fight the threat target (lowest HP)
+                // 2. On-zone with enemies in zone → fight zone enemies
+                // 3. Default → fight nearest enemy
+                NearestEnemy target = ctx.nearestEnemy;
+                if (ctx.objective != null && !ctx.botInZone && ctx.threatTarget != null) {
+                    target = ctx.threatTarget;
+                } else if (ctx.objective != null && ctx.botInZone && !ctx.enemiesInZone.isEmpty()) {
+                    NearestEnemy zoneEnemy = findNearestEnemyFromSet(bot, ctx.match, store, ctx.enemiesInZone);
+                    if (zoneEnemy != null) {
+                        target = zoneEnemy;
                     }
+                }
+                if (target != null) {
                     applyEnemyTargetFromNearestEnemy(bot, role, target, store);
                     if (!"Combat".equals(prevState)) {
                         role.getStateSupport().setState(bot.getEntityRef(), "Combat", "Default", store);
@@ -1452,10 +1518,6 @@ public class BotManager {
         if (victimBot == null || !victimBot.isAlive() || victimBot.isImmune()) return;
 
         // Victim is blocking → damage negated
-        String rawSecondary = EntityInteractionHelper.getSecondaryInteraction(victimBot.getEntityRef(), victimBot.getEntityRef().getStore());
-        String victimNpcState = botNpcState.get(victimBot.getUniqueId());
-        System.out.println("[BotDamage] " + attacker.getName() + " → " + victimBot.getName() +
-            " | secondaryInteraction=" + rawSecondary + ", npcState=" + victimNpcState);
         if (isBlocking(victimBot)) return;
 
         // Apply damage scaled by attacker difficulty
@@ -1463,6 +1525,12 @@ public class BotManager {
 
         boolean died = victimBot.takeDamage(damage);
         attacker.addDamageDealt(damage);
+
+        // Register attacker as a threat on the victim's brain
+        BotBrain victimBrain = victimBot.getBrain();
+        if (victimBrain != null) {
+            victimBrain.registerThreat(attacker.getUniqueId());
+        }
 
         // Update NPC entity health bar
         applyDamageToNpcEntity(victimBot, damage);
