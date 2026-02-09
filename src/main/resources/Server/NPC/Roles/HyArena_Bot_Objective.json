@@ -19,14 +19,19 @@
   "InventorySize": 3,
   "HotbarSize": 3,
   "HotbarItems": [
-    "Weapon_Axe_Mithril"
+    "Weapon_Club_Steel_Flail_Rusty"
   ],
+  "OffHandItems": [
+    "Weapon_Shield_Rusty"
+  ],
+  "OffHandSlots": 1,
+  "DefaultOffHandSlot": 0,
   "DeathAnimationTime": 5.0,
   "DespawnAnimationTime": 0.8,
   "SpawnLockTime": 1.5,
   "SpawnViewDistance": 75,
   "CollisionDistance": 5,
-  "BusyStates": ["Combat", "Defend"],
+  "BusyStates": ["Combat", "Defend", "Block"],
   "InteractionVars": {
     "Melee_Damage": {
       "Interactions": [
@@ -124,11 +129,38 @@
         ]
       },
       {
+        "$Comment": "React to damage while watching — block the attack",
+        "Sensor": {
+          "Type": "And",
+          "Sensors": [
+            { "Type": "State", "State": "Watchout" },
+            { "Type": "Damage", "Combat": true, "TargetSlot": "LockedTarget" }
+          ]
+        },
+        "Actions": [
+          { "Type": "AddToHostileTargetMemory" },
+          { "Type": "State", "State": "Block" }
+        ]
+      },
+      {
         "$Comment": "Watchout target lost — return to idle",
         "Sensor": {
           "Type": "And",
           "Sensors": [
             { "Type": "State", "State": "Watchout" },
+            { "Type": "Not", "Sensor": { "Type": "Target" } }
+          ]
+        },
+        "Actions": [
+          { "Type": "State", "State": "Idle" }
+        ]
+      },
+      {
+        "$Comment": "Block target lost — return to idle",
+        "Sensor": {
+          "Type": "And",
+          "Sensors": [
+            { "Type": "State", "State": "Block" },
             { "Type": "Not", "Sensor": { "Type": "Target" } }
           ]
         },
@@ -177,7 +209,7 @@
           }
         },
         {
-          "$Comment": "Strafe and block while in combat range",
+          "$Comment": "Strafe while in combat range",
           "Sensor": {
             "Type": "Target",
             "Range": 8.0
@@ -192,9 +224,7 @@
           },
           "HeadMotion": {
             "Type": "Watch"
-          },
-          "BlockAbility": "Shield_Block",
-          "BlockProbability": 40
+          }
         },
         {
           "$Comment": "Chase target when out of combat range",
@@ -212,6 +242,24 @@
           }
         }
       ]
+    },
+    {
+      "Name": "BlockBehavior",
+      "Sensor": {
+        "Type": "And",
+        "Sensors": [
+          { "Type": "Target" },
+          { "Type": "State", "State": "Block" }
+        ]
+      },
+      "BodyMotion": {
+        "Type": "Nothing"
+      },
+      "HeadMotion": {
+        "Type": "Aim"
+      },
+      "BlockAbility": "Shield_Block",
+      "BlockProbability": 100
     },
     {
       "Name": "DefendBehavior",
@@ -251,7 +299,7 @@
           }
         },
         {
-          "$Comment": "Hold position and block — do not chase",
+          "$Comment": "Hold position — do not chase",
           "Sensor": {
             "Type": "Target"
           },
@@ -260,9 +308,7 @@
           },
           "HeadMotion": {
             "Type": "Watch"
-          },
-          "BlockAbility": "Shield_Block",
-          "BlockProbability": 50
+          }
         }
       ]
     },

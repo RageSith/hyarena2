@@ -101,6 +101,17 @@ public class BotManager {
     private static final int FOLLOW_STUCK_THRESHOLD = 30; // ~1.5 seconds at 20 ticks/sec
     private static final double ZONE_NEAR_DISTANCE = 3.0; // "close to zone" threshold
 
+    // Reactive block: tracks previous health to detect incoming damage (works for all enemy types)
+    private final Map<UUID, Double> botPrevHealth = new ConcurrentHashMap<>();
+    // Edge detection for bot-enemy proactive blocking (CombatSupport-based)
+    private final Map<UUID, Boolean> enemyAttackEdge = new ConcurrentHashMap<>();
+    // Tracks the state before Block was entered, so we can return to it
+    private final Map<UUID, String> preBlockState = new ConcurrentHashMap<>();
+    // Counts ticks spent in Block state (exits after BLOCK_DURATION_TICKS)
+    private final Map<UUID, Integer> blockTickCounter = new ConcurrentHashMap<>();
+    private static final int BLOCK_DURATION_TICKS = 15; // ~0.75 seconds
+    private final Random blockRandom = new Random();
+
     // Cached reflection field for reading CombatSupport.activeAttack (protected)
     private static Field activeAttackField;
     static {
@@ -378,6 +389,10 @@ public class BotManager {
         objectiveLogCounter.remove(botId);
         botNpcState.remove(botId);
         followStuckTicks.remove(botId);
+        botPrevHealth.remove(botId);
+        enemyAttackEdge.remove(botId);
+        preBlockState.remove(botId);
+        blockTickCounter.remove(botId);
 
         System.out.println("[BotManager] Despawned bot " + bot.getName());
     }
@@ -537,6 +552,9 @@ public class BotManager {
         // Update NPC targeting
         updateBotTarget(bot, match, store);
 
+        // Reactive blocking: detect enemy attacks and raise shield
+        checkReactiveBlock(bot, match, store);
+
         // Manual bot-on-bot damage (synced with NPC facing direction)
         applyBotCombatDamage(bot, match);
     }
@@ -638,6 +656,10 @@ public class BotManager {
 
         Position botPos = bot.getCurrentPosition();
         if (botPos == null) return;
+
+        // Don't override targeting while bot is blocking — checkReactiveBlock manages exit
+        String currentState = botNpcState.get(bot.getUniqueId());
+        if ("Block".equals(currentState)) return;
 
         ArenaConfig config = match.getArena().getConfig();
         BotObjective objective = match.getGameMode().getBotObjective(config);
@@ -941,6 +963,105 @@ public class BotManager {
         } catch (Exception e) {
             // Ignore
         }
+    }
+
+    /**
+     * Reactive blocking: detects incoming attacks via two signals:
+     * 1. Health drop (works for ALL enemy types — players and bots)
+     * 2. Enemy bot mid-swing via CombatSupport (proactive, bot-vs-bot only)
+     *
+     * If the bot is not mid-attack itself and probability passes, enters Block state.
+     * Block lasts BLOCK_DURATION_TICKS then returns to previous state.
+     */
+    private void checkReactiveBlock(BotParticipant bot, Match match, Store<EntityStore> store) {
+        UUID botId = bot.getUniqueId();
+        String currentState = botNpcState.get(botId);
+
+        NPCEntity npcEntity = bot.getNpcEntity();
+        if (npcEntity == null) return;
+        Role role = npcEntity.getRole();
+        if (role == null) return;
+
+        // Track health drops to detect incoming attacks (works for player and bot enemies)
+        double currentHealth = bot.getHealth();
+        double prevHealth = botPrevHealth.getOrDefault(botId, currentHealth);
+        botPrevHealth.put(botId, currentHealth);
+        boolean justTookDamage = currentHealth < prevHealth;
+
+        // Edge detection for bot-enemy proactive blocking
+        boolean enemyAttacking = isEnemyCurrentlyAttacking(bot, store);
+        boolean wasEnemyAttacking = enemyAttackEdge.getOrDefault(botId, false);
+        enemyAttackEdge.put(botId, enemyAttacking);
+        boolean enemySwingStarted = enemyAttacking && !wasEnemyAttacking;
+
+        // If we're in Block state, count down and exit after duration
+        if ("Block".equals(currentState)) {
+            int ticks = blockTickCounter.merge(botId, 1, Integer::sum);
+            if (ticks >= BLOCK_DURATION_TICKS) {
+                String returnState = preBlockState.getOrDefault(botId, "Combat");
+                role.getStateSupport().setState(bot.getEntityRef(), returnState, "Default", store);
+                botNpcState.put(botId, returnState);
+                preBlockState.remove(botId);
+                blockTickCounter.remove(botId);
+            }
+            return;
+        }
+
+        // Only consider blocking from active combat states (not Follow, Idle, Block itself)
+        if (!"Combat".equals(currentState) && !"Defend".equals(currentState) && !"Watchout".equals(currentState)) {
+            return;
+        }
+
+        // Need an attack signal: either took damage (any enemy) or enemy bot started swinging
+        if (!justTookDamage && !enemySwingStarted) return;
+
+        // Probability check based on difficulty
+        double prob = bot.getDifficulty().getBlockProbability();
+        if (blockRandom.nextDouble() >= prob) return;
+
+        // Enter Block state
+        preBlockState.put(botId, currentState);
+        blockTickCounter.put(botId, 0);
+        role.getStateSupport().setState(bot.getEntityRef(), "Block", "Default", store);
+        botNpcState.put(botId, "Block");
+    }
+
+    /**
+     * Checks if the bot's current NPC target (the enemy it's facing) is mid-attack.
+     * Works for bot enemies via their CombatSupport. Returns false for player enemies
+     * (player attack detection not yet implemented).
+     */
+    private boolean isEnemyCurrentlyAttacking(BotParticipant bot, Store<EntityStore> store) {
+        NPCEntity npcEntity = bot.getNpcEntity();
+        if (npcEntity == null) return false;
+        Role role = npcEntity.getRole();
+        if (role == null) return false;
+        MarkedEntitySupport markedSupport = role.getMarkedEntitySupport();
+        if (markedSupport == null) return false;
+
+        Ref<EntityStore> targetRef = markedSupport.getMarkedEntityRef(MarkedEntitySupport.DEFAULT_TARGET_SLOT);
+        if (targetRef == null || !targetRef.isValid()) return false;
+
+        Store<EntityStore> targetStore = targetRef.getStore();
+        if (targetStore == null) return false;
+
+        UUIDComponent targetUuid = targetStore.getComponent(targetRef, UUIDComponent.getComponentType());
+        if (targetUuid == null) return false;
+
+        // Check if target is a bot — read their CombatSupport
+        BotParticipant targetBot = getBotByEntityUuid(targetUuid.getUuid());
+        if (targetBot != null && targetBot.getNpcEntity() != null) {
+            Role targetRole = targetBot.getNpcEntity().getRole();
+            if (targetRole != null) {
+                CombatSupport targetCombat = targetRole.getCombatSupport();
+                if (targetCombat != null) {
+                    return isActuallyAttacking(targetCombat);
+                }
+            }
+        }
+
+        // Player enemy — can't detect attack state directly yet
+        return false;
     }
 
     /**

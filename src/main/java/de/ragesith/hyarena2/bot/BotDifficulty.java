@@ -14,7 +14,8 @@ public enum BotDifficulty {
         0.8,    // healthMultiplier
         1000,   // attackCooldownMs
         0.30,   // retreatThreshold (30% health)
-        15.0    // baseDamage
+        15.0,   // baseDamage
+        0.20    // blockProbability (20%)
     ),
     MEDIUM(
         800,    // reactionTimeMs
@@ -25,7 +26,8 @@ public enum BotDifficulty {
         1.0,    // healthMultiplier
         900,    // attackCooldownMs
         0.25,   // retreatThreshold (25% health)
-        20.0    // baseDamage
+        20.0,   // baseDamage
+        0.40    // blockProbability (40%)
     ),
     HARD(
         300,    // reactionTimeMs
@@ -36,7 +38,8 @@ public enum BotDifficulty {
         1.4,    // healthMultiplier
         600,    // attackCooldownMs
         0.15,   // retreatThreshold (15% health)
-        28.0    // baseDamage
+        28.0,   // baseDamage
+        0.70    // blockProbability (70%)
     );
 
     private final int reactionTimeMs;
@@ -48,10 +51,12 @@ public enum BotDifficulty {
     private final int attackCooldownMs;
     private final double retreatThreshold;
     private final double baseDamage;
+    private final double blockProbability;
 
     BotDifficulty(int reactionTimeMs, double aimAccuracy, double attackRange,
                   double chaseRange, double movementSpeedMultiplier, double healthMultiplier,
-                  int attackCooldownMs, double retreatThreshold, double baseDamage) {
+                  int attackCooldownMs, double retreatThreshold, double baseDamage,
+                  double blockProbability) {
         this.reactionTimeMs = reactionTimeMs;
         this.aimAccuracy = aimAccuracy;
         this.attackRange = attackRange;
@@ -61,6 +66,7 @@ public enum BotDifficulty {
         this.attackCooldownMs = attackCooldownMs;
         this.retreatThreshold = retreatThreshold;
         this.baseDamage = baseDamage;
+        this.blockProbability = blockProbability;
     }
 
     /**
@@ -128,6 +134,14 @@ public enum BotDifficulty {
      */
     public double getBaseDamage() {
         return baseDamage;
+    }
+
+    /**
+     * Probability (0.0-1.0) that the bot will block an incoming attack.
+     * Higher = blocks more often.
+     */
+    public double getBlockProbability() {
+        return blockProbability;
     }
 
     /**
