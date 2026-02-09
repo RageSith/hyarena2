@@ -38,7 +38,6 @@ import de.ragesith.hyarena2.bot.BotManager;
 import de.ragesith.hyarena2.bot.BotParticipant;
 
 import de.ragesith.hyarena2.utils.PlayerMovementControl;
-import de.ragesith.hyarena2.utils.EntityInteractionHelper;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -72,10 +71,6 @@ public class Match {
 
     // Pending bot queue — bots queued by Matchmaker, drained on arena world thread in tickWaiting()
     private final List<PendingBot> pendingBots = new ArrayList<>();
-
-    // [TEST] Player interaction detection — edge detection to log only on transitions
-    private final Map<UUID, Boolean> playerWasPrimary = new ConcurrentHashMap<>();
-    private final Map<UUID, Boolean> playerWasSecondary = new ConcurrentHashMap<>();
 
     // TPS tracking — samples collected every 5s during IN_PROGRESS
     private final List<Double> tpsSamples = new ArrayList<>();
@@ -901,45 +896,6 @@ public class Match {
             }
             tpsSampleStartTime = now;
             tpsSampleStartTick = tickCount;
-        }
-
-        // [TEST] Player interaction detection via EntityInteractionHelper
-        for (Participant p : getParticipants()) {
-            if (p.getType() != ParticipantType.PLAYER) continue;
-            try {
-                PlayerRef playerRef = Universe.get().getPlayer(p.getUniqueId());
-                if (playerRef == null) continue;
-                Ref<EntityStore> ref = playerRef.getReference();
-                if (ref == null || !ref.isValid()) continue;
-                Store<EntityStore> store = ref.getStore();
-                if (store == null) continue;
-
-                // Primary (left click)
-                String primary = EntityInteractionHelper.getPrimaryInteraction(ref, store);
-                boolean hasPrimary = primary != null;
-                boolean wasPrimary = playerWasPrimary.getOrDefault(p.getUniqueId(), false);
-                playerWasPrimary.put(p.getUniqueId(), hasPrimary);
-                if (hasPrimary && !wasPrimary) {
-                    var kind = EntityInteractionHelper.classifyInteraction(primary);
-                    System.out.println("[InteractionTest] " + p.getName() + " PRIMARY START: " + primary + " (" + kind + ")");
-                } else if (!hasPrimary && wasPrimary) {
-                    System.out.println("[InteractionTest] " + p.getName() + " PRIMARY END");
-                }
-
-                // Secondary (right click)
-                String secondary = EntityInteractionHelper.getSecondaryInteraction(ref, store);
-                boolean hasSecondary = secondary != null;
-                boolean wasSecondary = playerWasSecondary.getOrDefault(p.getUniqueId(), false);
-                playerWasSecondary.put(p.getUniqueId(), hasSecondary);
-                if (hasSecondary && !wasSecondary) {
-                    var kind = EntityInteractionHelper.classifyInteraction(secondary);
-                    System.out.println("[InteractionTest] " + p.getName() + " SECONDARY START: " + secondary + " (" + kind + ")");
-                } else if (!hasSecondary && wasSecondary) {
-                    System.out.println("[InteractionTest] " + p.getName() + " SECONDARY END");
-                }
-            } catch (Exception e) {
-                System.err.println("[InteractionTest] Error: " + e.getMessage());
-            }
         }
 
         // Tick bots (AI, position sync, targeting)

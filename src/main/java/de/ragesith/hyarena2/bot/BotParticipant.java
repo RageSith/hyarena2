@@ -40,6 +40,7 @@ public class BotParticipant implements Participant {
 
     // AI controller
     private BotAI ai;
+    private BotBrain brain;
 
     // Entity references (set after spawning)
     private Ref<EntityStore> entityRef;
@@ -277,6 +278,20 @@ public class BotParticipant implements Participant {
      */
     public void setAI(BotAI ai) {
         this.ai = ai;
+    }
+
+    /**
+     * Gets the BotBrain decision engine.
+     */
+    public BotBrain getBrain() {
+        return brain;
+    }
+
+    /**
+     * Sets the BotBrain decision engine.
+     */
+    public void setBrain(BotBrain brain) {
+        this.brain = brain;
     }
 
     /**

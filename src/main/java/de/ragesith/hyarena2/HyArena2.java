@@ -32,6 +32,7 @@ import de.ragesith.hyarena2.command.testing.TestKitClearCommand;
 import de.ragesith.hyarena2.command.testing.TestBotSpawnCommand;
 import de.ragesith.hyarena2.command.testing.TestBotListCommand;
 import de.ragesith.hyarena2.command.testing.TestBotRemoveCommand;
+import de.ragesith.hyarena2.command.testing.TestBotAIToggleCommand;
 import de.ragesith.hyarena2.config.ConfigManager;
 import de.ragesith.hyarena2.config.GlobalConfig;
 import de.ragesith.hyarena2.config.HubConfig;
@@ -199,6 +200,7 @@ public class HyArena2 extends JavaPlugin {
         this.getCommandRegistry().registerCommand(new TestBotSpawnCommand(matchManager, botManager));
         this.getCommandRegistry().registerCommand(new TestBotListCommand(botManager));
         this.getCommandRegistry().registerCommand(new TestBotRemoveCommand(botManager));
+        this.getCommandRegistry().registerCommand(new TestBotAIToggleCommand(botManager));
 
         // Register custom interactions for NPC statues
         OpenMatchmakingInteraction.setPluginInstance(this);

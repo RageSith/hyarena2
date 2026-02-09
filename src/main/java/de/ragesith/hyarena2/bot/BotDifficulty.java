@@ -15,7 +15,9 @@ public enum BotDifficulty {
         1000,   // attackCooldownMs
         0.30,   // retreatThreshold (30% health)
         15.0,   // baseDamage
-        0.20    // blockProbability (20%)
+        0.20,   // blockProbability (20%) — legacy path
+        40.0,   // blockMaxEnergy — brain path
+        20.0    // blockMinEnergy — brain path
     ),
     MEDIUM(
         800,    // reactionTimeMs
@@ -27,7 +29,9 @@ public enum BotDifficulty {
         900,    // attackCooldownMs
         0.25,   // retreatThreshold (25% health)
         20.0,   // baseDamage
-        0.40    // blockProbability (40%)
+        0.40,   // blockProbability (40%) — legacy path
+        70.0,   // blockMaxEnergy — brain path
+        15.0    // blockMinEnergy — brain path
     ),
     HARD(
         300,    // reactionTimeMs
@@ -39,7 +43,9 @@ public enum BotDifficulty {
         600,    // attackCooldownMs
         0.15,   // retreatThreshold (15% health)
         28.0,   // baseDamage
-        0.70    // blockProbability (70%)
+        0.70,   // blockProbability (70%) — legacy path
+        100.0,  // blockMaxEnergy — brain path
+        10.0    // blockMinEnergy — brain path
     );
 
     private final int reactionTimeMs;
@@ -52,11 +58,13 @@ public enum BotDifficulty {
     private final double retreatThreshold;
     private final double baseDamage;
     private final double blockProbability;
+    private final double blockMaxEnergy;
+    private final double blockMinEnergy;
 
     BotDifficulty(int reactionTimeMs, double aimAccuracy, double attackRange,
                   double chaseRange, double movementSpeedMultiplier, double healthMultiplier,
                   int attackCooldownMs, double retreatThreshold, double baseDamage,
-                  double blockProbability) {
+                  double blockProbability, double blockMaxEnergy, double blockMinEnergy) {
         this.reactionTimeMs = reactionTimeMs;
         this.aimAccuracy = aimAccuracy;
         this.attackRange = attackRange;
@@ -67,6 +75,8 @@ public enum BotDifficulty {
         this.retreatThreshold = retreatThreshold;
         this.baseDamage = baseDamage;
         this.blockProbability = blockProbability;
+        this.blockMaxEnergy = blockMaxEnergy;
+        this.blockMinEnergy = blockMinEnergy;
     }
 
     /**
@@ -142,6 +152,22 @@ public enum BotDifficulty {
      */
     public double getBlockProbability() {
         return blockProbability;
+    }
+
+    /**
+     * Maximum block energy pool size (brain AI path).
+     * Higher = longer sustained blocks.
+     */
+    public double getBlockMaxEnergy() {
+        return blockMaxEnergy;
+    }
+
+    /**
+     * Minimum energy required to initiate a new block (brain AI path).
+     * Lower = bot can start blocking with less energy remaining.
+     */
+    public double getBlockMinEnergy() {
+        return blockMinEnergy;
     }
 
     /**

@@ -108,6 +108,11 @@ public class BotManager {
     private static final int MAX_BLOCK_TICKS = 60;        // ~3s safety cap
     private static final int BLOCK_COOLDOWN_TICKS = 40;   // ~2s between blocks
 
+    // Brain AI toggle — when true, uses BotBrain priority system; when false, uses legacy updateBotTarget/checkReactiveBlock
+    private boolean useBrainAI = true;
+
+    public void setUseBrainAI(boolean use) { this.useBrainAI = use; }
+    public boolean isUsingBrainAI() { return useBrainAI; }
 
     public BotManager(EventBus eventBus) {
         this.eventBus = eventBus;
@@ -142,6 +147,10 @@ public class BotManager {
         BotAI ai = new BotAI(bot);
         ai.setDamageCallback(this::handleBotDamage);
         bot.setAI(ai);
+
+        // Create brain decision engine
+        BotBrain brain = new BotBrain(difficulty);
+        bot.setBrain(brain);
 
         // Track bot
         activeBots.put(bot.getUniqueId(), bot);
@@ -284,6 +293,9 @@ public class BotManager {
         bot.setCurrentPosition(spawnPosition.copy());
         if (bot.getAI() != null) {
             bot.getAI().reset();
+        }
+        if (bot.getBrain() != null) {
+            bot.getBrain().reset();
         }
 
         // Clear tracked NPC state so updateBotTarget() re-evaluates from scratch
@@ -468,19 +480,27 @@ public class BotManager {
             return;
         }
 
-        // Update AI state
+        // Update AI state (reaction time gating — shared by both paths)
         BotAI ai = bot.getAI();
         if (ai != null) {
             ai.tick();
         }
 
-        // Update NPC targeting
-        updateBotTarget(bot, match, store);
+        if (useBrainAI) {
+            // Brain AI path — priority-based decisions
+            BotBrain brain = bot.getBrain();
+            if (brain != null) {
+                BrainContext ctx = buildBrainContext(bot, match, store);
+                BrainDecision decision = brain.evaluate(ctx);
+                applyBrainDecision(bot, decision, ctx, store);
+            }
+        } else {
+            // Legacy path — original updateBotTarget + checkReactiveBlock
+            updateBotTarget(bot, match, store);
+            checkReactiveBlock(bot, match, store);
+        }
 
-        // Reactive blocking: detect damage and trigger Block state
-        checkReactiveBlock(bot, match, store);
-
-        // Manual bot-on-bot damage (synced with NPC facing direction)
+        // Manual bot-on-bot damage (synced with NPC facing direction) — shared by both paths
         applyBotCombatDamage(bot, match);
     }
 
@@ -1028,6 +1048,330 @@ public class BotManager {
         }
     }
 
+    // ========== Brain AI Methods ==========
+
+    /**
+     * Builds a BrainContext from existing match/bot data for the brain to evaluate.
+     */
+    private BrainContext buildBrainContext(BotParticipant bot, Match match, Store<EntityStore> store) {
+        Position botPos = bot.getCurrentPosition();
+        ArenaConfig config = match.getArena().getConfig();
+        BotObjective objective = match.getGameMode().getBotObjective(config);
+
+        // Find nearest enemy
+        NearestEnemy nearest = findNearestEnemy(bot, match, store);
+
+        // Objective-mode data
+        List<UUID> enemiesInZone = List.of();
+        boolean botInZone = false;
+        if (objective != null && botPos != null) {
+            enemiesInZone = objective.participantsInZone().stream()
+                .filter(id -> !id.equals(bot.getUniqueId()))
+                .toList();
+            botInZone = objective.isInsideZone(botPos);
+        }
+
+        // Attack state detection
+        boolean enemyAttacking = false;
+        boolean botAttacking = isActuallyAttacking(bot);
+
+        // First try the bot's current marked target
+        NPCEntity npcEntity = bot.getNpcEntity();
+        if (npcEntity != null) {
+            Role role = npcEntity.getRole();
+            if (role != null) {
+                enemyAttacking = isEnemyAttacking(role, store);
+            }
+        }
+
+        // If marked target isn't attacking (e.g. bot is following a marker entity),
+        // check the nearest enemy's attack state directly
+        if (!enemyAttacking && nearest != null && nearest.entityRef != null && nearest.entityRef.isValid()) {
+            try {
+                Store<EntityStore> enemyStore = nearest.entityRef.getStore();
+                if (enemyStore != null) {
+                    String interaction = EntityInteractionHelper.getPrimaryInteraction(nearest.entityRef, enemyStore);
+                    enemyAttacking = EntityInteractionHelper.classifyInteraction(interaction) == EntityInteractionHelper.InteractionKind.ATTACK;
+                }
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
+
+        return new BrainContext(bot, match, store, botPos, objective, nearest,
+            enemiesInZone, botInZone, enemyAttacking, botAttacking, config.getBounds());
+    }
+
+    /**
+     * Translates a BrainDecision into NPC role state and target changes.
+     */
+    private void applyBrainDecision(BotParticipant bot, BrainDecision decision, BrainContext ctx, Store<EntityStore> store) {
+        NPCEntity npcEntity = bot.getNpcEntity();
+        if (npcEntity == null) return;
+
+        Role role = npcEntity.getRole();
+        if (role == null) return;
+
+        UUID botId = bot.getUniqueId();
+        String prevState = botNpcState.get(botId);
+
+        // Log block exit
+        if ("Block".equals(prevState) && decision != BrainDecision.BLOCK) {
+            BotBrain brain = bot.getBrain();
+            double energy = brain != null ? brain.getBlockEnergy() : -1;
+            System.out.println("[BotBrain] " + bot.getName() + " BLOCK END → " + decision +
+                " (energy: " + String.format("%.0f", energy) + ")");
+        }
+
+        switch (decision) {
+            case BLOCK -> {
+                // Ensure enemy is set as target so the NPC faces them while blocking
+                if (ctx.nearestEnemy != null) {
+                    applyEnemyTargetFromNearestEnemy(bot, role, ctx.nearestEnemy, store);
+                }
+                if (!"Block".equals(prevState)) {
+                    role.getStateSupport().setState(bot.getEntityRef(), "Block", "Default", store);
+                    botNpcState.put(botId, "Block");
+                    BotBrain brain = bot.getBrain();
+                    double energy = brain != null ? brain.getBlockEnergy() : -1;
+                    System.out.println("[BotBrain] " + bot.getName() + " BLOCK START (energy: " +
+                        String.format("%.0f", energy) + ", isBlocking()=" + isBlocking(bot) + ")");
+                }
+            }
+
+            case COMBAT -> {
+                if (ctx.nearestEnemy != null) {
+                    // For objective modes with enemies in zone, prefer zone enemies
+                    NearestEnemy target = ctx.nearestEnemy;
+                    if (ctx.objective != null && ctx.botInZone && !ctx.enemiesInZone.isEmpty()) {
+                        NearestEnemy zoneEnemy = findNearestEnemyFromSet(bot, ctx.match, store, ctx.enemiesInZone);
+                        if (zoneEnemy != null) {
+                            target = zoneEnemy;
+                        }
+                    }
+                    applyEnemyTargetFromNearestEnemy(bot, role, target, store);
+                    if (!"Combat".equals(prevState)) {
+                        role.getStateSupport().setState(bot.getEntityRef(), "Combat", "Default", store);
+                        botNpcState.put(botId, "Combat");
+                    }
+                }
+            }
+
+            case DEFEND_ZONE -> {
+                if (ctx.nearestEnemy != null) {
+                    applyEnemyTargetFromNearestEnemy(bot, role, ctx.nearestEnemy, store);
+                    // Use Defend if in attack range, Watchout if farther
+                    String targetState = ctx.nearestEnemy.distance <= DEFEND_RANGE ? "Defend" : "Watchout";
+                    if (!targetState.equals(prevState)) {
+                        role.getStateSupport().setState(bot.getEntityRef(), targetState, "Default", store);
+                        botNpcState.put(botId, targetState);
+                    }
+                }
+            }
+
+            case OBJECTIVE -> {
+                Position botTarget = getBotZoneTarget(botId, ctx.objective);
+                if (!"Follow".equals(prevState)) {
+                    BotAI ai = bot.getAI();
+                    if (ai != null) ai.clearTarget();
+                    Ref<EntityStore> marker = getOrCreateObjectiveMarker(botId, botTarget, store);
+                    if (marker != null && marker.isValid()) {
+                        setNpcObjectiveTarget(role, marker, bot.getEntityRef(), store);
+                        botNpcState.put(botId, "Follow");
+                    }
+                } else {
+                    // Already following — update marker position
+                    Ref<EntityStore> marker = getOrCreateObjectiveMarker(botId, botTarget, store);
+                    if (marker != null && marker.isValid()) {
+                        MarkedEntitySupport markedSupport = role.getMarkedEntitySupport();
+                        if (markedSupport != null) {
+                            markedSupport.setMarkedEntity(MarkedEntitySupport.DEFAULT_TARGET_SLOT, marker);
+                        }
+                    }
+                }
+            }
+
+            case ROAM -> {
+                BotBrain brain = bot.getBrain();
+                Position waypoint = brain != null ? brain.getRoamWaypoint() : null;
+                if (waypoint != null) {
+                    if (!"Follow".equals(prevState)) {
+                        BotAI ai = bot.getAI();
+                        if (ai != null) ai.clearTarget();
+                        Ref<EntityStore> marker = getOrCreateObjectiveMarker(botId, waypoint, store);
+                        if (marker != null && marker.isValid()) {
+                            setNpcObjectiveTarget(role, marker, bot.getEntityRef(), store);
+                            botNpcState.put(botId, "Follow");
+                        }
+                    } else {
+                        // Already following — update marker to waypoint position
+                        Ref<EntityStore> marker = getOrCreateObjectiveMarker(botId, waypoint, store);
+                        if (marker != null && marker.isValid()) {
+                            MarkedEntitySupport markedSupport = role.getMarkedEntitySupport();
+                            if (markedSupport != null) {
+                                markedSupport.setMarkedEntity(MarkedEntitySupport.DEFAULT_TARGET_SLOT, marker);
+                            }
+                        }
+                    }
+                }
+            }
+
+            case IDLE -> {
+                if (!"Idle".equals(prevState)) {
+                    BotAI ai = bot.getAI();
+                    if (ai != null) ai.clearTarget();
+                    clearNpcTarget(role, bot.getEntityRef(), store);
+                    botNpcState.put(botId, "Idle");
+                }
+            }
+        }
+    }
+
+    /**
+     * Applies an enemy as the bot's NPC target using NearestEnemy (brain path).
+     * Parallel to applyEnemyTarget() which uses NearestTarget (legacy path).
+     */
+    private void applyEnemyTargetFromNearestEnemy(BotParticipant bot, Role role, NearestEnemy nearest, Store<EntityStore> store) {
+        BotAI ai = bot.getAI();
+        if (ai != null && nearest != null) {
+            ai.setTarget(nearest.participant.getUniqueId(), nearest.position);
+        }
+
+        if (nearest != null && nearest.entityRef != null && nearest.entityRef.isValid()) {
+            try {
+                MarkedEntitySupport markedSupport = role.getMarkedEntitySupport();
+                if (markedSupport != null) {
+                    markedSupport.setMarkedEntity(MarkedEntitySupport.DEFAULT_TARGET_SLOT, nearest.entityRef);
+                }
+
+                WorldSupport worldSupport = role.getWorldSupport();
+                if (worldSupport != null) {
+                    worldSupport.overrideAttitude(nearest.entityRef, Attitude.HOSTILE, 60.0);
+                }
+            } catch (Exception e) {
+                // Ignore targeting errors
+            }
+        }
+    }
+
+    /**
+     * Finds the nearest alive enemy participant relative to this bot (brain path).
+     * Returns NearestEnemy (top-level class) instead of NearestTarget (inner class).
+     */
+    private NearestEnemy findNearestEnemy(BotParticipant bot, Match match, Store<EntityStore> store) {
+        Position botPos = bot.getCurrentPosition();
+        if (botPos == null) return null;
+
+        Participant nearestParticipant = null;
+        Ref<EntityStore> nearestRef = null;
+        Position nearestPos = null;
+        double nearestDistance = Double.MAX_VALUE;
+
+        for (Participant participant : match.getParticipants()) {
+            if (participant.getUniqueId().equals(bot.getUniqueId())) continue;
+            if (!participant.isAlive()) continue;
+
+            Position targetPos = null;
+            Ref<EntityStore> targetRef = null;
+
+            if (participant.getType() == ParticipantType.PLAYER) {
+                PlayerRef playerRef = Universe.get().getPlayer(participant.getUniqueId());
+                if (playerRef != null) {
+                    targetRef = playerRef.getReference();
+                    if (targetRef != null && targetRef.isValid()) {
+                        try {
+                            TransformComponent transform = store.getComponent(targetRef, TransformComponent.getComponentType());
+                            if (transform != null) {
+                                Vector3d pos = transform.getPosition();
+                                targetPos = new Position(pos.getX(), pos.getY(), pos.getZ());
+                            }
+                        } catch (Exception e) {
+                            // Ignore
+                        }
+                    }
+                }
+            } else if (participant.getType() == ParticipantType.BOT) {
+                BotParticipant otherBot = activeBots.get(participant.getUniqueId());
+                if (otherBot != null) {
+                    targetPos = otherBot.getCurrentPosition();
+                    targetRef = otherBot.getEntityRef();
+                }
+            }
+
+            if (targetPos != null) {
+                double distance = botPos.distanceTo(targetPos);
+                if (distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearestParticipant = participant;
+                    nearestRef = targetRef;
+                    nearestPos = targetPos;
+                }
+            }
+        }
+
+        if (nearestParticipant == null) return null;
+        return new NearestEnemy(nearestParticipant, nearestRef, nearestDistance, nearestPos);
+    }
+
+    /**
+     * Finds the nearest alive enemy from a specific set of UUIDs (brain path).
+     * Used for zone-based targeting.
+     */
+    private NearestEnemy findNearestEnemyFromSet(BotParticipant bot, Match match, Store<EntityStore> store, List<UUID> targetIds) {
+        Position botPos = bot.getCurrentPosition();
+        if (botPos == null) return null;
+
+        Participant nearestParticipant = null;
+        Ref<EntityStore> nearestRef = null;
+        Position nearestPos = null;
+        double nearestDistance = Double.MAX_VALUE;
+
+        for (Participant participant : match.getParticipants()) {
+            if (!targetIds.contains(participant.getUniqueId())) continue;
+            if (!participant.isAlive()) continue;
+
+            Position targetPos = null;
+            Ref<EntityStore> targetRef = null;
+
+            if (participant.getType() == ParticipantType.PLAYER) {
+                PlayerRef playerRef = Universe.get().getPlayer(participant.getUniqueId());
+                if (playerRef != null) {
+                    targetRef = playerRef.getReference();
+                    if (targetRef != null && targetRef.isValid()) {
+                        try {
+                            TransformComponent transform = store.getComponent(targetRef, TransformComponent.getComponentType());
+                            if (transform != null) {
+                                Vector3d pos = transform.getPosition();
+                                targetPos = new Position(pos.getX(), pos.getY(), pos.getZ());
+                            }
+                        } catch (Exception e) {
+                            // Ignore
+                        }
+                    }
+                }
+            } else if (participant.getType() == ParticipantType.BOT) {
+                BotParticipant otherBot = activeBots.get(participant.getUniqueId());
+                if (otherBot != null) {
+                    targetPos = otherBot.getCurrentPosition();
+                    targetRef = otherBot.getEntityRef();
+                }
+            }
+
+            if (targetPos != null) {
+                double distance = botPos.distanceTo(targetPos);
+                if (distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearestParticipant = participant;
+                    nearestRef = targetRef;
+                    nearestPos = targetPos;
+                }
+            }
+        }
+
+        if (nearestParticipant == null) return null;
+        return new NearestEnemy(nearestParticipant, nearestRef, nearestDistance, nearestPos);
+    }
+
     /**
      * Holds info about the nearest enemy target found during scanning.
      */
@@ -1108,6 +1452,10 @@ public class BotManager {
         if (victimBot == null || !victimBot.isAlive() || victimBot.isImmune()) return;
 
         // Victim is blocking → damage negated
+        String rawSecondary = EntityInteractionHelper.getSecondaryInteraction(victimBot.getEntityRef(), victimBot.getEntityRef().getStore());
+        String victimNpcState = botNpcState.get(victimBot.getUniqueId());
+        System.out.println("[BotDamage] " + attacker.getName() + " → " + victimBot.getName() +
+            " | secondaryInteraction=" + rawSecondary + ", npcState=" + victimNpcState);
         if (isBlocking(victimBot)) return;
 
         // Apply damage scaled by attacker difficulty
