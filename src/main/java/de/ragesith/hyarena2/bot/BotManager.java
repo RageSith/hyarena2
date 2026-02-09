@@ -8,7 +8,6 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.server.core.asset.type.attitude.Attitude;
-import com.hypixel.hytale.server.core.entity.InteractionChain;
 import com.hypixel.hytale.server.core.entity.UUIDComponent;
 import com.hypixel.hytale.server.core.entity.entities.ProjectileComponent;
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
@@ -27,7 +26,6 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.npc.NPCPlugin;
 import com.hypixel.hytale.server.npc.entities.NPCEntity;
 import com.hypixel.hytale.server.npc.role.Role;
-import com.hypixel.hytale.server.npc.role.support.CombatSupport;
 import com.hypixel.hytale.server.npc.role.support.MarkedEntitySupport;
 import com.hypixel.hytale.server.npc.role.support.WorldSupport;
 import de.ragesith.hyarena2.arena.Arena;
@@ -40,7 +38,7 @@ import de.ragesith.hyarena2.gamemode.GameMode;
 import de.ragesith.hyarena2.participant.Participant;
 import de.ragesith.hyarena2.participant.ParticipantType;
 
-import java.lang.reflect.Field;
+import de.ragesith.hyarena2.utils.EntityInteractionHelper;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -110,17 +108,6 @@ public class BotManager {
     private static final int MAX_BLOCK_TICKS = 60;        // ~3s safety cap
     private static final int BLOCK_COOLDOWN_TICKS = 40;   // ~2s between blocks
 
-    // Cached reflection field for reading CombatSupport.activeAttack (protected)
-    private static Field activeAttackField;
-    static {
-        try {
-            activeAttackField = CombatSupport.class.getDeclaredField("activeAttack");
-            activeAttackField.setAccessible(true);
-        } catch (Exception e) {
-            System.err.println("[BotManager] Could not access CombatSupport.activeAttack field: " + e.getMessage());
-            activeAttackField = null;
-        }
-    }
 
     public BotManager(EventBus eventBus) {
         this.eventBus = eventBus;
@@ -755,8 +742,7 @@ public class BotManager {
         }
 
         // Can't raise shield while in own attack frames
-        CombatSupport combatSupport = role.getCombatSupport();
-        if (combatSupport != null && isActuallyAttacking(combatSupport)) return;
+        if (isActuallyAttacking(bot)) return;
 
         // Probability roll based on difficulty
         if (blockRandom.nextDouble() >= bot.getDifficulty().getBlockProbability()) return;
@@ -770,8 +756,7 @@ public class BotManager {
 
     /**
      * Checks if the bot's current NPC target (locked enemy) is executing an attack.
-     * For bot enemies: reads CombatSupport via reflection.
-     * For player enemies: TODO — needs API investigation for player attack state.
+     * Works for both bot and player targets via EntityInteractionHelper.
      */
     private boolean isEnemyAttacking(Role role, Store<EntityStore> store) {
         MarkedEntitySupport markedSupport = role.getMarkedEntitySupport();
@@ -780,27 +765,11 @@ public class BotManager {
         Ref<EntityStore> targetRef = markedSupport.getMarkedEntityRef(MarkedEntitySupport.DEFAULT_TARGET_SLOT);
         if (targetRef == null || !targetRef.isValid()) return false;
 
-        // Get target's entity UUID to look up if it's a bot
         try {
             Store<EntityStore> targetStore = targetRef.getStore();
             if (targetStore == null) return false;
-            UUIDComponent targetUuidComp = targetStore.getComponent(targetRef, UUIDComponent.getComponentType());
-            if (targetUuidComp == null) return false;
-
-            BotParticipant targetBot = getBotByEntityUuid(targetUuidComp.getUuid());
-            if (targetBot != null) {
-                // Target is a bot — check its CombatSupport
-                NPCEntity targetNpc = targetBot.getNpcEntity();
-                if (targetNpc == null) return false;
-                Role targetRole = targetNpc.getRole();
-                if (targetRole == null) return false;
-                CombatSupport targetCombat = targetRole.getCombatSupport();
-                if (targetCombat == null) return false;
-                return isActuallyAttacking(targetCombat);
-            }
-
-            // Target is a player — can't detect attack animation yet
-            return false;
+            String interaction = EntityInteractionHelper.getPrimaryInteraction(targetRef, targetStore);
+            return EntityInteractionHelper.classifyInteraction(interaction) == EntityInteractionHelper.InteractionKind.ATTACK;
         } catch (Exception e) {
             return false;
         }
@@ -1077,60 +1046,27 @@ public class BotManager {
     }
 
     /**
-     * Checks if the NPC is executing an actual attack interaction (not blocking).
-     * Uses reflection to read the activeAttack InteractionChain from CombatSupport,
-     * then checks initialRootInteraction.getId() for "Attack" substring.
-     * Both attacks and blocks use InteractionType.Primary for NPCs, so we must
-     * inspect the interaction name to distinguish them.
+     * Checks if a bot is currently executing an attack interaction (Primary).
      */
-    private boolean isActuallyAttacking(CombatSupport combatSupport) {
-        if (!combatSupport.isExecutingAttack()) return false;
-        if (activeAttackField == null) return true; // Fallback: trust isExecutingAttack
-
-        try {
-            InteractionChain chain = (InteractionChain) activeAttackField.get(combatSupport);
-            if (chain == null) return false;
-
-            var initialRoot = chain.getInitialRootInteraction();
-            if (initialRoot == null) return false;
-
-            String id = initialRoot.getId();
-            if (id == null) return false;
-
-            // Attack interactions contain "Attack" in the ID (e.g. "Root_NPC_Skeleton_Sand_Guard_Attack")
-            // Block interactions contain "Block" (e.g. "Shield_Block")
-            return id.contains("Attack");
-        } catch (Exception e) {
-            return combatSupport.isExecutingAttack(); // Fallback
-        }
+    private boolean isActuallyAttacking(BotParticipant bot) {
+        Ref<EntityStore> ref = bot.getEntityRef();
+        if (ref == null || !ref.isValid()) return false;
+        Store<EntityStore> store = ref.getStore();
+        if (store == null) return false;
+        String interaction = EntityInteractionHelper.getPrimaryInteraction(ref, store);
+        return EntityInteractionHelper.classifyInteraction(interaction) == EntityInteractionHelper.InteractionKind.ATTACK;
     }
 
     /**
-     * Checks if the NPC is currently blocking (Shield_Block interaction).
+     * Checks if a bot is currently blocking (Secondary guard interaction).
      */
     private boolean isBlocking(BotParticipant bot) {
-        NPCEntity npcEntity = bot.getNpcEntity();
-        if (npcEntity == null) return false;
-
-        Role role = npcEntity.getRole();
-        if (role == null) return false;
-
-        CombatSupport combatSupport = role.getCombatSupport();
-        if (combatSupport == null || !combatSupport.isExecutingAttack()) return false;
-        if (activeAttackField == null) return false;
-
-        try {
-            InteractionChain chain = (InteractionChain) activeAttackField.get(combatSupport);
-            if (chain == null) return false;
-
-            var initialRoot = chain.getInitialRootInteraction();
-            if (initialRoot == null) return false;
-
-            String id = initialRoot.getId();
-            return id != null && id.contains("Block");
-        } catch (Exception e) {
-            return false;
-        }
+        Ref<EntityStore> ref = bot.getEntityRef();
+        if (ref == null || !ref.isValid()) return false;
+        Store<EntityStore> store = ref.getStore();
+        if (store == null) return false;
+        String interaction = EntityInteractionHelper.getSecondaryInteraction(ref, store);
+        return EntityInteractionHelper.classifyInteraction(interaction) == EntityInteractionHelper.InteractionKind.BLOCK;
     }
 
     /**
@@ -1147,12 +1083,11 @@ public class BotManager {
         Role role = npcEntity.getRole();
         if (role == null) return;
 
-        CombatSupport combatSupport = role.getCombatSupport();
         MarkedEntitySupport markedSupport = role.getMarkedEntitySupport();
-        if (combatSupport == null || markedSupport == null) return;
+        if (markedSupport == null) return;
 
         UUID attackerId = attacker.getUniqueId();
-        boolean attacking = isActuallyAttacking(combatSupport);
+        boolean attacking = isActuallyAttacking(attacker);
         boolean wasAttackingPrev = wasAttacking.getOrDefault(attackerId, false);
         wasAttacking.put(attackerId, attacking);
 
