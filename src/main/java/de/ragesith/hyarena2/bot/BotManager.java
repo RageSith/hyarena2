@@ -88,9 +88,18 @@ public class BotManager {
     // Max distance at which a bot on the zone will attack without leaving (Defend state)
     private static final double DEFEND_RANGE = 3.0;
 
+    // Max distance at which a bot on the zone will face an enemy (Watchout state — alert but not fighting)
+    private static final double WATCHOUT_RANGE = 10.0;
+
     // Tracks the bot's current NPC state ("Combat", "Defend", "Idle", "Follow") for transition detection.
     // setState is only called on transitions to avoid interrupting NPC combat sequences.
     private final Map<UUID, String> botNpcState = new ConcurrentHashMap<>();
+
+    // Counts ticks a bot has been stuck near the zone in Follow without entering.
+    // After FOLLOW_STUCK_THRESHOLD ticks, falls back to Combat if enemies are nearby.
+    private final Map<UUID, Integer> followStuckTicks = new ConcurrentHashMap<>();
+    private static final int FOLLOW_STUCK_THRESHOLD = 30; // ~1.5 seconds at 20 ticks/sec
+    private static final double ZONE_NEAR_DISTANCE = 3.0; // "close to zone" threshold
 
     // Cached reflection field for reading CombatSupport.activeAttack (protected)
     private static Field activeAttackField;
@@ -368,6 +377,7 @@ public class BotManager {
         wasAttacking.remove(botId);
         objectiveLogCounter.remove(botId);
         botNpcState.remove(botId);
+        followStuckTicks.remove(botId);
 
         System.out.println("[BotManager] Despawned bot " + bot.getName());
     }
@@ -663,6 +673,9 @@ public class BotManager {
         String prevState = botNpcState.get(botId);
 
         if (botInZone) {
+            // Bot entered the zone — reset stuck counter
+            followStuckTicks.remove(botId);
+
             // Bot is ON the zone — decide: fight, defend, or idle
             if (!enemiesInZone.isEmpty()) {
                 // FIGHT: enemies also on zone — full combat to contest
@@ -692,6 +705,16 @@ public class BotManager {
                     if (shouldLog) {
                         System.out.println("[BotObjective] " + bot.getName() + " → DEFENDING against " + nearbyEnemy.participant.getName() + " (staying on zone)");
                     }
+                } else if (nearbyEnemy != null && nearbyEnemy.distance <= WATCHOUT_RANGE) {
+                    // WATCHOUT: enemy nearby but not in attack range — face them, stay alert
+                    applyEnemyTarget(bot, role, nearbyEnemy, store);
+                    if (!"Watchout".equals(prevState)) {
+                        role.getStateSupport().setState(bot.getEntityRef(), "Watchout", "Default", store);
+                        botNpcState.put(botId, "Watchout");
+                    }
+                    if (shouldLog) {
+                        System.out.println("[BotObjective] " + bot.getName() + " → WATCHOUT facing " + nearbyEnemy.participant.getName() + " (dist: " + String.format("%.1f", nearbyEnemy.distance) + ")");
+                    }
                 } else {
                     // HOLD: no enemies nearby — idle and capture
                     if (!"Idle".equals(prevState)) {
@@ -706,7 +729,33 @@ public class BotManager {
                 }
             }
         } else {
-            // WALK: zone empty, bot not there — guide NPC to zone via marker
+            // WALK: not in zone — go there first, fight only if stuck
+            double distToZoneCenter = botPos.distanceTo(objective.position());
+
+            // Track stuck ticks when close to zone but not inside
+            if (distToZoneCenter <= ZONE_NEAR_DISTANCE) {
+                int stuck = followStuckTicks.merge(botId, 1, Integer::sum);
+
+                // Stuck too long near zone — fall back to fighting nearest enemy
+                if (stuck >= FOLLOW_STUCK_THRESHOLD) {
+                    NearestTarget nearest = findNearestTarget(bot, match, store);
+                    if (nearest != null) {
+                        applyEnemyTarget(bot, role, nearest, store);
+                        if (!"Combat".equals(prevState)) {
+                            role.getStateSupport().setState(bot.getEntityRef(), "Combat", "Default", store);
+                            botNpcState.put(botId, "Combat");
+                        }
+                        if (shouldLog) {
+                            System.out.println("[BotObjective] " + bot.getName() + " → STUCK, fighting " + nearest.participant.getName());
+                        }
+                        return;
+                    }
+                }
+            } else {
+                followStuckTicks.remove(botId);
+            }
+
+            // Normal follow to zone
             Position botTarget = getBotZoneTarget(botId, objective);
             if (!"Follow".equals(prevState)) {
                 BotAI ai = bot.getAI();
@@ -718,7 +767,6 @@ public class BotManager {
                 }
             } else {
                 // Already following — update marker position and re-assign as target
-                // (recovers LockedTarget if lost from damage interrupt; Idle+Target→Follow handles state)
                 Ref<EntityStore> marker = getOrCreateObjectiveMarker(botId, botTarget, store);
                 if (marker != null && marker.isValid()) {
                     MarkedEntitySupport markedSupport = role.getMarkedEntitySupport();
@@ -728,7 +776,7 @@ public class BotManager {
                 }
             }
             if (shouldLog) {
-                System.out.println("[BotObjective] " + bot.getName() + " → WALKING to zone");
+                System.out.println("[BotObjective] " + bot.getName() + " → WALKING to zone (dist: " + String.format("%.1f", distToZoneCenter) + ")");
             }
         }
     }

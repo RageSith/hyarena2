@@ -111,11 +111,24 @@
         ]
       },
       {
-        "$Comment": "Defend target lost — return to idle so Java can re-evaluate",
+        "$Comment": "Defend target lost — drop to watchout, Java re-evaluates",
         "Sensor": {
           "Type": "And",
           "Sensors": [
             { "Type": "State", "State": "Defend" },
+            { "Type": "Not", "Sensor": { "Type": "Target" } }
+          ]
+        },
+        "Actions": [
+          { "Type": "State", "State": "Watchout" }
+        ]
+      },
+      {
+        "$Comment": "Watchout target lost — return to idle",
+        "Sensor": {
+          "Type": "And",
+          "Sensors": [
+            { "Type": "State", "State": "Watchout" },
             { "Type": "Not", "Sensor": { "Type": "Target" } }
           ]
         },
@@ -252,6 +265,22 @@
           "BlockProbability": 50
         }
       ]
+    },
+    {
+      "Name": "WatchoutBehavior",
+      "Sensor": {
+        "Type": "And",
+        "Sensors": [
+          { "Type": "Target" },
+          { "Type": "State", "State": "Watchout" }
+        ]
+      },
+      "BodyMotion": {
+        "Type": "Nothing"
+      },
+      "HeadMotion": {
+        "Type": "Aim"
+      }
     },
     {
       "Name": "FollowBehavior",
