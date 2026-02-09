@@ -47,10 +47,14 @@ public class KingOfTheHillGameMode implements GameMode {
     private final Map<UUID, Integer> controlTicks = new HashMap<>();
     private final List<Ref<EntityStore>> zoneNameHolograms = new ArrayList<>();
     private final List<UUID> participantsInZoneLive = new ArrayList<>();
+    private final Set<UUID> previouslyInZone = new HashSet<>();
     private String worldName;
     private int activeZoneIndex = 0;
     private UUID currentController = null;
     private boolean contested = false;
+
+    // Hysteresis margin: participants already inside must move this far beyond the boundary to count as "outside"
+    private static final double ZONE_EXIT_MARGIN = 0.75;
 
     @Override
     public String getId() {
@@ -83,6 +87,7 @@ public class KingOfTheHillGameMode implements GameMode {
     @Override
     public void onMatchStart(ArenaConfig config, List<Participant> participants) {
         controlTicks.clear();
+        previouslyInZone.clear();
         activeZoneIndex = 0;
         currentController = null;
         contested = false;
@@ -154,30 +159,50 @@ public class KingOfTheHillGameMode implements GameMode {
             // Reset controller state on rotation
             currentController = null;
             contested = false;
+            previouslyInZone.clear();
         }
 
         ArenaConfig.CaptureZone activeZone = zones.get(activeZoneIndex);
 
         // Scan positions of all alive participants (players and bots)
+        // Uses hysteresis: entering requires being inside exact bounds,
+        // leaving requires moving ZONE_EXIT_MARGIN beyond the boundary.
         List<UUID> participantsInZone = new ArrayList<>();
         for (Participant p : participants) {
             if (!p.isAlive()) {
                 continue;
             }
 
+            double px, py, pz;
             if (p.getType() == ParticipantType.BOT) {
                 BotParticipant bot = (BotParticipant) p;
                 Position botPos = bot.getCurrentPosition();
-                if (botPos != null && isInZone(activeZone, botPos.getX(), botPos.getY(), botPos.getZ())) {
-                    participantsInZone.add(p.getUniqueId());
-                }
+                if (botPos == null) continue;
+                px = botPos.getX(); py = botPos.getY(); pz = botPos.getZ();
             } else {
                 Vector3d pos = getPlayerPosition(p.getUniqueId());
-                if (pos != null && isInZone(activeZone, pos.getX(), pos.getY(), pos.getZ())) {
-                    participantsInZone.add(p.getUniqueId());
-                }
+                if (pos == null) continue;
+                px = pos.getX(); py = pos.getY(); pz = pos.getZ();
+            }
+
+            boolean wasInside = previouslyInZone.contains(p.getUniqueId());
+            boolean inside;
+            if (wasInside) {
+                // Already inside — use wider exit boundary (must move further out to leave)
+                inside = isInZoneWithMargin(activeZone, px, py, pz, ZONE_EXIT_MARGIN);
+            } else {
+                // Outside — use exact boundary to enter
+                inside = isInZone(activeZone, px, py, pz);
+            }
+
+            if (inside) {
+                participantsInZone.add(p.getUniqueId());
             }
         }
+
+        // Update hysteresis tracking
+        previouslyInZone.clear();
+        previouslyInZone.addAll(participantsInZone);
 
         // Store for bot access (getBotObjective reads this)
         participantsInZoneLive.clear();
@@ -569,12 +594,20 @@ public class KingOfTheHillGameMode implements GameMode {
     private static final double Y_TOLERANCE = 0.5;
 
     private boolean isInZone(ArenaConfig.CaptureZone zone, double x, double y, double z) {
-        double x1 = Math.min(zone.getMinX(), zone.getMaxX());
-        double x2 = Math.max(zone.getMinX(), zone.getMaxX());
+        return isInZoneWithMargin(zone, x, y, z, 0);
+    }
+
+    /**
+     * Zone containment check with configurable XZ margin.
+     * margin > 0 expands the boundary outward (used for hysteresis exit check).
+     */
+    private boolean isInZoneWithMargin(ArenaConfig.CaptureZone zone, double x, double y, double z, double margin) {
+        double x1 = Math.min(zone.getMinX(), zone.getMaxX()) - margin;
+        double x2 = Math.max(zone.getMinX(), zone.getMaxX()) + margin;
         double y1 = Math.min(zone.getMinY(), zone.getMaxY());
         double y2 = Math.max(zone.getMinY(), zone.getMaxY());
-        double z1 = Math.min(zone.getMinZ(), zone.getMaxZ());
-        double z2 = Math.max(zone.getMinZ(), zone.getMaxZ());
+        double z1 = Math.min(zone.getMinZ(), zone.getMaxZ()) - margin;
+        double z2 = Math.max(zone.getMinZ(), zone.getMaxZ()) + margin;
         return x >= x1 && x <= x2 &&
                y >= y1 - Y_TOLERANCE && y <= y2 + Y_TOLERANCE &&
                z >= z1 && z <= z2;

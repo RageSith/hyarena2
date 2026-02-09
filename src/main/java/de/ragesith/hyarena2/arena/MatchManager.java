@@ -45,6 +45,11 @@ public class MatchManager {
     private static final long TICK_INTERVAL_MS = 50; // 20 TPS
     private Timer tickTimer;
 
+    // TPS measurement
+    private long tpsTickCount = 0;
+    private long tpsLastReportTime = System.currentTimeMillis();
+    private double currentTps = 20.0;
+
     public MatchManager(ConfigManager configManager, EventBus eventBus, HubManager hubManager) {
         this.configManager = configManager;
         this.eventBus = eventBus;
@@ -454,6 +459,13 @@ public class MatchManager {
     }
 
     /**
+     * Returns the measured ticks per second (updated every 5s).
+     */
+    public double getCurrentTps() {
+        return currentTps;
+    }
+
+    /**
      * Stops the match ticker.
      */
     private void stopTicker() {
@@ -468,6 +480,20 @@ public class MatchManager {
      * Executes match ticks on their respective world threads for thread safety.
      */
     private void tick() {
+        // TPS measurement — report every 5 seconds
+        tpsTickCount++;
+        long now = System.currentTimeMillis();
+        long elapsed = now - tpsLastReportTime;
+        if (elapsed >= 5000) {
+            currentTps = tpsTickCount / (elapsed / 1000.0);
+            if (!activeMatches.isEmpty()) {
+                System.out.println("[MatchManager] TPS: " + String.format("%.1f", currentTps)
+                    + " (target: 20.0, ticks: " + tpsTickCount + ", elapsed: " + elapsed + "ms)");
+            }
+            tpsTickCount = 0;
+            tpsLastReportTime = now;
+        }
+
         List<UUID> finishedMatches = new ArrayList<>();
 
         for (Match match : activeMatches.values()) {

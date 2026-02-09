@@ -72,6 +72,12 @@ public class Match {
     // Pending bot queue — bots queued by Matchmaker, drained on arena world thread in tickWaiting()
     private final List<PendingBot> pendingBots = new ArrayList<>();
 
+    // TPS tracking — samples collected every 5s during IN_PROGRESS
+    private final List<Double> tpsSamples = new ArrayList<>();
+    private long tpsSampleStartTime;
+    private int tpsSampleStartTick;
+    private static final int TPS_SAMPLE_INTERVAL_TICKS = 100; // 5 seconds at 20 TPS
+
     private static final int TICKS_PER_SECOND = 20;
     private static final int VICTORY_DELAY_SECONDS = 3;
     private static final int SPAWN_IMMUNITY_MS = 3000; // 3 seconds immunity after spawn
@@ -293,9 +299,6 @@ public class Match {
      */
     public synchronized void queueBot(Position spawnPosition, String kitId, BotDifficulty difficulty) {
         pendingBots.add(new PendingBot(spawnPosition, kitId, difficulty));
-        System.out.println("[DEBUG Match] queueBot() called - pendingBots size: " + pendingBots.size() +
-            ", thread: " + Thread.currentThread().getName() +
-            ", pos: " + String.format("%.1f,%.1f,%.1f", spawnPosition.getX(), spawnPosition.getY(), spawnPosition.getZ()));
     }
 
     /**
@@ -305,7 +308,7 @@ public class Match {
     private void drainPendingBots() {
         if (pendingBots.isEmpty()) return;
         if (botManager == null) {
-            System.err.println("[DEBUG Match] drainPendingBots() - botManager is NULL! Cannot spawn " + pendingBots.size() + " bots");
+            System.err.println("[Match] drainPendingBots() - botManager is null, cannot spawn " + pendingBots.size() + " bots");
             return;
         }
 
@@ -320,17 +323,8 @@ public class Match {
             }
         }
         if (!hasArrivedPlayer) {
-            if (waitingTicks % TICKS_PER_SECOND == 0) {
-                System.out.println("[DEBUG Match] drainPendingBots() - waiting for a player to arrive before spawning " +
-                    pendingBots.size() + " bots (chunks need to be loaded)");
-            }
             return;
         }
-
-        System.out.println("[DEBUG Match] drainPendingBots() - spawning " + pendingBots.size() + " bots" +
-            ", thread: " + Thread.currentThread().getName() +
-            ", arena world: " + arena.getWorld().getName() +
-            ", match state: " + state);
 
         // Copy and clear pending list BEFORE spawning, so that addBot() → checkAndStartIfReady()
         // sees an empty pendingBots list and can actually start the match.
@@ -345,23 +339,15 @@ public class Match {
                 int by = (int) pending.spawnPosition.getY();
                 int bz = (int) pending.spawnPosition.getZ();
                 arenaWorld.getBlockType(bx, by, bz);
-                System.out.println("[DEBUG Match] Pre-loaded chunk at bot spawn: " + bx + "," + by + "," + bz);
             } catch (Exception e) {
-                System.err.println("[DEBUG Match] Failed to pre-load chunk for bot spawn: " + e.getMessage());
+                // Ignore chunk pre-load errors
             }
         }
 
         for (PendingBot pending : toSpawn) {
-            System.out.println("[DEBUG Match] Calling botManager.spawnBot() for pos " +
-                String.format("%.1f,%.1f,%.1f", pending.spawnPosition.getX(), pending.spawnPosition.getY(), pending.spawnPosition.getZ()));
             BotParticipant bot = botManager.spawnBot(this, pending.spawnPosition, pending.kitId, pending.difficulty);
             if (bot != null) {
-                boolean added = addBot(bot);
-                System.out.println("[DEBUG Match] Bot " + bot.getName() + " spawned, addBot result: " + added +
-                    ", entityRef: " + (bot.getEntityRef() != null ? "valid=" + bot.getEntityRef().isValid() : "null") +
-                    ", entityUuid: " + bot.getEntityUuid());
-            } else {
-                System.err.println("[DEBUG Match] botManager.spawnBot() returned null!");
+                addBot(bot);
             }
         }
     }
@@ -495,6 +481,9 @@ public class Match {
 
         state = MatchState.IN_PROGRESS;
         tickCount = 0;
+        tpsSamples.clear();
+        tpsSampleStartTime = System.currentTimeMillis();
+        tpsSampleStartTick = 0;
 
         // Grant spawn immunity to all participants
         for (Participant participant : getParticipants()) {
@@ -547,6 +536,9 @@ public class Match {
         // Broadcast victory
         broadcast(victoryMessage);
 
+        // Log TPS stats for the match
+        logTpsStats();
+
         // Fire event
         eventBus.publish(new MatchEndedEvent(matchId, winners, victoryMessage));
     }
@@ -586,6 +578,9 @@ public class Match {
 
         // Broadcast victory
         broadcast(victoryMessage);
+
+        // Log TPS stats for the match
+        logTpsStats();
 
         // Fire event
         eventBus.publish(new MatchEndedEvent(matchId, winners, victoryMessage));
@@ -822,12 +817,6 @@ public class Match {
      * Called every tick by MatchManager.
      */
     public void tick() {
-        // Log first tick to confirm Match.tick() is being called
-        if (tickCount == 0 && waitingTicks == 0 && countdownTicks == 0) {
-            System.out.println("[DEBUG Match] FIRST tick() called! state=" + state +
-                ", thread: " + Thread.currentThread().getName() +
-                ", arena: " + arena.getId() + " (world: " + arena.getWorld().getName() + ")");
-        }
         switch (state) {
             case WAITING:
                 tickWaiting();
@@ -845,18 +834,6 @@ public class Match {
     }
 
     private void tickWaiting() {
-        // Log once per second
-        if (waitingTicks % TICKS_PER_SECOND == 0) {
-            int botCount = (int) getParticipants().stream().filter(p -> p.getType() == ParticipantType.BOT).count();
-            System.out.println("[DEBUG Match] tickWaiting() tick=" + waitingTicks +
-                ", thread: " + Thread.currentThread().getName() +
-                ", pendingBots: " + pendingBots.size() +
-                ", participants: " + participants.size() +
-                ", arrived: " + arrivedPlayers.size() +
-                ", bots: " + botCount +
-                ", botManager: " + (botManager != null ? "set" : "NULL"));
-        }
-
         // Drain pending bots (spawns them on this world thread)
         drainPendingBots();
 
@@ -908,6 +885,19 @@ public class Match {
     private void tickInProgress() {
         tickCount++;
 
+        // Sample TPS every 5 seconds
+        int ticksSinceLastSample = tickCount - tpsSampleStartTick;
+        if (ticksSinceLastSample >= TPS_SAMPLE_INTERVAL_TICKS) {
+            long now = System.currentTimeMillis();
+            long elapsedMs = now - tpsSampleStartTime;
+            if (elapsedMs > 0) {
+                double tps = ticksSinceLastSample / (elapsedMs / 1000.0);
+                tpsSamples.add(tps);
+            }
+            tpsSampleStartTime = now;
+            tpsSampleStartTick = tickCount;
+        }
+
         // Tick bots (AI, position sync, targeting)
         if (botManager != null) {
             botManager.tickBotsForMatch(this);
@@ -953,6 +943,35 @@ public class Match {
         if (victoryDelayTicks <= 0) {
             finish();
         }
+    }
+
+    private void logTpsStats() {
+        // Capture any remaining partial window
+        int ticksSinceLastSample = tickCount - tpsSampleStartTick;
+        if (ticksSinceLastSample > 0) {
+            long elapsedMs = System.currentTimeMillis() - tpsSampleStartTime;
+            if (elapsedMs > 0) {
+                tpsSamples.add(ticksSinceLastSample / (elapsedMs / 1000.0));
+            }
+        }
+
+        if (tpsSamples.isEmpty()) {
+            System.out.println("[Match " + matchId.toString().substring(0, 8) + "] No TPS data (match too short)");
+            return;
+        }
+
+        double sum = 0;
+        for (double s : tpsSamples) sum += s;
+        double avgTps = sum / tpsSamples.size();
+
+        double diffSum = 0;
+        for (double s : tpsSamples) diffSum += Math.abs(s - 20.0);
+        double avgDiff = diffSum / tpsSamples.size();
+
+        System.out.println("[Match " + matchId.toString().substring(0, 8) + "] TPS Report — "
+            + "samples: " + tpsSamples.size()
+            + ", avg TPS: " + String.format("%.2f", avgTps)
+            + ", avg deviation from 20.0: " + String.format("%.2f", avgDiff));
     }
 
     /**

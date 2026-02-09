@@ -101,16 +101,14 @@ public class BotManager {
     private static final int FOLLOW_STUCK_THRESHOLD = 30; // ~1.5 seconds at 20 ticks/sec
     private static final double ZONE_NEAR_DISTANCE = 3.0; // "close to zone" threshold
 
-    // Reactive block: tracks previous health to detect incoming damage (works for all enemy types)
-    private final Map<UUID, Double> botPrevHealth = new ConcurrentHashMap<>();
-    // Edge detection for bot-enemy proactive blocking (CombatSupport-based)
-    private final Map<UUID, Boolean> enemyAttackEdge = new ConcurrentHashMap<>();
-    // Tracks the state before Block was entered, so we can return to it
+    // Reactive blocking: bot detects enemy starting an attack and raises shield for the attack's duration
+    private final Map<UUID, Boolean> enemyWasAttacking = new ConcurrentHashMap<>();
     private final Map<UUID, String> preBlockState = new ConcurrentHashMap<>();
-    // Counts ticks spent in Block state (exits after BLOCK_DURATION_TICKS)
-    private final Map<UUID, Integer> blockTickCounter = new ConcurrentHashMap<>();
-    private static final int BLOCK_DURATION_TICKS = 15; // ~0.75 seconds
+    private final Map<UUID, Integer> blockActiveTicks = new ConcurrentHashMap<>();
+    private final Map<UUID, Integer> blockCooldownTicks = new ConcurrentHashMap<>();
     private final Random blockRandom = new Random();
+    private static final int MAX_BLOCK_TICKS = 60;        // ~3s safety cap
+    private static final int BLOCK_COOLDOWN_TICKS = 40;   // ~2s between blocks
 
     // Cached reflection field for reading CombatSupport.activeAttack (protected)
     private static Field activeAttackField;
@@ -139,12 +137,6 @@ public class BotManager {
      * @return the created BotParticipant
      */
     public BotParticipant spawnBot(Match match, Position spawnPosition, String kitId, BotDifficulty difficulty) {
-        System.out.println("[DEBUG BotManager] spawnBot() called" +
-            ", thread: " + Thread.currentThread().getName() +
-            ", arena: " + match.getArena().getId() +
-            ", world: " + match.getArena().getWorld().getName() +
-            ", pos: " + String.format("%.1f,%.1f,%.1f", spawnPosition.getX(), spawnPosition.getY(), spawnPosition.getZ()));
-
         if (match == null || spawnPosition == null) {
             System.err.println("[BotManager] Cannot spawn bot - match or position is null");
             return null;
@@ -185,9 +177,6 @@ public class BotManager {
      */
     private void spawnBotEntity(BotParticipant bot, Arena arena, Position spawn) {
         World world = arena.getWorld();
-        System.out.println("[DEBUG BotManager] spawnBotEntity() - bot: " + bot.getName() +
-            ", thread: " + Thread.currentThread().getName() +
-            ", world: " + (world != null ? world.getName() : "NULL"));
 
         if (world == null) {
             System.err.println("[BotManager] Cannot spawn bot entity - arena world is null");
@@ -205,11 +194,9 @@ public class BotManager {
                 botModel = DEFAULT_BOT_MODEL;
             }
         }
-        System.out.println("[DEBUG BotManager] Using role: " + botModel);
 
         try {
             Store<EntityStore> store = world.getEntityStore().getStore();
-            System.out.println("[DEBUG BotManager] Got store from world: " + (store != null ? "OK" : "NULL"));
 
             // Set position and rotation
             Vector3d position = new Vector3d(spawn.getX(), spawn.getY(), spawn.getZ());
@@ -217,15 +204,11 @@ public class BotManager {
 
             // Spawn NPC using NPCPlugin
             NPCPlugin npcPlugin = NPCPlugin.get();
-            System.out.println("[DEBUG BotManager] Calling NPCPlugin.spawnNPC()...");
             var result = npcPlugin.spawnNPC(store, botModel, null, position, rotation);
-            System.out.println("[DEBUG BotManager] spawnNPC result: " + (result != null ? "OK" : "NULL"));
 
             if (result != null) {
                 Ref<EntityStore> entityRef = result.first();
                 INonPlayerCharacter npc = result.second();
-                System.out.println("[DEBUG BotManager] entityRef: " + (entityRef != null ? "valid=" + entityRef.isValid() : "NULL") +
-                    ", npc: " + (npc != null ? npc.getClass().getSimpleName() : "NULL"));
 
                 bot.setEntityRef(entityRef);
                 bot.setNpc(npc);
@@ -317,7 +300,12 @@ public class BotManager {
         }
 
         // Clear tracked NPC state so updateBotTarget() re-evaluates from scratch
-        botNpcState.remove(bot.getUniqueId());
+        UUID respawnId = bot.getUniqueId();
+        botNpcState.remove(respawnId);
+        enemyWasAttacking.remove(respawnId);
+        preBlockState.remove(respawnId);
+        blockActiveTicks.remove(respawnId);
+        blockCooldownTicks.remove(respawnId);
 
         // Spawn new NPC entity at new position
         spawnBotEntity(bot, arena, spawnPosition);
@@ -386,14 +374,12 @@ public class BotManager {
         activeBots.remove(botId);
         botMatches.remove(botId);
         wasAttacking.remove(botId);
-        objectiveLogCounter.remove(botId);
         botNpcState.remove(botId);
         followStuckTicks.remove(botId);
-        botPrevHealth.remove(botId);
-        enemyAttackEdge.remove(botId);
+        enemyWasAttacking.remove(botId);
         preBlockState.remove(botId);
-        blockTickCounter.remove(botId);
-
+        blockActiveTicks.remove(botId);
+        blockCooldownTicks.remove(botId);
         System.out.println("[BotManager] Despawned bot " + bot.getName());
     }
 
@@ -403,25 +389,18 @@ public class BotManager {
      */
     private void despawnBotEntity(BotParticipant bot) {
         Ref<EntityStore> entityRef = bot.getEntityRef();
-        System.out.println("[DEBUG BotManager] despawnBotEntity() - bot: " + bot.getName() +
-            ", thread: " + Thread.currentThread().getName() +
-            ", entityRef: " + (entityRef != null ? "valid=" + entityRef.isValid() : "NULL"));
 
         if (entityRef == null || !entityRef.isValid()) {
-            System.out.println("[DEBUG BotManager] Skipping despawn - entityRef is null or invalid");
             return;
         }
 
         try {
             Store<EntityStore> store = entityRef.getStore();
-            System.out.println("[DEBUG BotManager] entityRef.getStore(): " + (store != null ? "OK" : "NULL"));
             if (store == null) {
-                System.err.println("[DEBUG BotManager] Cannot despawn - store is null!");
                 return;
             }
             store.removeEntity(entityRef, RemoveReason.REMOVE);
             bot.setEntityRef(null);
-            System.out.println("[DEBUG BotManager] Successfully despawned bot entity: " + bot.getName());
         } catch (Exception e) {
             System.err.println("[BotManager] Failed to despawn bot entity: " + e.getMessage());
             e.printStackTrace();
@@ -437,9 +416,6 @@ public class BotManager {
         }
 
         UUID matchId = match.getMatchId();
-        System.out.println("[DEBUG BotManager] despawnAllBotsInMatch() - matchId: " + matchId +
-            ", thread: " + Thread.currentThread().getName() +
-            ", activeBots: " + activeBots.size() + ", botMatches: " + botMatches.size());
 
         List<BotParticipant> toRemove = new ArrayList<>();
 
@@ -461,23 +437,12 @@ public class BotManager {
      * Ticks all bots belonging to a specific match.
      * MUST be called on the arena world thread (from Match.tick()).
      */
-    // Counts ticks for periodic debug logging
-    private int tickDebugCounter = 0;
-
     public void tickBotsForMatch(Match match) {
-        tickDebugCounter++;
-        boolean shouldLog = (tickDebugCounter % 20 == 1); // Log once per second (first tick, then every 20)
-
-        int botCount = 0;
-        int skippedNull = 0;
-        int skippedDead = 0;
-
         for (Participant p : match.getParticipants()) {
             if (p.getType() != ParticipantType.BOT) continue;
             BotParticipant bot = activeBots.get(p.getUniqueId());
-            if (bot == null) { skippedNull++; continue; }
-            if (!bot.isAlive()) { skippedDead++; continue; }
-            botCount++;
+            if (bot == null) continue;
+            if (!bot.isAlive()) continue;
             try {
                 tickBot(bot);
             } catch (Exception e) {
@@ -485,52 +450,25 @@ public class BotManager {
                 e.printStackTrace();
             }
         }
-
-        if (shouldLog && (botCount > 0 || skippedNull > 0 || skippedDead > 0)) {
-            System.out.println("[DEBUG BotManager] tickBotsForMatch() - ticked: " + botCount +
-                ", skippedNull: " + skippedNull + ", skippedDead: " + skippedDead +
-                ", matchState: " + match.getState() +
-                ", thread: " + Thread.currentThread().getName());
-        }
     }
 
     /**
      * Ticks a single bot.
      */
-    private int tickBotDebugCounter = 0;
-
     private void tickBot(BotParticipant bot) {
-        tickBotDebugCounter++;
-        boolean shouldLog = (tickBotDebugCounter % 100 == 1); // Log every 5 seconds per bot
-
         Match match = botMatches.get(bot.getUniqueId());
         if (match == null || !bot.isAlive()) {
-            if (shouldLog) System.out.println("[DEBUG BotManager] tickBot() skip - " + bot.getName() +
-                ", match: " + (match != null ? "OK" : "NULL") + ", alive: " + bot.isAlive());
             return;
         }
 
         Ref<EntityStore> entityRef = bot.getEntityRef();
         if (entityRef == null || !entityRef.isValid()) {
-            if (shouldLog) System.out.println("[DEBUG BotManager] tickBot() skip - " + bot.getName() +
-                ", entityRef: " + (entityRef != null ? "valid=" + entityRef.isValid() : "NULL"));
             return;
         }
 
         Store<EntityStore> store = entityRef.getStore();
         if (store == null) {
-            if (shouldLog) System.out.println("[DEBUG BotManager] tickBot() skip - " + bot.getName() +
-                ", entityRef.getStore() returned NULL");
             return;
-        }
-
-        if (shouldLog) {
-            System.out.println("[DEBUG BotManager] tickBot() OK - " + bot.getName() +
-                ", state: " + match.getState() +
-                ", health: " + String.format("%.1f/%.1f", bot.getHealth(), bot.getMaxHealth()) +
-                ", pos: " + (bot.getCurrentPosition() != null ?
-                    String.format("%.1f,%.1f,%.1f", bot.getCurrentPosition().getX(), bot.getCurrentPosition().getY(), bot.getCurrentPosition().getZ()) : "null") +
-                ", thread: " + Thread.currentThread().getName());
         }
 
         // Sync position from entity
@@ -552,7 +490,7 @@ public class BotManager {
         // Update NPC targeting
         updateBotTarget(bot, match, store);
 
-        // Reactive blocking: detect enemy attacks and raise shield
+        // Reactive blocking: detect damage and trigger Block state
         checkReactiveBlock(bot, match, store);
 
         // Manual bot-on-bot damage (synced with NPC facing direction)
@@ -563,18 +501,10 @@ public class BotManager {
      * Freezes a bot at its spawn position during countdown.
      * Teleports bot back to spawn if it moves and clears its target.
      */
-    private int freezeDebugCounter = 0;
-
     private void freezeBotAtSpawn(BotParticipant bot, Store<EntityStore> store) {
-        freezeDebugCounter++;
-        boolean shouldLog = (freezeDebugCounter % 100 == 1); // Log every 5s
-
         Ref<EntityStore> entityRef = bot.getEntityRef();
         Position spawn = bot.getSpawnPosition();
         if (entityRef == null || !entityRef.isValid() || spawn == null) {
-            if (shouldLog) System.out.println("[DEBUG BotManager] freezeBotAtSpawn() skip - " + bot.getName() +
-                ", entityRef: " + (entityRef != null ? "valid=" + entityRef.isValid() : "NULL") +
-                ", spawn: " + (spawn != null ? "OK" : "NULL"));
             return;
         }
 
@@ -586,15 +516,10 @@ public class BotManager {
 
                 // Teleport back if bot moved too far from spawn
                 double distance = currentPos.distanceTo(spawnVec);
-                if (shouldLog) System.out.println("[DEBUG BotManager] freezeBotAtSpawn() " + bot.getName() +
-                    " distance from spawn: " + String.format("%.2f", distance));
                 if (distance > 0.5) {
                     transform.setPosition(spawnVec);
                     bot.setCurrentPosition(spawn.copy());
                 }
-            } else {
-                if (shouldLog) System.out.println("[DEBUG BotManager] freezeBotAtSpawn() " + bot.getName() +
-                    " - transform component is NULL");
             }
 
             // Clear target to prevent NPC from trying to move
@@ -609,7 +534,7 @@ public class BotManager {
                 }
             }
         } catch (Exception e) {
-            System.err.println("[DEBUG BotManager] freezeBotAtSpawn() error for " + bot.getName() + ": " + e.getMessage());
+            System.err.println("[BotManager] freezeBotAtSpawn() error for " + bot.getName() + ": " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -636,9 +561,6 @@ public class BotManager {
         }
     }
 
-    // Throttle objective logging (once per second per bot)
-    private final Map<UUID, Integer> objectiveLogCounter = new ConcurrentHashMap<>();
-
     /**
      * Updates the bot's NPC target with objective awareness.
      * In non-objective modes: finds nearest enemy (existing behavior).
@@ -648,6 +570,9 @@ public class BotManager {
      *   3. Zone empty, bot not there → walk to zone (capture)
      */
     private void updateBotTarget(BotParticipant bot, Match match, Store<EntityStore> store) {
+        // Don't change target while bot is reactively blocking
+        if ("Block".equals(botNpcState.get(bot.getUniqueId()))) return;
+
         NPCEntity npcEntity = bot.getNpcEntity();
         if (npcEntity == null) return;
 
@@ -657,10 +582,6 @@ public class BotManager {
         Position botPos = bot.getCurrentPosition();
         if (botPos == null) return;
 
-        // Don't override targeting while bot is blocking — checkReactiveBlock manages exit
-        String currentState = botNpcState.get(bot.getUniqueId());
-        if ("Block".equals(currentState)) return;
-
         ArenaConfig config = match.getArena().getConfig();
         BotObjective objective = match.getGameMode().getBotObjective(config);
 
@@ -668,26 +589,18 @@ public class BotManager {
             // Non-objective mode: chase nearest enemy (existing behavior)
             NearestTarget nearest = findNearestTarget(bot, match, store);
             applyEnemyTarget(bot, role, nearest, store);
+            // Track state as Combat so checkReactiveBlock can trigger
+            if (nearest != null) {
+                botNpcState.putIfAbsent(bot.getUniqueId(), "Combat");
+            }
             return;
         }
-
-        // Logging throttle: once per second
-        int logCount = objectiveLogCounter.merge(bot.getUniqueId(), 1, Integer::sum);
-        boolean shouldLog = (logCount % 20 == 1);
 
         // Find enemies in the zone (all zone participants except this bot)
         List<UUID> enemiesInZone = objective.participantsInZone().stream()
             .filter(id -> !id.equals(bot.getUniqueId()))
             .toList();
         boolean botInZone = objective.isInsideZone(botPos);
-
-        if (shouldLog) {
-            System.out.println("[BotObjective] " + bot.getName() +
-                " | inZone: " + botInZone +
-                " | controller: " + objective.currentController() +
-                " | contested: " + objective.contested() +
-                " | enemiesInZone: " + enemiesInZone.size());
-        }
 
         // Strategic target management — Java decides WHO/WHERE, NPC role handles HOW
         // (attack, block, strafe are all handled by the role natively)
@@ -708,9 +621,6 @@ public class BotManager {
                         role.getStateSupport().setState(bot.getEntityRef(), "Combat", "Default", store);
                         botNpcState.put(botId, "Combat");
                     }
-                    if (shouldLog) {
-                        System.out.println("[BotObjective] " + bot.getName() + " → FIGHTING " + nearest.participant.getName() + " (on zone)");
-                    }
                 }
             } else {
                 // No enemies in zone — check for nearby threats
@@ -724,18 +634,12 @@ public class BotManager {
                         role.getStateSupport().setState(bot.getEntityRef(), "Defend", "Default", store);
                         botNpcState.put(botId, "Defend");
                     }
-                    if (shouldLog) {
-                        System.out.println("[BotObjective] " + bot.getName() + " → DEFENDING against " + nearbyEnemy.participant.getName() + " (staying on zone)");
-                    }
                 } else if (nearbyEnemy != null && nearbyEnemy.distance <= WATCHOUT_RANGE) {
                     // WATCHOUT: enemy nearby but not in attack range — face them, stay alert
                     applyEnemyTarget(bot, role, nearbyEnemy, store);
                     if (!"Watchout".equals(prevState)) {
                         role.getStateSupport().setState(bot.getEntityRef(), "Watchout", "Default", store);
                         botNpcState.put(botId, "Watchout");
-                    }
-                    if (shouldLog) {
-                        System.out.println("[BotObjective] " + bot.getName() + " → WATCHOUT facing " + nearbyEnemy.participant.getName() + " (dist: " + String.format("%.1f", nearbyEnemy.distance) + ")");
                     }
                 } else {
                     // HOLD: no enemies nearby — idle and capture
@@ -744,9 +648,6 @@ public class BotManager {
                         if (ai != null) ai.clearTarget();
                         clearNpcTarget(role, bot.getEntityRef(), store);
                         botNpcState.put(botId, "Idle");
-                    }
-                    if (shouldLog) {
-                        System.out.println("[BotObjective] " + bot.getName() + " → HOLDING at zone (scoring)");
                     }
                 }
             }
@@ -766,9 +667,6 @@ public class BotManager {
                         if (!"Combat".equals(prevState)) {
                             role.getStateSupport().setState(bot.getEntityRef(), "Combat", "Default", store);
                             botNpcState.put(botId, "Combat");
-                        }
-                        if (shouldLog) {
-                            System.out.println("[BotObjective] " + bot.getName() + " → STUCK, fighting " + nearest.participant.getName());
                         }
                         return;
                     }
@@ -797,9 +695,114 @@ public class BotManager {
                     }
                 }
             }
-            if (shouldLog) {
-                System.out.println("[BotObjective] " + bot.getName() + " → WALKING to zone (dist: " + String.format("%.1f", distToZoneCenter) + ")");
+        }
+    }
+
+    /**
+     * Reactive blocking: detects enemy starting an attack and raises shield for the attack's duration.
+     * Enter Block when enemy swing starts (edge: false→true), hold while enemy is attacking,
+     * exit when enemy stops attacking. Cooldown prevents block spam.
+     */
+    private void checkReactiveBlock(BotParticipant bot, Match match, Store<EntityStore> store) {
+        UUID botId = bot.getUniqueId();
+
+        // Get bot's NPC role (needed for state changes and target lookup)
+        NPCEntity npcEntity = bot.getNpcEntity();
+        if (npcEntity == null) return;
+        Role role = npcEntity.getRole();
+        if (role == null) return;
+
+        // Check if the bot's current target enemy is attacking
+        boolean enemyAttacking = isEnemyAttacking(role, store);
+        boolean wasEnemyAtk = enemyWasAttacking.getOrDefault(botId, false);
+        enemyWasAttacking.put(botId, enemyAttacking);
+
+        // Currently in Block state — hold until enemy stops attacking or safety cap
+        if ("Block".equals(botNpcState.get(botId))) {
+            int ticks = blockActiveTicks.merge(botId, 1, Integer::sum);
+
+            if (!enemyAttacking || ticks >= MAX_BLOCK_TICKS) {
+                // Exit block — restore previous state
+                String restore = preBlockState.remove(botId);
+                if (restore == null) restore = "Combat";
+                role.getStateSupport().setState(bot.getEntityRef(), restore, "Default", store);
+                botNpcState.put(botId, restore);
+                blockCooldownTicks.put(botId, BLOCK_COOLDOWN_TICKS);
+                blockActiveTicks.remove(botId);
             }
+            return;
+        }
+
+        // Decrement cooldown if active
+        Integer cooldown = blockCooldownTicks.get(botId);
+        if (cooldown != null) {
+            cooldown--;
+            if (cooldown <= 0) {
+                blockCooldownTicks.remove(botId);
+            } else {
+                blockCooldownTicks.put(botId, cooldown);
+                return;
+            }
+        }
+
+        // Edge detect: enemy just started attacking (false→true)
+        if (!enemyAttacking || wasEnemyAtk) return;
+
+        // Only block from combat-related states (not Follow, Idle)
+        String currentState = botNpcState.get(botId);
+        if (currentState == null || (!currentState.equals("Combat") && !currentState.equals("Defend") && !currentState.equals("Watchout"))) {
+            return;
+        }
+
+        // Can't raise shield while in own attack frames
+        CombatSupport combatSupport = role.getCombatSupport();
+        if (combatSupport != null && isActuallyAttacking(combatSupport)) return;
+
+        // Probability roll based on difficulty
+        if (blockRandom.nextDouble() >= bot.getDifficulty().getBlockProbability()) return;
+
+        // Enter Block state — shield stays up until enemy finishes attacking
+        preBlockState.put(botId, currentState);
+        blockActiveTicks.put(botId, 0);
+        botNpcState.put(botId, "Block");
+        role.getStateSupport().setState(bot.getEntityRef(), "Block", "Default", store);
+    }
+
+    /**
+     * Checks if the bot's current NPC target (locked enemy) is executing an attack.
+     * For bot enemies: reads CombatSupport via reflection.
+     * For player enemies: TODO — needs API investigation for player attack state.
+     */
+    private boolean isEnemyAttacking(Role role, Store<EntityStore> store) {
+        MarkedEntitySupport markedSupport = role.getMarkedEntitySupport();
+        if (markedSupport == null) return false;
+
+        Ref<EntityStore> targetRef = markedSupport.getMarkedEntityRef(MarkedEntitySupport.DEFAULT_TARGET_SLOT);
+        if (targetRef == null || !targetRef.isValid()) return false;
+
+        // Get target's entity UUID to look up if it's a bot
+        try {
+            Store<EntityStore> targetStore = targetRef.getStore();
+            if (targetStore == null) return false;
+            UUIDComponent targetUuidComp = targetStore.getComponent(targetRef, UUIDComponent.getComponentType());
+            if (targetUuidComp == null) return false;
+
+            BotParticipant targetBot = getBotByEntityUuid(targetUuidComp.getUuid());
+            if (targetBot != null) {
+                // Target is a bot — check its CombatSupport
+                NPCEntity targetNpc = targetBot.getNpcEntity();
+                if (targetNpc == null) return false;
+                Role targetRole = targetNpc.getRole();
+                if (targetRole == null) return false;
+                CombatSupport targetCombat = targetRole.getCombatSupport();
+                if (targetCombat == null) return false;
+                return isActuallyAttacking(targetCombat);
+            }
+
+            // Target is a player — can't detect attack animation yet
+            return false;
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -963,105 +966,6 @@ public class BotManager {
         } catch (Exception e) {
             // Ignore
         }
-    }
-
-    /**
-     * Reactive blocking: detects incoming attacks via two signals:
-     * 1. Health drop (works for ALL enemy types — players and bots)
-     * 2. Enemy bot mid-swing via CombatSupport (proactive, bot-vs-bot only)
-     *
-     * If the bot is not mid-attack itself and probability passes, enters Block state.
-     * Block lasts BLOCK_DURATION_TICKS then returns to previous state.
-     */
-    private void checkReactiveBlock(BotParticipant bot, Match match, Store<EntityStore> store) {
-        UUID botId = bot.getUniqueId();
-        String currentState = botNpcState.get(botId);
-
-        NPCEntity npcEntity = bot.getNpcEntity();
-        if (npcEntity == null) return;
-        Role role = npcEntity.getRole();
-        if (role == null) return;
-
-        // Track health drops to detect incoming attacks (works for player and bot enemies)
-        double currentHealth = bot.getHealth();
-        double prevHealth = botPrevHealth.getOrDefault(botId, currentHealth);
-        botPrevHealth.put(botId, currentHealth);
-        boolean justTookDamage = currentHealth < prevHealth;
-
-        // Edge detection for bot-enemy proactive blocking
-        boolean enemyAttacking = isEnemyCurrentlyAttacking(bot, store);
-        boolean wasEnemyAttacking = enemyAttackEdge.getOrDefault(botId, false);
-        enemyAttackEdge.put(botId, enemyAttacking);
-        boolean enemySwingStarted = enemyAttacking && !wasEnemyAttacking;
-
-        // If we're in Block state, count down and exit after duration
-        if ("Block".equals(currentState)) {
-            int ticks = blockTickCounter.merge(botId, 1, Integer::sum);
-            if (ticks >= BLOCK_DURATION_TICKS) {
-                String returnState = preBlockState.getOrDefault(botId, "Combat");
-                role.getStateSupport().setState(bot.getEntityRef(), returnState, "Default", store);
-                botNpcState.put(botId, returnState);
-                preBlockState.remove(botId);
-                blockTickCounter.remove(botId);
-            }
-            return;
-        }
-
-        // Only consider blocking from active combat states (not Follow, Idle, Block itself)
-        if (!"Combat".equals(currentState) && !"Defend".equals(currentState) && !"Watchout".equals(currentState)) {
-            return;
-        }
-
-        // Need an attack signal: either took damage (any enemy) or enemy bot started swinging
-        if (!justTookDamage && !enemySwingStarted) return;
-
-        // Probability check based on difficulty
-        double prob = bot.getDifficulty().getBlockProbability();
-        if (blockRandom.nextDouble() >= prob) return;
-
-        // Enter Block state
-        preBlockState.put(botId, currentState);
-        blockTickCounter.put(botId, 0);
-        role.getStateSupport().setState(bot.getEntityRef(), "Block", "Default", store);
-        botNpcState.put(botId, "Block");
-    }
-
-    /**
-     * Checks if the bot's current NPC target (the enemy it's facing) is mid-attack.
-     * Works for bot enemies via their CombatSupport. Returns false for player enemies
-     * (player attack detection not yet implemented).
-     */
-    private boolean isEnemyCurrentlyAttacking(BotParticipant bot, Store<EntityStore> store) {
-        NPCEntity npcEntity = bot.getNpcEntity();
-        if (npcEntity == null) return false;
-        Role role = npcEntity.getRole();
-        if (role == null) return false;
-        MarkedEntitySupport markedSupport = role.getMarkedEntitySupport();
-        if (markedSupport == null) return false;
-
-        Ref<EntityStore> targetRef = markedSupport.getMarkedEntityRef(MarkedEntitySupport.DEFAULT_TARGET_SLOT);
-        if (targetRef == null || !targetRef.isValid()) return false;
-
-        Store<EntityStore> targetStore = targetRef.getStore();
-        if (targetStore == null) return false;
-
-        UUIDComponent targetUuid = targetStore.getComponent(targetRef, UUIDComponent.getComponentType());
-        if (targetUuid == null) return false;
-
-        // Check if target is a bot — read their CombatSupport
-        BotParticipant targetBot = getBotByEntityUuid(targetUuid.getUuid());
-        if (targetBot != null && targetBot.getNpcEntity() != null) {
-            Role targetRole = targetBot.getNpcEntity().getRole();
-            if (targetRole != null) {
-                CombatSupport targetCombat = targetRole.getCombatSupport();
-                if (targetCombat != null) {
-                    return isActuallyAttacking(targetCombat);
-                }
-            }
-        }
-
-        // Player enemy — can't detect attack state directly yet
-        return false;
     }
 
     /**
@@ -1359,25 +1263,18 @@ public class BotManager {
      */
     public void applyDamageToNpcEntity(BotParticipant bot, double damage) {
         Ref<EntityStore> entityRef = bot.getEntityRef();
-        System.out.println("[DEBUG BotManager] applyDamageToNpcEntity() - bot: " + bot.getName() +
-            ", damage: " + damage +
-            ", thread: " + Thread.currentThread().getName() +
-            ", entityRef: " + (entityRef != null ? "valid=" + entityRef.isValid() : "NULL"));
 
         if (entityRef == null || !entityRef.isValid()) {
-            System.out.println("[DEBUG BotManager] Skipping NPC damage - entityRef null/invalid");
             return;
         }
 
         try {
             Store<EntityStore> store = entityRef.getStore();
-            System.out.println("[DEBUG BotManager] NPC damage store: " + (store != null ? "OK" : "NULL"));
             if (store == null) {
                 return;
             }
             EntityStatMap stats = store.getComponent(entityRef,
                 EntityStatsModule.get().getEntityStatMapComponentType());
-            System.out.println("[DEBUG BotManager] NPC stats: " + (stats != null ? "OK" : "NULL"));
 
             if (stats != null) {
                 int healthIndex = EntityStatType.getAssetMap().getIndex("health");
@@ -1391,15 +1288,11 @@ public class BotManager {
                     double scaledDamage = damage * (npcMaxHealth / internalMax);
                     float newHealth = (float) Math.max(1, currentNpcHealth - scaledDamage);
 
-                    System.out.println("[DEBUG BotManager] NPC health: " + currentNpcHealth + " -> " + newHealth +
-                        " (npcMax=" + npcMaxHealth + ", internalMax=" + internalMax + ", scaledDmg=" + String.format("%.1f", scaledDamage) + ")");
                     stats.setStatValue(healthIndex, newHealth);
-                } else {
-                    System.out.println("[DEBUG BotManager] NPC healthStat is NULL");
                 }
             }
         } catch (Exception e) {
-            System.err.println("[DEBUG BotManager] NPC damage error: " + e.getMessage());
+            System.err.println("[BotManager] NPC damage error: " + e.getMessage());
             e.printStackTrace();
         }
     }

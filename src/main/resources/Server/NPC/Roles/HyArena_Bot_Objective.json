@@ -11,7 +11,7 @@
   "DropList": "Empty",
   "ApplyAvoidance": true,
   "ApplySeparation": true,
-  "SeparationDistance": 2.0,
+  "SeparationDistance": 1.0,
   "Inertia": 1.0,
   "KnockbackScale": 0.5,
   "BreathesInAir": true,
@@ -129,11 +129,11 @@
         ]
       },
       {
-        "$Comment": "React to damage while watching — block the attack",
+        "$Comment": "Defend + damage → Block (raise shield when hit while holding zone; also satisfies engine state setter for Block)",
         "Sensor": {
           "Type": "And",
           "Sensors": [
-            { "Type": "State", "State": "Watchout" },
+            { "Type": "State", "State": "Defend" },
             { "Type": "Damage", "Combat": true, "TargetSlot": "LockedTarget" }
           ]
         },
@@ -143,11 +143,11 @@
         ]
       },
       {
-        "$Comment": "Watchout target lost — return to idle",
+        "$Comment": "Block target lost — return to idle",
         "Sensor": {
           "Type": "And",
           "Sensors": [
-            { "Type": "State", "State": "Watchout" },
+            { "Type": "State", "State": "Block" },
             { "Type": "Not", "Sensor": { "Type": "Target" } }
           ]
         },
@@ -156,11 +156,25 @@
         ]
       },
       {
-        "$Comment": "Block target lost — return to idle",
+        "$Comment": "React to damage while watching — enter combat",
         "Sensor": {
           "Type": "And",
           "Sensors": [
-            { "Type": "State", "State": "Block" },
+            { "Type": "State", "State": "Watchout" },
+            { "Type": "Damage", "Combat": true, "TargetSlot": "LockedTarget" }
+          ]
+        },
+        "Actions": [
+          { "Type": "AddToHostileTargetMemory" },
+          { "Type": "State", "State": "Combat" }
+        ]
+      },
+      {
+        "$Comment": "Watchout target lost — return to idle",
+        "Sensor": {
+          "Type": "And",
+          "Sensors": [
+            { "Type": "State", "State": "Watchout" },
             { "Type": "Not", "Sensor": { "Type": "Target" } }
           ]
         },
@@ -198,10 +212,6 @@
               "Type": "Attack",
               "Attack": "Root_NPC_Attack_Melee",
               "AttackPauseRange": [0.8, 1.2]
-            },
-            {
-              "Type": "Timeout",
-              "Delay": [0.2, 0.4]
             }
           ],
           "HeadMotion": {
@@ -244,24 +254,6 @@
       ]
     },
     {
-      "Name": "BlockBehavior",
-      "Sensor": {
-        "Type": "And",
-        "Sensors": [
-          { "Type": "Target" },
-          { "Type": "State", "State": "Block" }
-        ]
-      },
-      "BodyMotion": {
-        "Type": "Nothing"
-      },
-      "HeadMotion": {
-        "Type": "Aim"
-      },
-      "BlockAbility": "Shield_Block",
-      "BlockProbability": 100
-    },
-    {
       "Name": "DefendBehavior",
       "Sensor": {
         "Type": "And",
@@ -299,7 +291,7 @@
           }
         },
         {
-          "$Comment": "Hold position — do not chase",
+          "$Comment": "Hold position — wait for enemies (blocking is Java-driven now)",
           "Sensor": {
             "Type": "Target"
           },
@@ -311,6 +303,25 @@
           }
         }
       ]
+    },
+    {
+      "Name": "BlockBehavior",
+      "Sensor": {
+        "Type": "And",
+        "Sensors": [
+          { "Type": "Target" },
+          { "Type": "State", "State": "Block" }
+        ]
+      },
+      "ActionsBlocking": true,
+      "Actions": [{
+        "Type": "Attack",
+        "Attack": "Shield_Block",
+        "AttackType": "Secondary",
+        "ChargeFor": 3.0,
+        "AttackPauseRange": [0.1, 0.2]
+      }],
+      "HeadMotion": { "Type": "Aim" }
     },
     {
       "Name": "WatchoutBehavior",
