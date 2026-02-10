@@ -5,7 +5,7 @@ Group #AdminPanelPage {
 
     $C.@DecoratedContainer {
         @CloseButton = true;
-        Anchor: (Width: 420, Height: 380);
+        Anchor: (Width: 420, Height: 432);
 
         Group #Title {
             $C.@Title #TitleLabel {
@@ -28,6 +28,12 @@ Group #AdminPanelPage {
             // Kit Management Button
             $C.@TextButton #KitManagementBtn {
                 @Text = "Kit Management";
+                @Anchor = (Height: 44, Top: 8);
+            }
+
+            // Shop Management Button
+            $C.@TextButton #ShopManagementBtn {
+                @Text = "Shop Management";
                 @Anchor = (Height: 44, Top: 8);
             }
 

@@ -25,4 +25,16 @@ public class ShopCategory {
         if (items == null) items = new ArrayList<>();
         return items;
     }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public void setItems(List<ShopItem> items) {
+        this.items = items;
+    }
 }

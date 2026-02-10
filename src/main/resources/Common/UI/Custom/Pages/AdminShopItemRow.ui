@@ -1,0 +1,38 @@
+$C = "../Common.ui";
+
+Group #AdminShopItemRow {
+    Anchor: (Height: 56, Top: 4);
+    Padding: (Horizontal: 12, Vertical: 8);
+    Background: #141c26;
+    LayoutMode: Left;
+
+    // Item info (left side)
+    Group #InfoGroup {
+        FlexWeight: 1;
+        LayoutMode: Top;
+
+        Label #RowItemName {
+            Text: "Item Name";
+            Anchor: (Height: 22);
+            Style: (FontSize: 15, TextColor: #b7cedd, RenderBold: true, VerticalAlignment: Center);
+        }
+
+        Label #RowItemInfo {
+            Text: "item_id | 100 AP | kits";
+            Anchor: (Height: 18);
+            Style: (FontSize: 11, TextColor: #96a9be, VerticalAlignment: Center);
+        }
+    }
+
+    // Edit button
+    $C.@SecondaryTextButton #RowEditBtn {
+        @Text = "Edit";
+        @Anchor = (Width: 90, Left: 8);
+    }
+
+    // Delete button
+    $C.@SecondaryTextButton #RowDeleteBtn {
+        @Text = "Delete";
+        @Anchor = (Width: 130, Left: 4);
+    }
+}

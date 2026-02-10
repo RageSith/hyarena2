@@ -41,4 +41,32 @@ public class ShopItem {
     public boolean isOneTimePurchase() {
         return oneTimePurchase;
     }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setCost(int cost) {
+        this.cost = cost;
+    }
+
+    public void setPermissionGranted(String permissionGranted) {
+        this.permissionGranted = permissionGranted;
+    }
+
+    public void setGroupGranted(String groupGranted) {
+        this.groupGranted = groupGranted;
+    }
+
+    public void setOneTimePurchase(boolean oneTimePurchase) {
+        this.oneTimePurchase = oneTimePurchase;
+    }
 }

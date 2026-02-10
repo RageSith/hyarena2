@@ -1,0 +1,165 @@
+$C = "../Common.ui";
+
+Group #ShopItemEditorPage {
+    $C.@PageOverlay {}
+
+    $C.@DecoratedContainer {
+        @CloseButton = true;
+        Anchor: (Width: 560, Height: 500);
+
+        Group #Title {
+            $C.@Title #TitleLabel {
+                @Text = "Shop Item Editor";
+                Anchor: (Top: 12, Height: 24);
+            }
+        }
+
+        Group #Content {
+            Padding: (Full: 20);
+            Anchor: (Top: 40, Bottom: 70);
+
+            Group #FormScroll {
+                LayoutMode: TopScrolling;
+                ScrollbarStyle: $C.@DefaultScrollbarStyle;
+
+                // ===== Basic Info =====
+                Label {
+                    Text: "BASIC INFO";
+                    Anchor: (Height: 20);
+                    Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                }
+
+                // ID
+                Group {
+                    Anchor: (Height: 32, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "ID"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #IdField { FlexWeight: 1; PlaceholderText: "item_id"; }
+                }
+
+                // Display Name
+                Group {
+                    Anchor: (Height: 32, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "Display Name"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #DisplayNameField { FlexWeight: 1; PlaceholderText: "My Item"; }
+                }
+
+                // Description
+                Group {
+                    Anchor: (Height: 32, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "Description"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #DescriptionField { FlexWeight: 1; PlaceholderText: "Item description"; }
+                }
+
+                // Cost
+                Group {
+                    Anchor: (Height: 32, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "Cost (AP)"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@NumberField #CostField { @Anchor = (Width: 90); }
+                    Group { FlexWeight: 1; }
+                }
+
+                // ===== Permissions =====
+                $C.@ContentSeparator { @Anchor = (Top: 10); }
+
+                Label {
+                    Text: "PERMISSIONS";
+                    Anchor: (Height: 20, Top: 8);
+                    Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                }
+
+                // Permission Granted
+                Group {
+                    Anchor: (Height: 32, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "Permission"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #PermissionField { FlexWeight: 1; PlaceholderText: "hyarena.classes.purchased.xxx"; }
+                }
+
+                // Group Granted
+                Group {
+                    Anchor: (Height: 32, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "Group"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #GroupField { FlexWeight: 1; PlaceholderText: "blank = none"; }
+                }
+
+                // ===== Options =====
+                $C.@ContentSeparator { @Anchor = (Top: 10); }
+
+                Label {
+                    Text: "OPTIONS";
+                    Anchor: (Height: 20, Top: 8);
+                    Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                }
+
+                // One-Time Purchase
+                Group {
+                    Anchor: (Height: 32, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "One-Time Purchase"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@CheckBox #OneTimeField {
+                    }
+                    Group { FlexWeight: 1; }
+                }
+
+                // ===== Category =====
+                $C.@ContentSeparator { @Anchor = (Top: 10); }
+
+                Label {
+                    Text: "CATEGORY";
+                    Anchor: (Height: 20, Top: 8);
+                    Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                }
+
+                // Category ID
+                Group {
+                    Anchor: (Height: 32, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "Category ID"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #CategoryIdField { FlexWeight: 1; PlaceholderText: "kits"; }
+                }
+
+                // Category Display Name
+                Group {
+                    Anchor: (Height: 32, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "Category Name"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #CategoryNameField { FlexWeight: 1; PlaceholderText: "Kits"; }
+                }
+
+                // Status Message
+                Label #StatusMessage {
+                    Text: "";
+                    Anchor: (Height: 20, Top: 12);
+                    Visible: false;
+                    Style: (FontSize: 12, TextColor: #e74c3c, Alignment: Center);
+                }
+
+                // Bottom padding
+                Group { Anchor: (Height: 20); }
+            }
+        }
+
+        // Bottom Button Row
+        Group #ButtonRow {
+            Anchor: (Bottom: 16, Height: 44, Left: 20, Right: 20);
+            LayoutMode: Left;
+
+            $C.@SecondaryTextButton #CancelBtn {
+                @Text = "Cancel";
+                @Anchor = (Width: 120);
+            }
+
+            Group { FlexWeight: 1; }
+
+            $C.@TextButton #SaveBtn {
+                @Text = "Save";
+                @Anchor = (Width: 160);
+            }
+        }
+    }
+}

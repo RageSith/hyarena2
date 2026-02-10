@@ -16,10 +16,12 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import de.ragesith.hyarena2.HyArena2;
 import de.ragesith.hyarena2.arena.MatchManager;
 import de.ragesith.hyarena2.config.ConfigManager;
 import de.ragesith.hyarena2.hub.HubManager;
 import de.ragesith.hyarena2.kit.KitManager;
+import de.ragesith.hyarena2.shop.ShopManager;
 import de.ragesith.hyarena2.ui.hud.HudManager;
 import de.ragesith.hyarena2.ui.page.CloseablePage;
 
@@ -84,6 +86,13 @@ public class AdminPanelPage extends InteractiveCustomUIPage<AdminPanelPage.PageE
 
         events.addEventBinding(
             CustomUIEventBindingType.Activating,
+            "#ShopManagementBtn",
+            EventData.of("Action", "shop"),
+            false
+        );
+
+        events.addEventBinding(
+            CustomUIEventBindingType.Activating,
             "#HubSettingsBtn",
             EventData.of("Action", "hub"),
             false
@@ -134,6 +143,10 @@ public class AdminPanelPage extends InteractiveCustomUIPage<AdminPanelPage.PageE
                     openKitList(ref, store, player);
                     break;
 
+                case "shop":
+                    openShopList(ref, store, player);
+                    break;
+
                 case "hub":
                     openHubSettings(ref, store, player);
                     break;
@@ -167,6 +180,17 @@ public class AdminPanelPage extends InteractiveCustomUIPage<AdminPanelPage.PageE
         KitListPage page = new KitListPage(
             playerRef, playerUuid, kitManager, matchManager,
             hubManager, configManager, hudManager, scheduler,
+            this::openSelf
+        );
+        player.getPageManager().openCustomPage(ref, store, page);
+    }
+
+    private void openShopList(Ref<EntityStore> ref, Store<EntityStore> store, Player player) {
+        shutdown();
+        ShopManager shopMgr = HyArena2.getInstance().getShopManager();
+        ShopListPage page = new ShopListPage(
+            playerRef, playerUuid, shopMgr,
+            hudManager, scheduler,
             this::openSelf
         );
         player.getPageManager().openCustomPage(ref, store, page);

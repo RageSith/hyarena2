@@ -15,4 +15,8 @@ public class ShopConfig {
         if (categories == null) categories = new ArrayList<>();
         return categories;
     }
+
+    public void setCategories(List<ShopCategory> categories) {
+        this.categories = categories;
+    }
 }

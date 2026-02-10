@@ -211,7 +211,7 @@ public class HyArena2 extends JavaPlugin {
             configManager.saveConfig("shop.json", shopConfig);
             System.out.println("[HyArena2] Created default shop.json");
         }
-        this.shopManager = new ShopManager(shopConfig, economyManager, playerDataManager, eventBus);
+        this.shopManager = new ShopManager(shopConfig, configManager, economyManager, playerDataManager, eventBus);
 
         System.out.println("[HyArena2] Economy & shop system initialized");
 
