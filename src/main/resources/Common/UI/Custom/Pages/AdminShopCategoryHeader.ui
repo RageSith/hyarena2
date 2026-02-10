@@ -1,0 +1,12 @@
+$C = "../Common.ui";
+
+Group #AdminShopCategoryHeader {
+    Anchor: (Height: 28, Top: 10);
+    Padding: (Horizontal: 4);
+
+    Label #CategoryHeaderLabel {
+        Text: "CATEGORY";
+        Anchor: (Height: 20);
+        Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+    }
+}

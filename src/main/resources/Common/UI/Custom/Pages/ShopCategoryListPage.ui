@@ -1,6 +1,6 @@
 $C = "../Common.ui";
 
-Group #ShopListPage {
+Group #ShopCategoryListPage {
     $C.@PageOverlay {}
 
     $C.@DecoratedContainer {
@@ -9,7 +9,7 @@ Group #ShopListPage {
 
         Group #Title {
             $C.@Title #TitleLabel {
-                @Text = "Shop Management";
+                @Text = "Shop Categories";
                 Anchor: (Top: 12, Height: 24);
             }
         }
@@ -19,27 +19,21 @@ Group #ShopListPage {
             Anchor: (Top: 40, Bottom: 70);
             LayoutMode: Top;
 
-            // Manage Categories Button
-            $C.@SecondaryTextButton #ManageCategoriesBtn {
-                @Text = "Manage Categories";
-                @Anchor = (Height: 36);
-            }
-
             // Create New Button
             $C.@TextButton #CreateNewBtn {
-                @Text = "Create New Item";
-                @Anchor = (Height: 40, Top: 6);
+                @Text = "Create New Category";
+                @Anchor = (Height: 40);
             }
 
-            // Item count label
-            Label #ItemCountLabel {
-                Text: "0 items loaded";
+            // Category count label
+            Label #CategoryCountLabel {
+                Text: "0 categories loaded";
                 Anchor: (Height: 20, Top: 8);
                 Style: (FontSize: 12, TextColor: #6b7d8e);
             }
 
-            // Scrollable item list
-            Group #ItemList {
+            // Scrollable category list
+            Group #CategoryList {
                 Anchor: (Top: 6);
                 FlexWeight: 1;
                 LayoutMode: TopScrolling;

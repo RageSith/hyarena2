@@ -9,6 +9,7 @@ import java.util.List;
 public class ShopCategory {
     private String id;
     private String displayName;
+    private int sort;
     private List<ShopItem> items = new ArrayList<>();
 
     public ShopCategory() {}
@@ -32,6 +33,14 @@ public class ShopCategory {
 
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
+    }
+
+    public int getSort() {
+        return sort;
+    }
+
+    public void setSort(int sort) {
+        this.sort = sort;
     }
 
     public void setItems(List<ShopItem> items) {

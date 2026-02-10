@@ -11,6 +11,7 @@ public class ShopItem {
     private String permissionGranted;
     private String groupGranted;
     private boolean oneTimePurchase = true;
+    private int sort;
 
     public ShopItem() {}
 
@@ -68,5 +69,13 @@ public class ShopItem {
 
     public void setOneTimePurchase(boolean oneTimePurchase) {
         this.oneTimePurchase = oneTimePurchase;
+    }
+
+    public int getSort() {
+        return sort;
+    }
+
+    public void setSort(int sort) {
+        this.sort = sort;
     }
 }

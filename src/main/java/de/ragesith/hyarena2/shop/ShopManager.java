@@ -10,7 +10,6 @@ import de.ragesith.hyarena2.utils.PermissionHelper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -146,15 +145,15 @@ public class ShopManager {
 
     /**
      * Adds or updates an item in the given category.
-     * Creates the category if it doesn't exist.
+     * Category must already exist (selected from dropdown).
      */
-    public void saveItem(ShopItem item, String categoryId, String categoryDisplayName) {
+    public void saveItem(ShopItem item, String categoryId) {
         // Remove item from any existing category first
         for (ShopCategory cat : config.getCategories()) {
             cat.getItems().removeIf(i -> i.getId().equals(item.getId()));
         }
 
-        // Find or create category
+        // Find category
         ShopCategory targetCategory = null;
         for (ShopCategory cat : config.getCategories()) {
             if (cat.getId().equals(categoryId)) {
@@ -164,17 +163,11 @@ public class ShopManager {
         }
 
         if (targetCategory == null) {
-            targetCategory = new ShopCategory();
-            targetCategory.setId(categoryId);
-            targetCategory.setDisplayName(categoryDisplayName != null && !categoryDisplayName.isEmpty()
-                ? categoryDisplayName : categoryId);
-            config.getCategories().add(targetCategory);
+            System.err.println("[ShopManager] Cannot save item: category not found: " + categoryId);
+            return;
         }
 
         targetCategory.getItems().add(item);
-
-        // Clean up empty categories
-        config.getCategories().removeIf(cat -> cat.getItems().isEmpty());
 
         rebuildCache();
         saveShopConfig();
@@ -194,8 +187,6 @@ public class ShopManager {
         }
 
         if (removed) {
-            // Clean up empty categories
-            config.getCategories().removeIf(cat -> cat.getItems().isEmpty());
             rebuildCache();
             saveShopConfig();
             System.out.println("[ShopManager] Deleted item: " + itemId);
@@ -209,6 +200,63 @@ public class ShopManager {
      */
     public boolean itemExists(String itemId) {
         return itemsById.containsKey(itemId);
+    }
+
+    // ========== Category CRUD ==========
+
+    /**
+     * Saves or updates a category (by id).
+     */
+    public void saveCategory(ShopCategory category) {
+        ShopCategory existing = null;
+        for (ShopCategory cat : config.getCategories()) {
+            if (cat.getId().equals(category.getId())) {
+                existing = cat;
+                break;
+            }
+        }
+
+        if (existing != null) {
+            existing.setDisplayName(category.getDisplayName());
+            existing.setSort(category.getSort());
+        } else {
+            config.getCategories().add(category);
+        }
+
+        saveShopConfig();
+        System.out.println("[ShopManager] Saved category: " + category.getId());
+    }
+
+    /**
+     * Deletes a category by id. Only succeeds if the category has no items.
+     */
+    public boolean deleteCategory(String categoryId) {
+        ShopCategory target = null;
+        for (ShopCategory cat : config.getCategories()) {
+            if (cat.getId().equals(categoryId)) {
+                target = cat;
+                break;
+            }
+        }
+
+        if (target == null) return false;
+
+        if (!target.getItems().isEmpty()) return false;
+
+        config.getCategories().remove(target);
+        saveShopConfig();
+        System.out.println("[ShopManager] Deleted category: " + categoryId);
+        return true;
+    }
+
+    /**
+     * Checks if a category ID exists.
+     */
+    public boolean categoryExists(String categoryId) {
+        for (ShopCategory cat : config.getCategories()) {
+            if (cat.getId().equals(categoryId)) return true;
+        }
+        return false;
     }
 
     /**

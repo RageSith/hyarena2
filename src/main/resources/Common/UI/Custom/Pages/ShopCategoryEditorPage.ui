@@ -1,0 +1,81 @@
+$C = "../Common.ui";
+
+Group #ShopCategoryEditorPage {
+    $C.@PageOverlay {}
+
+    $C.@DecoratedContainer {
+        @CloseButton = true;
+        Anchor: (Width: 420, Height: 320);
+
+        Group #Title {
+            $C.@Title #TitleLabel {
+                @Text = "Category Editor";
+                Anchor: (Top: 12, Height: 24);
+            }
+        }
+
+        Group #Content {
+            Padding: (Full: 20);
+            Anchor: (Top: 40, Bottom: 70);
+
+            Group #FormScroll {
+                LayoutMode: TopScrolling;
+                ScrollbarStyle: $C.@DefaultScrollbarStyle;
+
+                // ID
+                Group {
+                    Anchor: (Height: 32, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "ID"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #IdField { FlexWeight: 1; PlaceholderText: "category_id"; }
+                }
+
+                // Display Name
+                Group {
+                    Anchor: (Height: 32, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "Display Name"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #DisplayNameField { FlexWeight: 1; PlaceholderText: "My Category"; }
+                }
+
+                // Sort Order
+                Group {
+                    Anchor: (Height: 32, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "Sort Order"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@NumberField #SortField { @Anchor = (Width: 90); }
+                    Group { FlexWeight: 1; }
+                }
+
+                // Status Message
+                Label #StatusMessage {
+                    Text: "";
+                    Anchor: (Height: 20, Top: 12);
+                    Visible: false;
+                    Style: (FontSize: 12, TextColor: #e74c3c, Alignment: Center);
+                }
+
+                // Bottom padding
+                Group { Anchor: (Height: 20); }
+            }
+        }
+
+        // Bottom Button Row
+        Group #ButtonRow {
+            Anchor: (Bottom: 16, Height: 44, Left: 20, Right: 20);
+            LayoutMode: Left;
+
+            $C.@SecondaryTextButton #CancelBtn {
+                @Text = "Cancel";
+                @Anchor = (Width: 120);
+            }
+
+            Group { FlexWeight: 1; }
+
+            $C.@TextButton #SaveBtn {
+                @Text = "Save";
+                @Anchor = (Width: 160);
+            }
+        }
+    }
+}

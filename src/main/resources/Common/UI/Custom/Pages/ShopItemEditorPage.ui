@@ -106,7 +106,7 @@ Group #ShopItemEditorPage {
                     Group { FlexWeight: 1; }
                 }
 
-                // ===== Category =====
+                // ===== Category & Sort =====
                 $C.@ContentSeparator { @Anchor = (Top: 10); }
 
                 Label {
@@ -115,20 +115,24 @@ Group #ShopItemEditorPage {
                     Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
                 }
 
-                // Category ID
-                Group {
-                    Anchor: (Height: 32, Top: 4);
+                // Category Dropdown
+                Group #CategoryRow {
+                    Anchor: (Height: 38, Top: 4);
                     LayoutMode: Left;
-                    Label { Text: "Category ID"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
-                    $C.@TextField #CategoryIdField { FlexWeight: 1; PlaceholderText: "kits"; }
+                    Label { Text: "Category"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@DropdownBox #CategoryDropdown {
+                        Anchor: (Width: 200, Height: 32);
+                    }
+                    Group { FlexWeight: 1; }
                 }
 
-                // Category Display Name
+                // Sort Order
                 Group {
                     Anchor: (Height: 32, Top: 4);
                     LayoutMode: Left;
-                    Label { Text: "Category Name"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
-                    $C.@TextField #CategoryNameField { FlexWeight: 1; PlaceholderText: "Kits"; }
+                    Label { Text: "Sort Order"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@NumberField #SortField { @Anchor = (Width: 90); }
+                    Group { FlexWeight: 1; }
                 }
 
                 // Status Message
