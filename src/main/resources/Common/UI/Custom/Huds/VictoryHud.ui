@@ -5,7 +5,7 @@ Group #VictoryHud {
 
     // Centered panel
     Group #Container {
-        Anchor: (Width: 400, Height: 320);
+        Anchor: (Width: 400, Height: 350);
 
         $C.@Panel {
             Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
@@ -83,6 +83,24 @@ Group #VictoryHud {
                         Text: "0";
                         FlexWeight: 1;
                         Style: (FontSize: 16, TextColor: #e8c872, VerticalAlignment: Center, Alignment: End, RenderBold: true);
+                    }
+                }
+
+                // Rewards Row
+                Group #RewardsRow {
+                    Anchor: (Height: 24, Top: 4);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label {
+                        Text: "Rewards";
+                        Anchor: (Width: 120);
+                        Style: (FontSize: 14, TextColor: #96a9be, VerticalAlignment: Center);
+                    }
+                    Label #RewardsValue {
+                        Text: "";
+                        FlexWeight: 1;
+                        Style: (FontSize: 16, TextColor: #f1c40f, VerticalAlignment: Center, Alignment: End, RenderBold: true);
                     }
                 }
 

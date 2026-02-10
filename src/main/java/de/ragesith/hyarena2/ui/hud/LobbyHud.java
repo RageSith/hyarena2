@@ -3,9 +3,12 @@ package de.ragesith.hyarena2.ui.hud;
 import com.hypixel.hytale.server.core.entity.entities.player.hud.CustomUIHud;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import de.ragesith.hyarena2.HyArena2;
 import de.ragesith.hyarena2.arena.Arena;
 import de.ragesith.hyarena2.arena.Match;
 import de.ragesith.hyarena2.arena.MatchManager;
+import de.ragesith.hyarena2.economy.EconomyManager;
+import de.ragesith.hyarena2.economy.HonorManager;
 import de.ragesith.hyarena2.queue.Matchmaker;
 import de.ragesith.hyarena2.queue.QueueEntry;
 import de.ragesith.hyarena2.queue.QueueManager;
@@ -107,6 +110,18 @@ public class LobbyHud extends CustomUIHud {
         // Average queue time
         String avgTime = getOverallAverageQueueTime();
         cmd.set("#AvgTime.Text", avgTime);
+
+        // === Rank & AP ===
+        HyArena2 plugin = HyArena2.getInstance();
+        if (plugin != null) {
+            EconomyManager economyManager = plugin.getEconomyManager();
+            HonorManager honorManager = plugin.getHonorManager();
+            if (economyManager != null && honorManager != null) {
+                cmd.set("#RankName.Text", honorManager.getRankDisplayName(playerUuid));
+                cmd.set("#RankName.Style.TextColor", honorManager.getRankColor(playerUuid));
+                cmd.set("#APCount.Text", String.valueOf(economyManager.getArenaPoints(playerUuid)));
+            }
+        }
 
         // === Bottom bar: Queue info (only when in queue) ===
 

@@ -1,5 +1,5 @@
 Group #LobbyHud {
-    Anchor: (Width: 640, Height: 64, Top: 60);
+    Anchor: (Width: 900, Height: 64, Top: 60);
     Background: #1a2633(0.85);
 
     Group #Content {
@@ -89,6 +89,42 @@ Group #LobbyHud {
             Text: "N/A";
             Anchor: (Width: 60, Height: 64);
             Style: (FontSize: 16, TextColor: #3498db, VerticalAlignment: Center, RenderBold: true);
+        }
+
+        Label {
+            Text: "|";
+            Anchor: (Width: 20, Height: 64);
+            Style: (FontSize: 14, TextColor: #555555, Alignment: Center, VerticalAlignment: Center);
+        }
+
+        Label {
+            Text: "RANK";
+            Anchor: (Width: 45, Height: 64);
+            Style: (FontSize: 12, TextColor: #7f8c8d, VerticalAlignment: Center);
+        }
+
+        Label #RankName {
+            Text: "Novice";
+            Anchor: (Width: 80, Height: 64);
+            Style: (FontSize: 16, TextColor: #7f8c8d, VerticalAlignment: Center, RenderBold: true);
+        }
+
+        Label {
+            Text: "|";
+            Anchor: (Width: 20, Height: 64);
+            Style: (FontSize: 14, TextColor: #555555, Alignment: Center, VerticalAlignment: Center);
+        }
+
+        Label {
+            Text: "AP";
+            Anchor: (Width: 25, Height: 64);
+            Style: (FontSize: 12, TextColor: #7f8c8d, VerticalAlignment: Center);
+        }
+
+        Label #APCount {
+            Text: "0";
+            Anchor: (Width: 50, Height: 64);
+            Style: (FontSize: 18, TextColor: #f1c40f, VerticalAlignment: Center, RenderBold: true);
         }
     }
 }

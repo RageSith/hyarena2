@@ -13,6 +13,10 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.arena.KillDetectionSystem;
 import de.ragesith.hyarena2.arena.MatchManager;
+import de.ragesith.hyarena2.economy.EconomyConfig;
+import de.ragesith.hyarena2.economy.EconomyManager;
+import de.ragesith.hyarena2.economy.HonorManager;
+import de.ragesith.hyarena2.economy.PlayerDataManager;
 import de.ragesith.hyarena2.boundary.BoundaryManager;
 import de.ragesith.hyarena2.command.AdminCommand;
 import de.ragesith.hyarena2.command.ArenaCommand;
@@ -33,6 +37,12 @@ import de.ragesith.hyarena2.command.testing.TestBotSpawnCommand;
 import de.ragesith.hyarena2.command.testing.TestBotListCommand;
 import de.ragesith.hyarena2.command.testing.TestBotRemoveCommand;
 import de.ragesith.hyarena2.command.testing.TestBotAIToggleCommand;
+import de.ragesith.hyarena2.command.testing.TestEconomyInfoCommand;
+import de.ragesith.hyarena2.command.testing.TestGiveAPCommand;
+import de.ragesith.hyarena2.command.testing.TestGiveHonorCommand;
+import de.ragesith.hyarena2.command.testing.TestResetEconomyCommand;
+import de.ragesith.hyarena2.command.testing.TestShopListCommand;
+import de.ragesith.hyarena2.command.testing.TestShopBuyCommand;
 import de.ragesith.hyarena2.config.ConfigManager;
 import de.ragesith.hyarena2.config.GlobalConfig;
 import de.ragesith.hyarena2.config.HubConfig;
@@ -47,6 +57,8 @@ import de.ragesith.hyarena2.interaction.OpenShopInteraction;
 import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.queue.Matchmaker;
 import de.ragesith.hyarena2.queue.QueueManager;
+import de.ragesith.hyarena2.shop.ShopConfig;
+import de.ragesith.hyarena2.shop.ShopManager;
 import de.ragesith.hyarena2.ui.hud.HudManager;
 import de.ragesith.hyarena2.utils.PlayerMovementControl;
 import de.ragesith.hyarena2.bot.BotManager;
@@ -78,6 +90,10 @@ public class HyArena2 extends JavaPlugin {
     private QueueManager queueManager;
     private Matchmaker matchmaker;
     private HudManager hudManager;
+    private PlayerDataManager playerDataManager;
+    private EconomyManager economyManager;
+    private HonorManager honorManager;
+    private ShopManager shopManager;
 
     // Track known players (to detect world changes vs fresh joins)
     private final Map<UUID, String> knownPlayers = new ConcurrentHashMap<>();
@@ -173,6 +189,32 @@ public class HyArena2 extends JavaPlugin {
 
         System.out.println("[HyArena2] Queue system initialized");
 
+        // Initialize economy system
+        EconomyConfig economyConfig = configManager.loadConfig("economy.json", EconomyConfig.class);
+        if (economyConfig == null) {
+            economyConfig = new EconomyConfig();
+            configManager.saveConfig("economy.json", economyConfig);
+            System.out.println("[HyArena2] Created default economy.json");
+        }
+
+        this.playerDataManager = new PlayerDataManager(configManager.getConfigRoot());
+        this.economyManager = new EconomyManager(economyConfig, playerDataManager, eventBus);
+        this.honorManager = new HonorManager(economyConfig, playerDataManager, eventBus);
+        this.economyManager.setMatchManager(matchManager);
+        this.economyManager.setHonorManager(honorManager);
+        this.economyManager.subscribeToEvents();
+
+        // Initialize shop
+        ShopConfig shopConfig = configManager.loadConfig("shop.json", ShopConfig.class);
+        if (shopConfig == null) {
+            shopConfig = new ShopConfig();
+            configManager.saveConfig("shop.json", shopConfig);
+            System.out.println("[HyArena2] Created default shop.json");
+        }
+        this.shopManager = new ShopManager(shopConfig, economyManager, playerDataManager, eventBus);
+
+        System.out.println("[HyArena2] Economy & shop system initialized");
+
         // Register commands
         this.getCommandRegistry().registerCommand(new ArenaCommand(this));
         this.getCommandRegistry().registerCommand(new AdminCommand(this));
@@ -201,6 +243,14 @@ public class HyArena2 extends JavaPlugin {
         this.getCommandRegistry().registerCommand(new TestBotListCommand(botManager));
         this.getCommandRegistry().registerCommand(new TestBotRemoveCommand(botManager));
         this.getCommandRegistry().registerCommand(new TestBotAIToggleCommand(botManager));
+
+        // Test economy commands (Phase 7 testing)
+        this.getCommandRegistry().registerCommand(new TestEconomyInfoCommand(economyManager, honorManager));
+        this.getCommandRegistry().registerCommand(new TestGiveAPCommand(economyManager));
+        this.getCommandRegistry().registerCommand(new TestGiveHonorCommand(economyManager, honorManager));
+        this.getCommandRegistry().registerCommand(new TestResetEconomyCommand(economyManager, honorManager));
+        this.getCommandRegistry().registerCommand(new TestShopListCommand(shopManager, economyManager));
+        this.getCommandRegistry().registerCommand(new TestShopBuyCommand(shopManager, economyManager));
 
         // Register custom interactions for NPC statues
         OpenMatchmakingInteraction.setPluginInstance(this);
@@ -270,7 +320,29 @@ public class HyArena2 extends JavaPlugin {
 
         // Bot ticking is now driven by Match.tick() on the arena world thread — no separate scheduler needed.
 
-        System.out.println("[HyArena2] Scheduled tasks started (boundary check every " + boundaryCheckIntervalMs + "ms, matchmaker every 1s)");
+        // Honor decay tick every 60 seconds
+        if (honorManager != null) {
+            scheduler.scheduleAtFixedRate(() -> {
+                try {
+                    honorManager.tickDecay();
+                } catch (Exception e) {
+                    System.err.println("[HyArena2] Error in honor decay tick: " + e.getMessage());
+                }
+            }, 60, 60, TimeUnit.SECONDS);
+        }
+
+        // Economy auto-save every 5 minutes
+        if (economyManager != null) {
+            scheduler.scheduleAtFixedRate(() -> {
+                try {
+                    economyManager.saveAll();
+                } catch (Exception e) {
+                    System.err.println("[HyArena2] Error in economy auto-save: " + e.getMessage());
+                }
+            }, 5, 5, TimeUnit.MINUTES);
+        }
+
+        System.out.println("[HyArena2] Scheduled tasks started (boundary check every " + boundaryCheckIntervalMs + "ms, matchmaker every 1s, honor decay every 60s, auto-save every 5min)");
     }
 
     /**
@@ -278,6 +350,10 @@ public class HyArena2 extends JavaPlugin {
      */
     private void cleanup() {
         System.out.println("[HyArena2] Shutting down...");
+
+        if (economyManager != null) {
+            economyManager.saveAll();
+        }
 
         if (hudManager != null) {
             hudManager.shutdown();
@@ -394,6 +470,15 @@ public class HyArena2 extends JavaPlugin {
         // Register for boundary checking
         boundaryManager.registerPlayer(playerId, player);
 
+        // Load economy data
+        if (economyManager != null) {
+            economyManager.loadPlayer(playerId, playerName);
+        }
+        if (honorManager != null) {
+            honorManager.decayHonor(playerId);
+            honorManager.updatePlayerRank(playerId);
+        }
+
         // Check if player is already in hub world (same-world teleport won't trigger world change event)
         String hubWorldName = configManager.getHubConfig().getEffectiveWorldName();
         boolean alreadyInHub = player.getWorld().getName().equals(hubWorldName);
@@ -435,6 +520,12 @@ public class HyArena2 extends JavaPlugin {
 
         // Remove from match if in one
         matchManager.removePlayerFromMatch(playerId, "Disconnected");
+
+        // Save and unload economy data
+        if (economyManager != null) {
+            economyManager.savePlayer(playerId);
+            economyManager.unloadPlayer(playerId);
+        }
 
         // Unregister from boundary checking
         boundaryManager.unregisterPlayer(playerId);
@@ -515,5 +606,21 @@ public class HyArena2 extends JavaPlugin {
 
     public ScheduledExecutorService getScheduler() {
         return scheduler;
+    }
+
+    public PlayerDataManager getPlayerDataManager() {
+        return playerDataManager;
+    }
+
+    public EconomyManager getEconomyManager() {
+        return economyManager;
+    }
+
+    public HonorManager getHonorManager() {
+        return honorManager;
+    }
+
+    public ShopManager getShopManager() {
+        return shopManager;
     }
 }

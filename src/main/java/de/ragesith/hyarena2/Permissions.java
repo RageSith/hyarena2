@@ -56,6 +56,9 @@ public final class Permissions {
     /** Can spawn/manage bots */
     public static final String ADMIN_BOT = "hyarena.admin.bot";
 
+    /** Can manage economy (give AP, honor, reset) */
+    public static final String ADMIN_ECONOMY = "hyarena.admin.economy";
+
     // ========== Moderator Permissions ==========
 
     /** Can kick players from matches */
@@ -77,6 +80,17 @@ public final class Permissions {
 
     /** Access to exclusive kits */
     public static final String VIP_KIT = "hyarena.vip.kit";
+
+    // ========== Economy Permissions ==========
+
+    /** Prefix for honor rank permissions */
+    public static final String RANK_PREFIX = "hyarena.classes.rank.";
+
+    /** Prefix for purchased kit permissions */
+    public static final String PURCHASED_KIT_PREFIX = "hyarena.classes.purchased.";
+
+    /** Premium membership permission */
+    public static final String PREMIUM = "hyarena.classes.premium";
 
     // ========== Debug Permissions ==========
 

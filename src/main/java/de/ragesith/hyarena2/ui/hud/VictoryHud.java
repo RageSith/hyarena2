@@ -15,7 +15,10 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import de.ragesith.hyarena2.HyArena2;
 import de.ragesith.hyarena2.arena.Match;
+import de.ragesith.hyarena2.economy.EconomyManager;
+import de.ragesith.hyarena2.economy.MatchRewardResult;
 import de.ragesith.hyarena2.gamemode.GameMode;
 import de.ragesith.hyarena2.participant.Participant;
 import de.ragesith.hyarena2.ui.page.CloseablePage;
@@ -80,6 +83,17 @@ public class VictoryHud extends InteractiveCustomUIPage<VictoryHud.PageEventData
             cmd.set("#KillsValue.Text", "0");
             cmd.set("#DeathsValue.Text", "0");
             cmd.set("#DamageValue.Text", "0");
+        }
+
+        // Match rewards
+        HyArena2 plugin = HyArena2.getInstance();
+        if (plugin != null && plugin.getEconomyManager() != null) {
+            EconomyManager economyManager = plugin.getEconomyManager();
+            MatchRewardResult reward = economyManager.getLastMatchReward(playerUuid);
+            if (reward != null) {
+                cmd.set("#RewardsRow.Visible", true);
+                cmd.set("#RewardsValue.Text", "+" + reward.getApEarned() + " AP, +" + (int) reward.getHonorEarned() + " Honor");
+            }
         }
 
         // Game-mode-specific score (KOTH etc.)
