@@ -19,6 +19,8 @@ import de.ragesith.hyarena2.bot.BotParticipant;
 import de.ragesith.hyarena2.participant.Participant;
 import de.ragesith.hyarena2.participant.ParticipantType;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -39,6 +41,12 @@ public class KillDetectionSystem extends DamageEventSystem {
 
     // Cache the SignatureEnergy stat index
     private int signatureEnergyIndex = -1;
+
+    // Running damage accumulator for multi-hit same-tick detection
+    private final Map<UUID, Float> tickDamageAccumulator = new HashMap<>();
+    private final Map<UUID, Float> tickBaseHealth = new HashMap<>();
+    private long lastFilterNanos = 0;
+    private static final long TICK_GAP_NANOS = 10_000_000; // 10ms — half a tick at 20 TPS
 
     public KillDetectionSystem(MatchManager matchManager) {
         this.matchManager = matchManager;
@@ -76,6 +84,14 @@ public class KillDetectionSystem extends DamageEventSystem {
     public void handle(int index, ArchetypeChunk<EntityStore> chunk,
                        Store<EntityStore> store, CommandBuffer<EntityStore> commandBuffer,
                        Damage damage) {
+        // Tick boundary detection: if >10ms since last call, we're in a new tick
+        long now = System.nanoTime();
+        if (now - lastFilterNanos > TICK_GAP_NANOS) {
+            tickDamageAccumulator.clear();
+            tickBaseHealth.clear();
+        }
+        lastFilterNanos = now;
+
         try {
             // Get victim entity reference
             Ref<EntityStore> victimRef = chunk.getReferenceTo(index);
@@ -168,9 +184,15 @@ public class KillDetectionSystem extends DamageEventSystem {
         float currentHealth = healthStat.get();
         float damageAmount = damage.getAmount();
 
-        // Check if damage would be fatal
-        if (currentHealth - damageAmount <= 0) {
-            // Cancel damage to prevent death screen
+        // Seed base health on first hit this tick
+        tickBaseHealth.putIfAbsent(victimUuid, currentHealth);
+        tickDamageAccumulator.putIfAbsent(victimUuid, 0f);
+
+        // Effective health = base health minus damage already allowed through this tick
+        float effectiveHealth = tickBaseHealth.get(victimUuid) - tickDamageAccumulator.get(victimUuid);
+
+        if (effectiveHealth - damageAmount <= 0) {
+            // FATAL — cancel this hit, record kill
             damage.setCancelled(true);
 
             // Grant signature energy to attacker since damage was cancelled
@@ -178,28 +200,29 @@ public class KillDetectionSystem extends DamageEventSystem {
                 grantSignatureEnergy(attackerEntityRef, store);
             }
 
-            // Restore health to max
-            float maxHealth = healthStat.getMax();
-            stats.setStatValue(healthIndex, maxHealth);
-
-            // Clear all status effects (burning, poison, etc.)
+            // Clear all status effects (burning, poison, etc.) to prevent DoT finishing them off
             EffectControllerComponent effectController = store.getComponent(victimRef,
                 EffectControllerComponent.getComponentType());
             if (effectController != null) {
                 effectController.clearEffects(victimRef, store);
             }
 
-            // Record the fatal damage (only the actual HP removed, not overkill)
-            match.recordDamage(victimUuid, attackerUuid, currentHealth);
+            // Record the fatal damage (only actual remaining HP, not overkill)
+            match.recordDamage(victimUuid, attackerUuid, effectiveHealth);
 
-            // Record the kill - this will update stats and check if match should end
+            // Record the kill — setAlive(false) inside blocks further damage this tick
             boolean shouldEnd = match.recordKill(victimUuid, attackerUuid);
 
             if (shouldEnd) {
                 match.end();
             }
+
+            // Clean up tracking for this player (dead, no further tracking needed)
+            tickBaseHealth.remove(victimUuid);
+            tickDamageAccumulator.remove(victimUuid);
         } else {
-            // Non-fatal damage - record it (damage is NOT cancelled, so normal signature charge applies)
+            // NON-FATAL — let engine handle it (knockback, particles, sound, etc.)
+            tickDamageAccumulator.merge(victimUuid, damageAmount, Float::sum);
             match.recordDamage(victimUuid, attackerUuid, damageAmount);
         }
     }
