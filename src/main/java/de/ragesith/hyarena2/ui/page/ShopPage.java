@@ -133,9 +133,10 @@ public class ShopPage extends InteractiveCustomUIPage<ShopPage.PageEventData> im
 
             cmd.set(row + " #CatBtnName.Text", entry.displayName);
 
-            // Highlight selected category with gold text
+            // Highlight selected category
             if (i == selectedCategoryIndex) {
                 cmd.set(row + " #CatBtnName.Style.TextColor", "#e8c872");
+                cmd.set(row + " #CatBtnIndicator.Visible", true);
             }
 
             events.addEventBinding(
@@ -272,13 +273,25 @@ public class ShopPage extends InteractiveCustomUIPage<ShopPage.PageEventData> im
         boolean owned = forceOwned || (item.isOneTimePurchase() && shopManager.ownsItem(playerUuid, item.getId()));
 
         if (owned) {
-            cmd.set(rowSel + " #" + prefix + "Cost.Text", "Owned");
-            cmd.set(rowSel + " #" + prefix + "Cost.Style.TextColor", "#2ecc71");
+            // Green accent, hide cost + buy, show owned badge
+            cmd.set(rowSel + " #" + prefix + "Accent.Background", "#2ecc71");
+            cmd.set(rowSel + " #" + prefix + "Cost.Visible", false);
             cmd.set(rowSel + " #" + prefix + "BuyBtn.Visible", false);
+            cmd.set(rowSel + " #" + prefix + "OwnedBadge.Visible", true);
+            cmd.set(rowSel + " #" + prefix + "OwnedBadge.Text", "Owned");
+        } else if (playerAP < item.getCost()) {
+            // Red accent for unaffordable
+            cmd.set(rowSel + " #" + prefix + "Accent.Background", "#e74c3c");
+            cmd.set(rowSel + " #" + prefix + "Cost.Style.TextColor", "#e74c3c");
+            events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                rowSel + " #" + prefix + "BuyBtn",
+                EventData.of("Action", "buy").append("Item", item.getId()),
+                false
+            );
         } else {
-            if (playerAP < item.getCost()) {
-                cmd.set(rowSel + " #" + prefix + "Cost.Style.TextColor", "#e74c3c");
-            }
+            // Gold accent for purchasable
+            cmd.set(rowSel + " #" + prefix + "Accent.Background", "#f1c40f");
             events.addEventBinding(
                 CustomUIEventBindingType.Activating,
                 rowSel + " #" + prefix + "BuyBtn",

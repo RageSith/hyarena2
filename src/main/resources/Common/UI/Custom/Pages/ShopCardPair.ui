@@ -1,71 +1,129 @@
 $C = "../Common.ui";
 
 Group #ShopCardPair {
-    Anchor: (Height: 148, Top: 6);
+    Anchor: (Height: 168, Top: 8);
     LayoutMode: Left;
 
-    // Card 0 (always visible)
-    Button #Card0 {
-        Anchor: (Width: 230, Height: 140);
-        Style: $C.@SecondaryButtonStyle;
+    // ======== Card 0 (always visible) ========
+    Group #Card0 {
+        Anchor: (Width: 230, Height: 162);
+        Background: #141c26;
         LayoutMode: Top;
-        Padding: (Horizontal: 12, Vertical: 10);
 
-        Label #Card0Name {
-            Anchor: (Height: 22);
-            Style: (FontSize: 14, TextColor: #b7cedd, RenderBold: true);
+        // Colored accent stripe at top
+        Group #Card0Accent {
+            Anchor: (Height: 3);
+            Background: #3d4f63;
         }
 
-        Label #Card0Desc {
-            Anchor: (Height: 18);
-            Style: (FontSize: 12, TextColor: #96a9be);
-        }
-
-        Group {
+        // Card body
+        Group #Card0Body {
             FlexWeight: 1;
-        }
+            LayoutMode: Top;
+            Padding: (Horizontal: 14, Top: 10, Bottom: 8);
 
-        Label #Card0Cost {
-            Anchor: (Height: 20);
-            Style: (FontSize: 13, TextColor: #f1c40f, RenderBold: true);
-        }
+            // Item name
+            Label #Card0Name {
+                Anchor: (Height: 24);
+                Style: (FontSize: 16, TextColor: #e0e8f0, RenderBold: true);
+            }
 
-        $C.@SmallSecondaryTextButton #Card0BuyBtn {
-            @Text = "Buy";
-            @Anchor = (Height: 28, Top: 4);
+            // Description
+            Label #Card0Desc {
+                Anchor: (Height: 32, Top: 2);
+                Style: (FontSize: 11, TextColor: #6b7d8e, Wrap: true);
+            }
+
+            // Spacer
+            Group { FlexWeight: 1; }
+
+            // Separator
+            Group { Anchor: (Height: 1); Background: #2b3542; }
+
+            // Bottom action row: cost left, button right
+            Group #Card0ActionRow {
+                Anchor: (Height: 32, Top: 6);
+                LayoutMode: Left;
+
+                Label #Card0Cost {
+                    FlexWeight: 1;
+                    Style: (FontSize: 14, TextColor: #f1c40f, RenderBold: true, VerticalAlignment: Center);
+                }
+
+                // Owned badge (hidden by default)
+                Label #Card0OwnedBadge {
+                    Visible: false;
+                    FlexWeight: 1;
+                    Style: (FontSize: 13, TextColor: #2ecc71, RenderBold: true, RenderUppercase: true, VerticalAlignment: Center, HorizontalAlignment: End);
+                }
+
+                $C.@SmallSecondaryTextButton #Card0BuyBtn {
+                    @Text = "Buy";
+                    @Anchor = (Width: 80, Height: 28);
+                }
+            }
         }
     }
 
-    // Card 1 (hidden by default, shown when pair has second item)
-    Button #Card1 {
-        Anchor: (Width: 230, Height: 140, Left: 10);
-        Style: $C.@SecondaryButtonStyle;
+    // ======== Card 1 (hidden by default) ========
+    Group #Card1 {
+        Anchor: (Width: 230, Height: 162, Left: 10);
+        Background: #141c26;
         LayoutMode: Top;
-        Padding: (Horizontal: 12, Vertical: 10);
         Visible: false;
 
-        Label #Card1Name {
-            Anchor: (Height: 22);
-            Style: (FontSize: 14, TextColor: #b7cedd, RenderBold: true);
+        // Colored accent stripe at top
+        Group #Card1Accent {
+            Anchor: (Height: 3);
+            Background: #3d4f63;
         }
 
-        Label #Card1Desc {
-            Anchor: (Height: 18);
-            Style: (FontSize: 12, TextColor: #96a9be);
-        }
-
-        Group {
+        // Card body
+        Group #Card1Body {
             FlexWeight: 1;
-        }
+            LayoutMode: Top;
+            Padding: (Horizontal: 14, Top: 10, Bottom: 8);
 
-        Label #Card1Cost {
-            Anchor: (Height: 20);
-            Style: (FontSize: 13, TextColor: #f1c40f, RenderBold: true);
-        }
+            // Item name
+            Label #Card1Name {
+                Anchor: (Height: 24);
+                Style: (FontSize: 16, TextColor: #e0e8f0, RenderBold: true);
+            }
 
-        $C.@SmallSecondaryTextButton #Card1BuyBtn {
-            @Text = "Buy";
-            @Anchor = (Height: 28, Top: 4);
+            // Description
+            Label #Card1Desc {
+                Anchor: (Height: 32, Top: 2);
+                Style: (FontSize: 11, TextColor: #6b7d8e, Wrap: true);
+            }
+
+            // Spacer
+            Group { FlexWeight: 1; }
+
+            // Separator
+            Group { Anchor: (Height: 1); Background: #2b3542; }
+
+            // Bottom action row: cost left, button right
+            Group #Card1ActionRow {
+                Anchor: (Height: 32, Top: 6);
+                LayoutMode: Left;
+
+                Label #Card1Cost {
+                    FlexWeight: 1;
+                    Style: (FontSize: 14, TextColor: #f1c40f, RenderBold: true, VerticalAlignment: Center);
+                }
+
+                // Owned badge (hidden by default)
+                Label #Card1OwnedBadge {
+                    Visible: false;
+                    FlexWeight: 1;
+                    Style: (FontSize: 13, TextColor: #2ecc71, RenderBold: true, RenderUppercase: true, VerticalAlignment: Center, HorizontalAlignment: End);
+                }
+
+                $C.@SmallSecondaryTextButton #Card1BuyBtn {
+                    @Text = "Buy";
+                    @Anchor = (Width: 80, Height: 28);
+                }
+            }
         }
     }
 }

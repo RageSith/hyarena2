@@ -1,9 +1,18 @@
 $C = "../Common.ui";
 
 Group #ShopCatBtn {
-    Anchor: (Height: 40, Top: 4);
+    Anchor: (Height: 42, Top: 4);
+    LayoutMode: Left;
+
+    // Active indicator bar (hidden by default, shown gold for selected)
+    Group #CatBtnIndicator {
+        Anchor: (Width: 3);
+        Visible: false;
+        Background: #e8c872;
+    }
 
     Button #CatBtnSelect {
+        FlexWeight: 1;
         Style: $C.@SecondaryButtonStyle;
         Padding: (Horizontal: 12, Vertical: 6);
 

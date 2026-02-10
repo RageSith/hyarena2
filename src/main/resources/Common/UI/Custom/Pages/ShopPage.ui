@@ -5,7 +5,7 @@ Group #ShopPage {
 
     $C.@DecoratedContainer {
         @CloseButton = true;
-        Anchor: (Width: 750, Height: 520);
+        Anchor: (Width: 780, Height: 540);
 
         Group #Title {
             $C.@Title #TitleLabel {
@@ -19,15 +19,17 @@ Group #ShopPage {
             Anchor: (Top: 35);
             LayoutMode: Top;
 
-            // Header bar: AP | Rank | Honor + Status (right-aligned, above columns)
+            // Header bar with dark panel background
             Group #HeaderBar {
-                Anchor: (Height: 24);
+                Anchor: (Height: 32);
+                Background: #141c26;
+                Padding: (Horizontal: 14);
                 LayoutMode: Right;
 
                 Label #StatusMsg {
                     Visible: false;
                     Anchor: (Right: 8);
-                    Style: (FontSize: 13, TextColor: #2ecc71, VerticalAlignment: Center);
+                    Style: (FontSize: 13, TextColor: #2ecc71, RenderBold: true, VerticalAlignment: Center);
                 }
 
                 Label #HeaderHonor {
@@ -38,7 +40,7 @@ Group #ShopPage {
                 Label #HeaderSep2 {
                     Text: "|";
                     Anchor: (Width: 20);
-                    Style: (FontSize: 14, TextColor: #7f8c8d, VerticalAlignment: Center, HorizontalAlignment: Center);
+                    Style: (FontSize: 14, TextColor: #3d4f63, VerticalAlignment: Center, HorizontalAlignment: Center);
                 }
 
                 Label #HeaderRank {
@@ -49,7 +51,7 @@ Group #ShopPage {
                 Label #HeaderSep1 {
                     Text: "|";
                     Anchor: (Width: 20);
-                    Style: (FontSize: 14, TextColor: #7f8c8d, VerticalAlignment: Center, HorizontalAlignment: Center);
+                    Style: (FontSize: 14, TextColor: #3d4f63, VerticalAlignment: Center, HorizontalAlignment: Center);
                 }
 
                 Label #HeaderAP {
@@ -58,13 +60,9 @@ Group #ShopPage {
                 }
             }
 
-            $C.@ContentSeparator {
-                Anchor: (Top: 4);
-            }
-
             // Two-column layout
             Group #Columns {
-                Anchor: (Top: 6);
+                Anchor: (Top: 10);
                 FlexWeight: 1;
                 LayoutMode: Left;
 
@@ -76,7 +74,7 @@ Group #ShopPage {
                     Label #CategoryHeader {
                         Text: "Categories";
                         Anchor: (Height: 24);
-                        Style: (FontSize: 16, TextColor: #e8c872, RenderBold: true);
+                        Style: (FontSize: 14, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
                     }
 
                     Group #CategoryList {
@@ -100,7 +98,7 @@ Group #ShopPage {
                     Label #SelectedCatName {
                         Text: "Category";
                         Anchor: (Height: 24);
-                        Style: (FontSize: 16, TextColor: #e8c872, RenderBold: true);
+                        Style: (FontSize: 14, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
                     }
 
                     // No items notice (hidden by default)
@@ -108,7 +106,7 @@ Group #ShopPage {
                         Text: "No items in this category.";
                         Anchor: (Height: 30, Top: 20);
                         Visible: false;
-                        Style: (FontSize: 14, TextColor: #96a9be, Alignment: Center);
+                        Style: (FontSize: 14, TextColor: #6b7d8e, Alignment: Center);
                     }
 
                     // Card grid
