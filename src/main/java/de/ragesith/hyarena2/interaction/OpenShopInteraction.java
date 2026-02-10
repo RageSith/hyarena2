@@ -4,15 +4,15 @@ import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.InteractionType;
+import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.InteractionContext;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.CooldownHandler;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.SimpleInstantInteraction;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.HyArena2;
-import de.ragesith.hyarena2.economy.EconomyManager;
-import de.ragesith.hyarena2.economy.HonorManager;
-import fi.sulku.hytale.TinyMsg;
+import de.ragesith.hyarena2.ui.page.ShopPage;
 
 import javax.annotation.Nonnull;
 
@@ -57,26 +57,36 @@ public class OpenShopInteraction extends SimpleInstantInteraction {
             return;
         }
 
-        // Show AP balance and rank info (full shop page deferred to later)
-        com.hypixel.hytale.server.core.universe.PlayerRef playerRef =
-            store.getComponent(ref, com.hypixel.hytale.server.core.universe.PlayerRef.getComponentType());
-        if (playerRef == null) return;
+        PlayerRef playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+        if (playerRef == null) {
+            return;
+        }
 
         java.util.UUID playerUuid = playerRef.getUuid();
-        EconomyManager economyManager = pluginInstance.getEconomyManager();
-        HonorManager honorManager = pluginInstance.getHonorManager();
 
-        if (economyManager != null && honorManager != null) {
-            int ap = economyManager.getArenaPoints(playerUuid);
-            String rank = honorManager.getRankDisplayName(playerUuid);
-            player.sendMessage(TinyMsg.parse(
-                "<color:#f1c40f>Your Balance: " + ap + " AP</color>"
-                + " <color:#7f8c8d>|</color> "
-                + "<color:#3498db>Rank: " + rank + "</color>"
-            ));
-            player.sendMessage(TinyMsg.parse("<color:#f39c12>Shop page coming soon! Use /tshoplist and /tshopbuy for now.</color>"));
-        } else {
-            player.sendMessage(TinyMsg.parse("<color:#f39c12>Shop coming soon!</color>"));
+        // Check if player is in a match
+        if (pluginInstance.getMatchManager().isPlayerInMatch(playerUuid)) {
+            player.sendMessage(Message.raw("<color:#e74c3c>You cannot open the shop while in a match.</color>"));
+            return;
+        }
+
+        // Close any existing page first
+        pluginInstance.getHudManager().closeActivePage(playerUuid);
+
+        // Open the shop page
+        try {
+            ShopPage page = new ShopPage(
+                playerRef, playerUuid,
+                pluginInstance.getShopManager(),
+                pluginInstance.getEconomyManager(),
+                pluginInstance.getHonorManager(),
+                pluginInstance.getHudManager(),
+                pluginInstance.getScheduler()
+            );
+            player.getPageManager().openCustomPage(ref, store, page);
+        } catch (Exception e) {
+            System.err.println("[OpenShopInteraction] Failed to open ShopPage: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

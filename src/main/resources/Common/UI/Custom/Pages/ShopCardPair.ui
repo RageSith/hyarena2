@@ -1,0 +1,71 @@
+$C = "../Common.ui";
+
+Group #ShopCardPair {
+    Anchor: (Height: 148, Top: 6);
+    LayoutMode: Left;
+
+    // Card 0 (always visible)
+    Button #Card0 {
+        Anchor: (Width: 230, Height: 140);
+        Style: $C.@SecondaryButtonStyle;
+        LayoutMode: Top;
+        Padding: (Horizontal: 12, Vertical: 10);
+
+        Label #Card0Name {
+            Anchor: (Height: 22);
+            Style: (FontSize: 14, TextColor: #b7cedd, RenderBold: true);
+        }
+
+        Label #Card0Desc {
+            Anchor: (Height: 18);
+            Style: (FontSize: 12, TextColor: #96a9be);
+        }
+
+        Group {
+            FlexWeight: 1;
+        }
+
+        Label #Card0Cost {
+            Anchor: (Height: 20);
+            Style: (FontSize: 13, TextColor: #f1c40f, RenderBold: true);
+        }
+
+        $C.@SmallSecondaryTextButton #Card0BuyBtn {
+            @Text = "Buy";
+            @Anchor = (Height: 28, Top: 4);
+        }
+    }
+
+    // Card 1 (hidden by default, shown when pair has second item)
+    Button #Card1 {
+        Anchor: (Width: 230, Height: 140, Left: 10);
+        Style: $C.@SecondaryButtonStyle;
+        LayoutMode: Top;
+        Padding: (Horizontal: 12, Vertical: 10);
+        Visible: false;
+
+        Label #Card1Name {
+            Anchor: (Height: 22);
+            Style: (FontSize: 14, TextColor: #b7cedd, RenderBold: true);
+        }
+
+        Label #Card1Desc {
+            Anchor: (Height: 18);
+            Style: (FontSize: 12, TextColor: #96a9be);
+        }
+
+        Group {
+            FlexWeight: 1;
+        }
+
+        Label #Card1Cost {
+            Anchor: (Height: 20);
+            Style: (FontSize: 13, TextColor: #f1c40f, RenderBold: true);
+        }
+
+        $C.@SmallSecondaryTextButton #Card1BuyBtn {
+            @Text = "Buy";
+            @Anchor = (Height: 28, Top: 4);
+        }
+    }
+}

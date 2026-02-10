@@ -1,0 +1,16 @@
+$C = "../Common.ui";
+
+Group #ShopCatBtn {
+    Anchor: (Height: 40, Top: 4);
+
+    Button #CatBtnSelect {
+        Style: $C.@SecondaryButtonStyle;
+        Padding: (Horizontal: 12, Vertical: 6);
+
+        Label #CatBtnName {
+            Text: "Category";
+            FlexWeight: 1;
+            Style: (FontSize: 14, TextColor: #b7cedd, VerticalAlignment: Center);
+        }
+    }
+}

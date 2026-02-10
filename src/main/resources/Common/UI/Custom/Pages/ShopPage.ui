@@ -1,0 +1,121 @@
+$C = "../Common.ui";
+
+Group #ShopPage {
+    $C.@PageOverlay {}
+
+    $C.@DecoratedContainer {
+        @CloseButton = true;
+        Anchor: (Width: 750, Height: 520);
+
+        Group #Title {
+            $C.@Title #TitleLabel {
+                @Text = "Shop";
+                Anchor: (Top: 12, Height: 24);
+            }
+        }
+
+        Group #Content {
+            Padding: (Full: 20);
+            Anchor: (Top: 35);
+            LayoutMode: Left;
+
+            // Left Column - Category List
+            Group #LeftColumn {
+                Anchor: (Width: 180);
+                LayoutMode: Top;
+
+                Label #CategoryHeader {
+                    Text: "Categories";
+                    Anchor: (Height: 24);
+                    Style: (FontSize: 16, TextColor: #e8c872, RenderBold: true);
+                }
+
+                Group #CategoryList {
+                    Anchor: (Top: 6);
+                    FlexWeight: 1;
+                    LayoutMode: TopScrolling;
+                    ScrollbarStyle: $C.@DefaultScrollbarStyle;
+                }
+            }
+
+            // Vertical separator
+            $C.@VerticalSeparator {
+                Anchor: (Left: 12, Right: 12);
+            }
+
+            // Right Column - Items
+            Group #RightColumn {
+                FlexWeight: 1;
+                LayoutMode: Top;
+
+                // Header bar: AP | Rank | Honor + Status message
+                Group #HeaderBar {
+                    Anchor: (Height: 28);
+                    LayoutMode: Left;
+
+                    Label #HeaderAP {
+                        Text: "0 AP";
+                        Style: (FontSize: 14, TextColor: #f1c40f, RenderBold: true, VerticalAlignment: Center);
+                    }
+
+                    Label #HeaderSep1 {
+                        Text: "|";
+                        Anchor: (Width: 20);
+                        Style: (FontSize: 14, TextColor: #7f8c8d, VerticalAlignment: Center, HorizontalAlignment: Center);
+                    }
+
+                    Label #HeaderRank {
+                        Text: "Novice";
+                        Style: (FontSize: 14, TextColor: #7f8c8d, RenderBold: true, VerticalAlignment: Center);
+                    }
+
+                    Label #HeaderSep2 {
+                        Text: "|";
+                        Anchor: (Width: 20);
+                        Style: (FontSize: 14, TextColor: #7f8c8d, VerticalAlignment: Center, HorizontalAlignment: Center);
+                    }
+
+                    Label #HeaderHonor {
+                        Text: "0 Honor";
+                        Style: (FontSize: 14, TextColor: #3498db, RenderBold: true, VerticalAlignment: Center);
+                    }
+
+                    Group {
+                        FlexWeight: 1;
+                    }
+
+                    Label #StatusMsg {
+                        Visible: false;
+                        Style: (FontSize: 13, TextColor: #2ecc71, VerticalAlignment: Center);
+                    }
+                }
+
+                $C.@ContentSeparator {
+                    Anchor: (Top: 4);
+                }
+
+                Label #SelectedCatName {
+                    Text: "Category";
+                    Anchor: (Height: 24, Top: 6);
+                    Style: (FontSize: 16, TextColor: #e8c872, RenderBold: true);
+                }
+
+                // No items notice (hidden by default)
+                Label #NoItemsNotice {
+                    Text: "No items in this category.";
+                    Anchor: (Height: 30, Top: 20);
+                    Visible: false;
+                    Style: (FontSize: 14, TextColor: #96a9be, Alignment: Center);
+                }
+
+                // Card grid
+                Group #CardGrid {
+                    Anchor: (Top: 6);
+                    FlexWeight: 1;
+                    LayoutMode: TopScrolling;
+                    ScrollbarStyle: $C.@DefaultScrollbarStyle;
+                }
+            }
+        }
+    }
+}
