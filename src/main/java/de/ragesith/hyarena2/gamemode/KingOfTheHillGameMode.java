@@ -401,8 +401,8 @@ public class KingOfTheHillGameMode implements GameMode {
         double sizeZ = z2 - z1;
         double t = EDGE_THICKNESS;
 
-        // 12 edges of a wireframe cube: 4 bottom, 4 top, 4 vertical
-        float[][] edgeMatrices = new float[12][];
+        // 12 edges of a wireframe cube + 1 floor pane: 4 bottom, 4 top, 4 vertical, 1 floor
+        float[][] edgeMatrices = new float[13][];
 
         // Extend horizontal edges by t on each end so they overlap the vertical pillars at corners
         double extX = sizeX + t;
@@ -458,6 +458,11 @@ public class KingOfTheHillGameMode implements GameMode {
         m = new Matrix4d().identity();
         m.translate(x2, centerY, z2); m.scale(t, sizeY, t);
         edgeMatrices[11] = m.asFloatData();
+
+        // --- Floor pane (thin slab at y1 covering full XZ) ---
+        m = new Matrix4d().identity();
+        m.translate(centerX, y1, centerZ); m.scale(sizeX, t, sizeZ);
+        edgeMatrices[12] = m.asFloatData();
 
         for (Participant p : participants) {
             if (p.getType() != ParticipantType.PLAYER) continue;
