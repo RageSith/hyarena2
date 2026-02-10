@@ -114,11 +114,11 @@ public class ShopPage extends InteractiveCustomUIPage<ShopPage.PageEventData> im
         // Header bar
         int ap = economyManager.getArenaPoints(playerUuid);
         lastAP = ap;
-        cmd.set("#HeaderAP.Text", ap + " AP");
+        cmd.set("#HeaderAP.Text", ap + " Arena Points");
 
         String rankName = honorManager.getRankDisplayName(playerUuid);
         String rankColor = honorManager.getRankColor(playerUuid);
-        cmd.set("#HeaderRank.Text", rankName);
+        cmd.set("#HeaderRank.Text", "Rank: " + rankName);
         cmd.set("#HeaderRank.Style.TextColor", rankColor);
 
         int honor = (int) economyManager.getHonor(playerUuid);
@@ -441,7 +441,7 @@ public class ShopPage extends InteractiveCustomUIPage<ShopPage.PageEventData> im
                 if (currentAP != lastAP) {
                     lastAP = currentAP;
                     UICommandBuilder cmd = new UICommandBuilder();
-                    cmd.set("#HeaderAP.Text", currentAP + " AP");
+                    cmd.set("#HeaderAP.Text", currentAP + " Arena Points");
                     safeSendUpdate(cmd);
                 }
             } catch (Exception e) {
