@@ -1,7 +1,25 @@
 <page title="HyArena Info" width="700" height="480">
   <section name="Getting Started">
+    <title>Getting Started</title>
+    <text>Welcome to HyArena! Jump into action by visiting the Matchmaker Statue in the hub. From there you can browse available arenas and pick the game mode you want to play.</text>
+    <divider/>
+    <heading>How to Play</heading>
+    <bullet>Interact with the Matchmaker Statue to open the arena menu</bullet>
+    <bullet>Choose an arena with the game mode you enjoy</bullet>
+    <bullet>Select your kit and join the queue</bullet>
+    <bullet>Once enough players are ready, the match begins!</bullet>
+    <gap/>
+    <heading>What You Get</heading>
+    <bullet>Earn Arena Points (AP) for every match you play</bullet>
+    <bullet>Climb the Honor ranks by winning fights</bullet>
+    <bullet>Spend your AP in the shop to unlock new kits and gear</bullet>
+    <gap/>
+    <stat label="Your AP" value="{ap}" color="#f1c40f"/>
+    <stat label="Your Rank" value="{rank}"/>
+  </section>
+  <section name="Arena Points">
     <title>Arena Points</title>
-    <text>Arena Points (AP) are the currency of HyArena. Earn them by fighting in the arena and spend them in the shop.</text>
+    <text>Arena Points (AP) are the currency of HyArena. You earn them after every match, win or lose. Spend them in the shop to unlock new kits and gear.</text>
     <divider/>
     <heading>How to Earn AP</heading>
     <bullet>Win a match: +15 AP</bullet>
@@ -14,7 +32,6 @@
     <bullet>More items added to the shop regularly</bullet>
     <gap/>
     <stat label="Your AP" value="{ap}" color="#f1c40f"/>
-    <stat label="Your Rank" value="{rank}"/>
   </section>
   <section name="Ranks">
     <title>Honor Ranks</title>

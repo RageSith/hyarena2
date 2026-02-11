@@ -15,6 +15,9 @@ import com.hypixel.hytale.server.core.modules.entity.tracker.NetworkId;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Reusable utility for spawning and despawning floating text holograms.
  * Creates invisible projectile entities with a Nameplate component.
@@ -71,6 +74,37 @@ public class HologramUtil {
             }
         } catch (Exception e) {
             System.err.println("[HologramUtil] Failed to despawn hologram: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Scans a world for all hologram entities (ProjectileComponent + Nameplate) and removes them.
+     * Used on startup to clean up persisted holograms from previous sessions or crashes.
+     * Must be called on the world thread (inside world.execute()).
+     */
+    public static int cleanupAllHolograms(World world) {
+        try {
+            Store<EntityStore> store = world.getEntityStore().getStore();
+            List<Ref<EntityStore>> toRemove = new ArrayList<>();
+
+            store.forEachChunk(ProjectileComponent.getComponentType(), (chunk, commandBuffer) -> {
+                for (int i = 0; i < chunk.size(); i++) {
+                    Nameplate nameplate = chunk.getComponent(i, Nameplate.getComponentType());
+                    if (nameplate != null) {
+                        Ref<EntityStore> ref = chunk.getReferenceTo(i);
+                        toRemove.add(ref);
+                    }
+                }
+            });
+
+            for (Ref<EntityStore> ref : toRemove) {
+                despawnHologram(ref);
+            }
+
+            return toRemove.size();
+        } catch (Exception e) {
+            System.err.println("[HologramUtil] Failed to cleanup holograms: " + e.getMessage());
+            return 0;
         }
     }
 }

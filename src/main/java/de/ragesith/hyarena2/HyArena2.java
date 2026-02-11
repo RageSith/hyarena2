@@ -375,6 +375,11 @@ public class HyArena2 extends JavaPlugin {
     private void cleanup() {
         System.out.println("[HyArena2] Shutting down...");
 
+        // Despawn hub holograms so they don't persist as orphans across restarts
+        if (hubManager != null) {
+            hubManager.despawnHubHolograms();
+        }
+
         if (economyManager != null) {
             economyManager.saveAll();
         }

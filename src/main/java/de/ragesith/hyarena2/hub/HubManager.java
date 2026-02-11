@@ -264,22 +264,26 @@ public class HubManager {
 
     /**
      * Spawns all hub holograms from config.
+     * First cleans up any orphaned holograms from previous sessions (survives restarts/crashes).
      * Called when the first player joins (hub world guaranteed loaded).
      */
     public void spawnHubHolograms() {
         if (hologramsSpawned) return;
 
-        List<HubConfig.HologramEntry> entries = config.getHolograms();
-        if (entries.isEmpty()) {
-            hologramsSpawned = true;
-            return;
-        }
-
         World hubWorld = getHubWorld();
         if (hubWorld == null) return;
 
         hologramsSpawned = true;
+        List<HubConfig.HologramEntry> entries = config.getHolograms();
+
         hubWorld.execute(() -> {
+            // Clean up any persisted holograms from previous server sessions
+            int cleaned = HologramUtil.cleanupAllHolograms(hubWorld);
+            if (cleaned > 0) {
+                System.out.println("[HubManager] Cleaned up " + cleaned + " orphaned hologram(s) from previous session");
+            }
+
+            // Spawn fresh holograms from config
             for (HubConfig.HologramEntry entry : entries) {
                 if (entry.getText() == null || entry.getText().isEmpty()) continue;
                 Ref<EntityStore> ref = HologramUtil.spawnHologram(
