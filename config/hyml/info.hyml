@@ -6,7 +6,7 @@
     <heading>How to Earn AP</heading>
     <bullet>Win a match: +15 AP</bullet>
     <bullet>Lose a match: +10 AP</bullet>
-    <text color="#596673" size="11">You earn AP just by playing, win or lose!</text>
+    <bullet color="#e67e22">Bot matches earn half AP (fight real players for full rewards!)</bullet>
     <gap/>
     <heading>What to Spend AP On</heading>
     <bullet>Unlock new kits with unique weapons and armor</bullet>
