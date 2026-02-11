@@ -44,6 +44,7 @@ import de.ragesith.hyarena2.command.testing.TestGiveHonorCommand;
 import de.ragesith.hyarena2.command.testing.TestResetEconomyCommand;
 import de.ragesith.hyarena2.command.testing.TestShopListCommand;
 import de.ragesith.hyarena2.command.testing.TestShopBuyCommand;
+import de.ragesith.hyarena2.command.testing.TestHyMLCommand;
 import de.ragesith.hyarena2.config.ConfigManager;
 import de.ragesith.hyarena2.config.GlobalConfig;
 import de.ragesith.hyarena2.config.HubConfig;
@@ -186,6 +187,15 @@ public class HyArena2 extends JavaPlugin {
         this.matchManager.setHudManager(hudManager);
         this.matchmaker.setHudManager(hudManager);
 
+        // Set up HyML directory for markup-based pages
+        java.nio.file.Path hymlDir = configManager.getConfigRoot().resolve("hyml");
+        try {
+            java.nio.file.Files.createDirectories(hymlDir);
+        } catch (java.io.IOException e) {
+            System.err.println("[HyArena2] Failed to create hyml directory: " + e.getMessage());
+        }
+        this.hudManager.setHymlDir(hymlDir);
+
         // Subscribe to queue events for HUD management
         subscribeToQueueEvents();
 
@@ -256,6 +266,9 @@ public class HyArena2 extends JavaPlugin {
         this.getCommandRegistry().registerCommand(new TestResetEconomyCommand(economyManager, honorManager));
         this.getCommandRegistry().registerCommand(new TestShopListCommand(shopManager, economyManager));
         this.getCommandRegistry().registerCommand(new TestShopBuyCommand(shopManager, economyManager));
+
+        // Test HyML command
+        this.getCommandRegistry().registerCommand(new TestHyMLCommand(hudManager, economyManager, honorManager));
 
         // Register custom interactions for NPC statues
         OpenMatchmakingInteraction.setPluginInstance(this);
@@ -511,6 +524,13 @@ public class HyArena2 extends JavaPlugin {
                 hudManager.showLobbyHud(playerId);
             }
             // Otherwise, LobbyHud will be shown when world change event fires
+
+            // Show welcome page
+            Map<String, String> vars = new java.util.HashMap<>();
+            vars.put("player_name", playerName);
+            vars.put("ap", String.valueOf(economyManager.getArenaPoints(playerId)));
+            vars.put("rank", honorManager.getRankDisplayName(playerId));
+            hudManager.showHyMLPage(playerId, "welcome.hyml", vars);
         });
         boundaryManager.grantTeleportGrace(playerId);
 

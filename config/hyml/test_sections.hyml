@@ -1,0 +1,47 @@
+<page title="Help" width="700" height="480">
+  <section name="Getting Started">
+    <title>Welcome, {player_name}!</title>
+    <text>HyArena is a PvP arena plugin. Queue up, fight, earn rewards!</text>
+    <divider/>
+    <heading>Quick Start</heading>
+    <bullet>Use /arena to open the arena menu</bullet>
+    <bullet>Select an arena and click Join Queue</bullet>
+    <bullet>Wait for a match to be found</bullet>
+    <bullet>Fight and win!</bullet>
+  </section>
+  <section name="Commands">
+    <title>Commands</title>
+    <stat label="/arena" value="Open arena menu"/>
+    <stat label="/shop" value="Open the shop"/>
+    <stat label="/stats" value="View your stats"/>
+    <divider/>
+    <heading>Admin Commands</heading>
+    <stat label="/admin arena" value="Manage arenas"/>
+    <stat label="/admin kit" value="Manage kits"/>
+    <stat label="/admin reload" value="Reload config"/>
+  </section>
+  <section name="Game Modes">
+    <title>Game Modes</title>
+    <heading>Duel</heading>
+    <text>1v1 last man standing. No respawns.</text>
+    <gap/>
+    <heading>Deathmatch</heading>
+    <text>Free-for-all with respawns. Most kills wins.</text>
+    <gap/>
+    <heading>King of the Hill</heading>
+    <text>Capture and hold the zone to score points.</text>
+    <gap/>
+    <heading>Kit Roulette</heading>
+    <text>Random kit on every spawn. Adapt or die!</text>
+  </section>
+  <section name="Kits">
+    <title>Kits</title>
+    <text>Each kit provides a unique loadout of weapons and armor.</text>
+    <divider/>
+    <stat label="Warrior" value="Balanced melee fighter"/>
+    <stat label="Archer" value="Ranged damage dealer"/>
+    <stat label="Rogue" value="Fast and agile assassin"/>
+    <gap/>
+    <text color="#96a9be" size="11">Unlock more kits in the shop!</text>
+  </section>
+</page>

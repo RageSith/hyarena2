@@ -1,0 +1,14 @@
+<page title="Welcome" width="500" height="380">
+  <title>Welcome, {player_name}!</title>
+  <text>Ready to fight? Open the arena menu and jump into a match.</text>
+  <divider/>
+  <stat label="Arena Points" value="{ap}" color="#f1c40f"/>
+  <stat label="Rank" value="{rank}"/>
+  <divider/>
+  <heading>Quick Start</heading>
+  <bullet>Use /arena or interact with the matchmaking statue</bullet>
+  <bullet>Pick an arena, select a kit, and join the queue</bullet>
+  <bullet>Win matches to earn Arena Points and climb the ranks</bullet>
+  <gap/>
+  <text color="#596673" size="11" align="center">Press ESC to close</text>
+</page>

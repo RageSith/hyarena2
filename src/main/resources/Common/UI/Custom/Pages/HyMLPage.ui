@@ -1,0 +1,6 @@
+Group #HyMLPage {
+    Background: #000000(0.45);
+
+    Group #HyMLRoot {
+    }
+}

@@ -11,8 +11,12 @@ import de.ragesith.hyarena2.arena.Match;
 import de.ragesith.hyarena2.arena.MatchManager;
 import de.ragesith.hyarena2.queue.Matchmaker;
 import de.ragesith.hyarena2.queue.QueueManager;
+import de.ragesith.hyarena2.ui.hyml.HyMLDocument;
+import de.ragesith.hyarena2.ui.hyml.HyMLPage;
+import de.ragesith.hyarena2.ui.hyml.HyMLParser;
 import de.ragesith.hyarena2.ui.page.CloseablePage;
 
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,6 +46,9 @@ public class HudManager {
 
     // Active pages per player (for cleanup on disconnect or page replacement)
     private final Map<UUID, CloseablePage> activePages = new ConcurrentHashMap<>();
+
+    // HyML directory for markup-based pages
+    private Path hymlDir;
 
     public HudManager(QueueManager queueManager, Matchmaker matchmaker, MatchManager matchManager,
                       ScheduledExecutorService scheduler, Supplier<Integer> onlinePlayerCountSupplier) {
@@ -289,6 +296,82 @@ public class HudManager {
         if (page != null) {
             page.shutdown();
             System.out.println("[HudManager] Closed active page for " + playerUuid);
+        }
+    }
+
+    /**
+     * Sets the directory for HyML markup files.
+     */
+    public void setHymlDir(Path hymlDir) {
+        this.hymlDir = hymlDir;
+    }
+
+    /**
+     * Opens a HyML-based page for a player.
+     * Parses the .hyml file, substitutes variables, and opens as an interactive page.
+     *
+     * @param playerUuid the player's UUID
+     * @param hymlFile   the .hyml filename (relative to hymlDir)
+     * @param vars       placeholder variables ({key} → value), may be null
+     */
+    public void showHyMLPage(UUID playerUuid, String hymlFile, Map<String, String> vars) {
+        if (hymlDir == null) {
+            System.err.println("[HudManager] HyML directory not set");
+            return;
+        }
+
+        Path filePath = hymlDir.resolve(hymlFile);
+        HyMLDocument document = HyMLParser.parse(filePath, vars);
+        if (document == null) {
+            System.err.println("[HudManager] Failed to parse HyML file: " + hymlFile);
+            return;
+        }
+
+        openHyMLDocument(playerUuid, document, hymlFile);
+    }
+
+    /**
+     * Opens a HyML-based page from a classpath resource (inside the JAR).
+     *
+     * @param playerUuid   the player's UUID
+     * @param resourcePath classpath resource path (e.g. "hyml/rules.hyml")
+     * @param vars         placeholder variables ({key} → value), may be null
+     */
+    public void showHyMLResourcePage(UUID playerUuid, String resourcePath, Map<String, String> vars) {
+        HyMLDocument document = HyMLParser.parseResource(resourcePath, vars);
+        if (document == null) {
+            System.err.println("[HudManager] Failed to parse HyML resource: " + resourcePath);
+            return;
+        }
+
+        openHyMLDocument(playerUuid, document, resourcePath);
+    }
+
+    /**
+     * Opens a pre-parsed HyMLDocument as a page for a player.
+     */
+    private void openHyMLDocument(UUID playerUuid, HyMLDocument document, String sourceName) {
+        PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
+        if (playerRef == null) return;
+
+        Ref<EntityStore> ref = playerRef.getReference();
+        if (ref == null) return;
+
+        Store<EntityStore> store = ref.getStore();
+        if (store == null) return;
+
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) return;
+
+        closeActivePage(playerUuid);
+
+        HyMLPage page = new HyMLPage(playerRef, playerUuid, document, this);
+
+        try {
+            player.getPageManager().openCustomPage(ref, store, page);
+            System.out.println("[HudManager] Opened HyML page '" + sourceName + "' for " + playerUuid);
+        } catch (Exception e) {
+            System.err.println("[HudManager] Failed to open HyML page: " + e.getMessage());
         }
     }
 

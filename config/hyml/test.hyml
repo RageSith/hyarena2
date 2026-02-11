@@ -1,0 +1,17 @@
+<page title="Arena Rules" width="550" height="400">
+  <title>Arena Rules</title>
+  <text>Follow these rules at all times.</text>
+  <divider/>
+  <heading>General</heading>
+  <bullet>No spawn camping</bullet>
+  <bullet>No exploiting glitches</bullet>
+  <bullet color="#e74c3c">Breaking rules = ban</bullet>
+  <gap/>
+  <heading>Combat</heading>
+  <bullet>Fight fair — no teaming in FFA</bullet>
+  <bullet>Respect cooldowns between matches</bullet>
+  <divider/>
+  <stat label="Your Name" value="{player_name}"/>
+  <stat label="Arena Points" value="0" color="#f1c40f"/>
+  <text align="center" size="11" color="#596673">Last updated: 2026</text>
+</page>

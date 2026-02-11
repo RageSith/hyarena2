@@ -1,0 +1,66 @@
+<page title="HyArena Info" width="700" height="480">
+  <section name="Getting Started">
+    <title>Arena Points</title>
+    <text>Arena Points (AP) are the currency of HyArena. Earn them by fighting in the arena and spend them in the shop.</text>
+    <divider/>
+    <heading>How to Earn AP</heading>
+    <bullet>Win a match: +15 AP</bullet>
+    <bullet>Lose a match: +10 AP</bullet>
+    <text color="#596673" size="11">You earn AP just by playing, win or lose!</text>
+    <gap/>
+    <heading>What to Spend AP On</heading>
+    <bullet>Unlock new kits with unique weapons and armor</bullet>
+    <bullet>Purchase cosmetics from the shop</bullet>
+    <bullet>More items added to the shop regularly</bullet>
+    <gap/>
+    <stat label="Your AP" value="{ap}" color="#f1c40f"/>
+    <stat label="Your Rank" value="{rank}"/>
+  </section>
+  <section name="Ranks">
+    <title>Honor Ranks</title>
+    <text>Your rank reflects your skill and dedication. It is based on Honor, a score that goes up when you play and slowly decays over time. Stay active to climb!</text>
+    <divider/>
+    <heading>Rank Ladder</heading>
+    <stat label="Champion" value="1000+ Honor" color="#f1c40f"/>
+    <stat label="Gladiator" value="600+ Honor" color="#9b59b6"/>
+    <stat label="Warrior" value="300+ Honor" color="#3498db"/>
+    <stat label="Apprentice" value="100+ Honor" color="#2ecc71"/>
+    <stat label="Novice" value="0+ Honor" color="#7f8c8d"/>
+    <gap/>
+    <heading>How It Works</heading>
+    <bullet>Win a match to gain Honor</bullet>
+    <bullet>You also earn a smaller amount when losing</bullet>
+    <bullet>Honor decays slowly over time when inactive</bullet>
+    <bullet>Your rank updates instantly when you cross a threshold</bullet>
+    <gap/>
+    <text color="#596673" size="11">Ranks are displayed next to your name in chat.</text>
+  </section>
+  <section name="Patchnotes">
+    <title>Patchnotes</title>
+    <heading>Shop Update</heading>
+    <bullet>Browse and purchase kits from the in-game shop</bullet>
+    <bullet>Shop items organized into categories</bullet>
+    <bullet>Admins can create and edit shop items on the fly</bullet>
+    <divider/>
+    <heading>Economy System</heading>
+    <bullet>Arena Points are now earned after every match</bullet>
+    <bullet>Honor-based rank system with five tiers</bullet>
+    <bullet>Your rank is shown in chat next to your name</bullet>
+    <divider/>
+    <heading>Smarter Bots</heading>
+    <bullet>Bots now block incoming attacks with shields</bullet>
+    <bullet>Improved zone control behavior in King of the Hill</bullet>
+    <bullet>Bots react to threats and fight back in self-defense</bullet>
+    <divider/>
+    <heading>Game Modes</heading>
+    <bullet>Kit Roulette: random kit on every spawn</bullet>
+    <bullet>King of the Hill: capture and hold the zone</bullet>
+    <bullet>Deathmatch and Last Man Standing available</bullet>
+    <divider/>
+    <heading>Quality of Life</heading>
+    <bullet>Arena menu with game mode filter and live status</bullet>
+    <bullet>Match HUD with kills, deaths, and timer</bullet>
+    <bullet>Victory screen with match stats</bullet>
+    <bullet>Kit selection when joining a queue</bullet>
+  </section>
+</page>
