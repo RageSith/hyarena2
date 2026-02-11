@@ -105,7 +105,7 @@ Group #LobbyHud {
 
         Label #RankName {
             Text: "Novice";
-            Anchor: (Width: 80, Height: 64);
+            Anchor: (Width: 110, Height: 64);
             Style: (FontSize: 16, TextColor: #7f8c8d, VerticalAlignment: Center, RenderBold: true);
         }
 

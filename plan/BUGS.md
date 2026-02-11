@@ -8,13 +8,6 @@ bug and what solved it.
 
 ## BUGS PRESENT
 
-### Kit Manager
-
-#### Items in the Kit
-
-You can add Item-Elements do the Kit howver when saving no of this persist. i tested it with 
-creating a new kit -> clicked add item -> added an item string -> clicked save -> they are gone
-
 ### Match / Gamerelated
 
 #### Real Death under unknown circumstances
@@ -23,3 +16,9 @@ Me as a player die from time to time a real engine death which should not happen
 send to the arenas world spawn. This happened to me only in the KOTH mode so far. 
 
 ## BUGS FIXED
+
+### Kit Manager — Items not persisting on save
+
+**Cause:** In `KitEditorPage.java`, the item text field event binding used `append("Value", ...)` instead of `append("@Value", ...)`. Without the `@` prefix, Hytale sends the literal selector string instead of resolving the actual field value, and the key doesn't match the codec's `"@Value"` key — so `data.value` was always null.
+
+**Fix:** Changed `"Value"` to `"@Value"` on line 125 of KitEditorPage.java.

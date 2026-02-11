@@ -122,7 +122,7 @@ public class KitEditorPage extends InteractiveCustomUIPage<KitEditorPage.PageEve
 
             events.addEventBinding(CustomUIEventBindingType.ValueChanged, row + " #RowTextField",
                 EventData.of("Action", "field").append("Field", "item").append("Index", String.valueOf(i))
-                    .append("Value", row + " #RowTextField.Value"), false);
+                    .append("@Value", row + " #RowTextField.Value"), false);
             events.addEventBinding(CustomUIEventBindingType.Activating, row + " #RowRemoveBtn",
                 EventData.of("Action", "removeItem").append("Index", String.valueOf(i)), false);
         }

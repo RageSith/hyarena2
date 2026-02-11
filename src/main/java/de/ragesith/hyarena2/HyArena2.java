@@ -4,6 +4,7 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.event.events.player.PlayerChatEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent;
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
@@ -94,6 +95,7 @@ public class HyArena2 extends JavaPlugin {
     private EconomyManager economyManager;
     private HonorManager honorManager;
     private ShopManager shopManager;
+    private de.ragesith.hyarena2.chat.ChatManager chatManager;
 
     // Track known players (to detect world changes vs fresh joins)
     private final Map<UUID, String> knownPlayers = new ConcurrentHashMap<>();
@@ -213,6 +215,9 @@ public class HyArena2 extends JavaPlugin {
         }
         this.shopManager = new ShopManager(shopConfig, configManager, economyManager, playerDataManager, eventBus);
 
+        // Initialize chat formatting
+        this.chatManager = new de.ragesith.hyarena2.chat.ChatManager(honorManager);
+
         System.out.println("[HyArena2] Economy & shop system initialized");
 
         // Register commands
@@ -268,6 +273,12 @@ public class HyArena2 extends JavaPlugin {
         // Register Hytale events
         this.getEventRegistry().registerGlobal(PlayerReadyEvent.class, this::onPlayerReady);
         this.getEventRegistry().registerGlobal(PlayerDisconnectEvent.class, this::onPlayerDisconnect);
+        this.getEventRegistry().registerAsyncGlobal(PlayerChatEvent.class, future ->
+            future.thenApply(event -> {
+                chatManager.onChat(event);
+                return event;
+            })
+        );
 
         // Start scheduled tasks
         startScheduledTasks();
@@ -444,6 +455,9 @@ public class HyArena2 extends JavaPlugin {
             boundaryManager.registerPlayer(playerId, player);
             System.out.println("[HyArena2] Player " + playerName + " changed worlds to " + player.getWorld().getName());
 
+            // Refresh chat name color on world change (picks up permission changes)
+            chatManager.cachePlayerNameColor(playerId, player);
+
             String hubWorldName = configManager.getHubConfig().getEffectiveWorldName();
             boolean enteringHub = player.getWorld().getName().equals(hubWorldName);
 
@@ -478,6 +492,9 @@ public class HyArena2 extends JavaPlugin {
             honorManager.decayHonor(playerId);
             honorManager.updatePlayerRank(playerId);
         }
+
+        // Cache name color for chat formatting (must be on world thread)
+        chatManager.cachePlayerNameColor(playerId, player);
 
         // Check if player is already in hub world (same-world teleport won't trigger world change event)
         String hubWorldName = configManager.getHubConfig().getEffectiveWorldName();
@@ -529,6 +546,9 @@ public class HyArena2 extends JavaPlugin {
 
         // Unregister from boundary checking
         boundaryManager.unregisterPlayer(playerId);
+
+        // Clean up chat cache
+        chatManager.removePlayer(playerId);
 
         // Remove from tracking
         knownPlayers.remove(playerId);
@@ -622,5 +642,9 @@ public class HyArena2 extends JavaPlugin {
 
     public ShopManager getShopManager() {
         return shopManager;
+    }
+
+    public de.ragesith.hyarena2.chat.ChatManager getChatManager() {
+        return chatManager;
     }
 }
