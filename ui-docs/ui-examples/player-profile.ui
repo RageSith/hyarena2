@@ -1,0 +1,54 @@
+Group {
+  Anchor: (Width: 480, Height: 260);
+  Background: #0b111c(0.96);
+  LayoutMode: Top;
+  Padding: (Full: 16);
+
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 80);
+
+    Image #Avatar {
+      Anchor: (Width: 64, Height: 64);
+      Texture: "avatars/ember.png";
+    }
+    Group { Anchor: (Width: 12); }
+    Group {
+      LayoutMode: Top;
+      FlexWeight: 1;
+
+      Label {
+        Text: "Ayla the Ranger";
+        Anchor: (Height: 28);
+        Style: (FontSize: 18, TextColor: #ffffff, RenderBold: true);
+      }
+      Label {
+        Text: "Level 18 • Woods Runner";
+        Anchor: (Height: 18);
+        Style: (FontSize: 12, TextColor: #9fb0c8);
+      }
+    }
+  }
+
+  Group { Anchor: (Height: 8); }
+  Group { Anchor: (Height: 1); Background: #2b3542; }
+  Group { Anchor: (Height: 10); }
+
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 28);
+
+    Label { Text: "Health"; Anchor: (Width: 80); Style: (FontSize: 12, TextColor: #9fb0c8); }
+    ProgressBar { Anchor: (Width: 300, Height: 16); Value: 0.72; }
+  }
+
+  Group { Anchor: (Height: 8); }
+
+  Group {
+    LayoutMode: Left;
+    Anchor: (Height: 28);
+
+    Label { Text: "Stamina"; Anchor: (Width: 80); Style: (FontSize: 12, TextColor: #9fb0c8); }
+    ProgressBar { Anchor: (Width: 300, Height: 16); Value: 0.48; }
+  }
+}

@@ -1,0 +1,34 @@
+Group {
+  Anchor: (Width: 360, Height: 120);
+  Background: #111827(0.95);
+  LayoutMode: Left;
+  Padding: (Full: 12);
+
+  Image #ItemIcon {
+    Anchor: (Width: 80, Height: 80);
+    Texture: "items/ember_sword.png";
+  }
+
+  Group { Anchor: (Width: 12); }
+
+  Group {
+    FlexWeight: 1;
+    LayoutMode: Top;
+
+    Label {
+      Text: "Ember Sword";
+      Anchor: (Height: 28);
+      Style: (FontSize: 18, TextColor: #ffffff, RenderBold: true);
+    }
+    Label {
+      Text: "Rare • +12 Attack";
+      Anchor: (Height: 20);
+      Style: (FontSize: 12, TextColor: #7dd3fc);
+    }
+    Label {
+      Text: "Durability 92%";
+      Anchor: (Height: 18);
+      Style: (FontSize: 11, TextColor: #a5b4fc);
+    }
+  }
+}

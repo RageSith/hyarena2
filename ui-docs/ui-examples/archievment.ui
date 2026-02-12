@@ -1,0 +1,18 @@
+Group {
+  Anchor: (Width: 360, Height: 110);
+  Background: #101826(0.96);
+  LayoutMode: Left;
+  Padding: (Full: 10);
+
+  Image { Anchor: (Width: 64, Height: 64); Texture: "icons/achievement.png"; }
+  Group { Anchor: (Width: 10); }
+
+  Group {
+    FlexWeight: 1;
+    LayoutMode: Top;
+
+    Label { Text: "Achievement Unlocked"; Anchor: (Height: 18); Style: (FontSize: 12, TextColor: #fcd34d, RenderBold: true); }
+    Label { Text: "Trailblazer"; Anchor: (Height: 22); Style: (FontSize: 16, TextColor: #ffffff, RenderBold: true); }
+    Label { Text: "Discover 5 regions"; Anchor: (Height: 18); Style: (FontSize: 11, TextColor: #cbd5e1); }
+  }
+}
