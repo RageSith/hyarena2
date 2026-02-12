@@ -702,6 +702,34 @@ public class Match {
     }
 
     /**
+     * Immediate cleanup for server shutdown. Despawns bots and holograms
+     * without delays or player teleports (server is stopping anyway).
+     */
+    public synchronized void forceCleanup() {
+        // Count entities before cleanup for logging
+        int hologramCount = gameMode.getSpawnedEntityCount();
+        long botCount = participants.values().stream()
+            .filter(p -> p.getType() == ParticipantType.BOT).count();
+
+        World arenaWorld = arena.getWorld();
+        if (arenaWorld != null) {
+            arenaWorld.execute(() -> {
+                gameMode.onMatchFinished(getParticipants());
+
+                if (botManager != null) {
+                    botManager.despawnAllBotsInMatch(this);
+                }
+            });
+        }
+
+        state = MatchState.FINISHED;
+
+        System.out.println("[Match] Force-cleaned match " + matchId
+            + " on arena " + arena.getId()
+            + " (despawned " + botCount + " bot(s), " + hologramCount + " hologram(s))");
+    }
+
+    /**
      * Records damage dealt to a participant.
      * @return true if the damage resulted in a kill
      */

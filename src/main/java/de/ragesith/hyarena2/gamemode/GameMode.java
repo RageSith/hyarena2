@@ -145,6 +145,12 @@ public interface GameMode {
     default void onMatchFinished(List<Participant> participants) {}
 
     /**
+     * Returns the number of spawned entities owned by this game mode (e.g., zone holograms).
+     * Used for shutdown logging.
+     */
+    default int getSpawnedEntityCount() { return 0; }
+
+    /**
      * Determines if a participant should respawn after death
      * @param config The arena configuration
      * @param participant The participant who died

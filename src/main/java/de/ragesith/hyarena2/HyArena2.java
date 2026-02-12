@@ -12,6 +12,8 @@ import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import de.ragesith.hyarena2.arena.Arena;
+import de.ragesith.hyarena2.arena.ArenaConfig;
 import de.ragesith.hyarena2.arena.KillDetectionSystem;
 import de.ragesith.hyarena2.arena.MatchManager;
 import de.ragesith.hyarena2.economy.EconomyConfig;
@@ -62,11 +64,15 @@ import de.ragesith.hyarena2.queue.QueueManager;
 import de.ragesith.hyarena2.shop.ShopConfig;
 import de.ragesith.hyarena2.shop.ShopManager;
 import de.ragesith.hyarena2.ui.hud.HudManager;
+import de.ragesith.hyarena2.utils.ArenaCleanupUtil;
 import de.ragesith.hyarena2.utils.PlayerMovementControl;
 import de.ragesith.hyarena2.bot.BotManager;
 import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Interaction;
 import org.checkerframework.checker.nullness.compatqual.NonNullDecl;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -404,6 +410,47 @@ public class HyArena2 extends JavaPlugin {
     }
 
     /**
+     * Runs ArenaCleanupUtil on all arena worlds at startup to remove
+     * stale NPCs/holograms left behind by crashes or forced reboots.
+     */
+    private void runStartupArenaCleanup() {
+        String hubWorldName = configManager.getHubConfig().getEffectiveWorldName();
+        Map<String, List<ArenaConfig.Bounds>> worldBounds = new HashMap<>();
+
+        for (Arena arena : matchManager.getArenas()) {
+            String worldName = arena.getConfig().getWorldName();
+            if (worldName == null || worldName.equals(hubWorldName)) continue;
+            ArenaConfig.Bounds bounds = arena.getConfig().getBounds();
+            if (bounds == null) continue;
+            worldBounds.computeIfAbsent(worldName, k -> new ArrayList<>()).add(bounds);
+        }
+
+        if (worldBounds.isEmpty()) return;
+
+        int delay = 5000; // 5s delay to let worlds fully load entities
+        for (Map.Entry<String, List<ArenaConfig.Bounds>> entry : worldBounds.entrySet()) {
+            String worldName = entry.getKey();
+            List<ArenaConfig.Bounds> boundsList = entry.getValue();
+
+            scheduler.schedule(() -> {
+                World w = com.hypixel.hytale.server.core.universe.Universe.get().getWorld(worldName);
+                if (w == null) {
+                    System.out.println("[HyArena2] Startup cleanup skipped for world '" + worldName + "' (not loaded)");
+                    return;
+                }
+                w.execute(() -> {
+                    for (ArenaConfig.Bounds bounds : boundsList) {
+                        ArenaCleanupUtil.cleanupArena(w, bounds);
+                    }
+                });
+            }, delay, java.util.concurrent.TimeUnit.MILLISECONDS);
+            delay += 500;
+        }
+
+        System.out.println("[HyArena2] Scheduled startup cleanup for " + worldBounds.size() + " arena world(s)");
+    }
+
+    /**
      * Subscribes to queue events for HUD management.
      */
     private void subscribeToQueueEvents() {
@@ -451,18 +498,25 @@ public class HyArena2 extends JavaPlugin {
      */
     private void onPlayerReady(PlayerReadyEvent event) {
         Player player = event.getPlayer();
-        Ref<EntityStore> entityRef = event.getPlayerRef();
-        Store<EntityStore> store = entityRef.getStore();
+        World playerWorld = player.getWorld();
 
-        PlayerRef playerRef = store.getComponent(entityRef, PlayerRef.getComponentType());
-        UUID playerId = playerRef.getUuid();
-        String playerName = player.getDisplayName();
+        // PlayerReadyEvent can fire on the Scheduler thread — dispatch to the player's world thread
+        playerWorld.execute(() -> {
+            Ref<EntityStore> entityRef = event.getPlayerRef();
+            Store<EntityStore> store = entityRef.getStore();
+
+            PlayerRef playerRef = store.getComponent(entityRef, PlayerRef.getComponentType());
+            UUID playerId = playerRef.getUuid();
+            String playerName = player.getDisplayName();
 
         // Capture world reference on first player join
         if (this.world == null) {
             this.world = player.getWorld();
             // Hub world is now guaranteed loaded — spawn hub holograms
             hubManager.spawnHubHolograms();
+
+            // Clean up stale entities from previous crashes in all arena worlds
+            runStartupArenaCleanup();
         }
 
         // Check if this is a world change vs fresh join
@@ -541,6 +595,7 @@ public class HyArena2 extends JavaPlugin {
 
         // Publish event
         eventBus.publish(new PlayerJoinedHubEvent(playerId, playerName, true));
+        }); // end world.execute()
     }
 
     /**

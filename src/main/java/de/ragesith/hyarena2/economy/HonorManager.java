@@ -44,7 +44,6 @@ public class HonorManager {
         double newHonor = Math.min(data.getHonor() + amount, config.getHonorMaxCap());
         data.setHonor(newHonor);
 
-        playerDataManager.logTransaction(uuid, new TransactionRecord("HONOR_EARN", amount, "match reward"));
         eventBus.publish(new HonorEarnedEvent(uuid, amount, "match reward"));
 
         checkRankChange(uuid, data);
@@ -86,8 +85,6 @@ public class HonorManager {
         double newHonor = Math.max(0, data.getHonor() - decay);
         if (newHonor != data.getHonor()) {
             data.setHonor(newHonor);
-            playerDataManager.logTransaction(uuid, new TransactionRecord("HONOR_DECAY", -decay,
-                String.format("%.2fh elapsed", hoursElapsed)));
             checkRankChange(uuid, data);
         }
 

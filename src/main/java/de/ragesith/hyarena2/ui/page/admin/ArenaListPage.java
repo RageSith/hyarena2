@@ -25,11 +25,17 @@ import de.ragesith.hyarena2.config.Position;
 import de.ragesith.hyarena2.hub.HubManager;
 import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.ui.hud.HudManager;
+import de.ragesith.hyarena2.config.HubConfig;
 import de.ragesith.hyarena2.ui.page.CloseablePage;
+
+import com.hypixel.hytale.server.core.command.system.CommandManager;
+import com.hypixel.hytale.server.core.console.ConsoleSender;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -137,6 +143,13 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
 
         events.addEventBinding(
             CustomUIEventBindingType.Activating,
+            "#SyncChunksBtn",
+            EventData.of("Action", "sync_chunks"),
+            false
+        );
+
+        events.addEventBinding(
+            CustomUIEventBindingType.Activating,
             "#CloseButton",
             EventData.of("Action", "close"),
             false
@@ -186,6 +199,10 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
 
                 case "delete":
                     handleDelete(data.arena);
+                    break;
+
+                case "sync_chunks":
+                    handleSyncChunks();
                     break;
             }
         } catch (Exception e) {
@@ -266,6 +283,69 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
             reopenSelf();
         } else {
             showStatus("Failed to delete arena", "#e74c3c");
+        }
+    }
+
+    private void handleSyncChunks() {
+        try {
+            String hubWorld = configManager.getHubConfig().getEffectiveWorldName();
+
+            // Group arenas by world, skipping the hub world
+            Map<String, List<ArenaConfig.Bounds>> worldBounds = new HashMap<>();
+            for (Arena arena : matchManager.getArenas()) {
+                String world = arena.getConfig().getWorldName();
+                if (world == null || world.equals(hubWorld)) continue;
+                ArenaConfig.Bounds b = arena.getConfig().getBounds();
+                if (b == null) continue;
+                worldBounds.computeIfAbsent(world, k -> new ArrayList<>()).add(b);
+            }
+
+            if (worldBounds.isEmpty()) {
+                showStatus("No arena worlds to sync", "#6b7d8e");
+                return;
+            }
+
+            // Build commands first, then dispatch with delays to avoid race conditions
+            List<String> commands = new ArrayList<>();
+            for (Map.Entry<String, List<ArenaConfig.Bounds>> entry : worldBounds.entrySet()) {
+                String worldName = entry.getKey();
+                List<ArenaConfig.Bounds> boundsList = entry.getValue();
+
+                double unionMinX = Double.MAX_VALUE, unionMinZ = Double.MAX_VALUE;
+                double unionMaxX = -Double.MAX_VALUE, unionMaxZ = -Double.MAX_VALUE;
+                for (ArenaConfig.Bounds b : boundsList) {
+                    double loX = Math.min(b.getMinX(), b.getMaxX());
+                    double hiX = Math.max(b.getMinX(), b.getMaxX());
+                    double loZ = Math.min(b.getMinZ(), b.getMaxZ());
+                    double hiZ = Math.max(b.getMinZ(), b.getMaxZ());
+                    unionMinX = Math.min(unionMinX, loX);
+                    unionMinZ = Math.min(unionMinZ, loZ);
+                    unionMaxX = Math.max(unionMaxX, hiX);
+                    unionMaxZ = Math.max(unionMaxZ, hiZ);
+                }
+
+                int minX = (int) Math.floor(unionMinX) - 2;
+                int minZ = (int) Math.floor(unionMinZ) - 2;
+                int maxX = (int) Math.ceil(unionMaxX) + 2;
+                int maxZ = (int) Math.ceil(unionMaxZ) + 2;
+
+                commands.add("world settings keeploaded set " + minX + " " + minZ + " " + maxX + " " + maxZ + " --world " + worldName);
+            }
+
+            // Dispatch commands staggered by 500ms each
+            for (int i = 0; i < commands.size(); i++) {
+                String command = commands.get(i);
+                long delayMs = i * 500L;
+                scheduler.schedule(() -> {
+                    CommandManager.get().handleCommand(ConsoleSender.INSTANCE, command);
+                }, delayMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+            }
+
+            showStatus("Synced " + commands.size() + " world(s)", "#2ecc71");
+        } catch (Exception e) {
+            System.err.println("[ArenaListPage] Sync chunks error: " + e.getMessage());
+            e.printStackTrace();
+            showStatus("Sync failed: " + e.getMessage(), "#e74c3c");
         }
     }
 

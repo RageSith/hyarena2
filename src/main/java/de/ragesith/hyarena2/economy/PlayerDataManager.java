@@ -28,6 +28,7 @@ public class PlayerDataManager {
 
     private final Path playersDir;
     private final ConcurrentHashMap<UUID, PlayerEconomyData> cache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, Object> transactionLocks = new ConcurrentHashMap<>();
 
     public PlayerDataManager(Path pluginDataRoot) {
         this.playersDir = pluginDataRoot.resolve("data").resolve("players");
@@ -81,7 +82,12 @@ public class PlayerDataManager {
         PlayerEconomyData data = cache.get(uuid);
         if (data == null) return;
 
-        CompletableFuture.runAsync(() -> saveSync(uuid, data));
+        CompletableFuture.runAsync(() -> {
+            Object lock = transactionLocks.computeIfAbsent(uuid, k -> new Object());
+            synchronized (lock) {
+                saveSync(uuid, data);
+            }
+        });
     }
 
     /**
@@ -117,23 +123,26 @@ public class PlayerDataManager {
      */
     public void logTransaction(UUID uuid, TransactionRecord record) {
         CompletableFuture.runAsync(() -> {
-            Path file = playersDir.resolve(uuid.toString() + "_transactions.json");
-            try {
-                List<TransactionRecord> records;
-                if (Files.exists(file)) {
-                    try (Reader reader = Files.newBufferedReader(file)) {
-                        records = GSON.fromJson(reader, TRANSACTION_LIST_TYPE);
-                        if (records == null) records = new ArrayList<>();
+            Object lock = transactionLocks.computeIfAbsent(uuid, k -> new Object());
+            synchronized (lock) {
+                Path file = playersDir.resolve(uuid.toString() + "_transactions.json");
+                try {
+                    List<TransactionRecord> records;
+                    if (Files.exists(file)) {
+                        try (Reader reader = Files.newBufferedReader(file)) {
+                            records = GSON.fromJson(reader, TRANSACTION_LIST_TYPE);
+                            if (records == null) records = new ArrayList<>();
+                        }
+                    } else {
+                        records = new ArrayList<>();
                     }
-                } else {
-                    records = new ArrayList<>();
+                    records.add(record);
+                    try (Writer writer = Files.newBufferedWriter(file)) {
+                        GSON.toJson(records, writer);
+                    }
+                } catch (Exception e) {
+                    System.err.println("[PlayerDataManager] Failed to log transaction for " + uuid + ": " + e.getMessage());
                 }
-                records.add(record);
-                try (Writer writer = Files.newBufferedWriter(file)) {
-                    GSON.toJson(records, writer);
-                }
-            } catch (Exception e) {
-                System.err.println("[PlayerDataManager] Failed to log transaction for " + uuid + ": " + e.getMessage());
             }
         });
     }

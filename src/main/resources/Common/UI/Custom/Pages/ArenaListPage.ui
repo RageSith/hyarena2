@@ -52,6 +52,11 @@ Group #ArenaListPage {
             }
 
             Group { FlexWeight: 1; }
+
+            $C.@SecondaryTextButton #SyncChunksBtn {
+                @Text = "Sync Chunks";
+                @Anchor = (Width: 140);
+            }
         }
     }
 }

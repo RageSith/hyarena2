@@ -212,6 +212,16 @@ public class ArenaConfig {
         public void setMaxZ(double maxZ) { this.maxZ = maxZ; }
 
         /**
+         * Checks if a position is within the XZ bounds (ignoring Y).
+         * Used for arena cleanup where arenas in the same world never overlap vertically.
+         */
+        public boolean containsXZ(double x, double z) {
+            double loX = Math.min(minX, maxX), hiX = Math.max(minX, maxX);
+            double loZ = Math.min(minZ, maxZ), hiZ = Math.max(minZ, maxZ);
+            return x >= loX && x <= hiX && z >= loZ && z <= hiZ;
+        }
+
+        /**
          * Checks if a position is within the bounds
          */
         public boolean contains(double x, double y, double z) {

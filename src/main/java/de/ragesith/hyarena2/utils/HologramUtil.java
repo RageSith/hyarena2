@@ -15,6 +15,8 @@ import com.hypixel.hytale.server.core.modules.entity.tracker.NetworkId;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
+import de.ragesith.hyarena2.arena.ArenaConfig;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -74,6 +76,42 @@ public class HologramUtil {
             }
         } catch (Exception e) {
             System.err.println("[HologramUtil] Failed to despawn hologram: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Scans a world for hologram entities within the given XZ bounds and removes them.
+     * Used before match creation to clean up stale holograms from crashes.
+     * Must be called on the world thread (inside world.execute()).
+     */
+    public static int cleanupHologramsInBounds(World world, ArenaConfig.Bounds bounds) {
+        try {
+            Store<EntityStore> store = world.getEntityStore().getStore();
+            List<Ref<EntityStore>> toRemove = new ArrayList<>();
+
+            store.forEachChunk(ProjectileComponent.getComponentType(), (chunk, commandBuffer) -> {
+                for (int i = 0; i < chunk.size(); i++) {
+                    Nameplate nameplate = chunk.getComponent(i, Nameplate.getComponentType());
+                    if (nameplate != null) {
+                        TransformComponent transform = chunk.getComponent(i, TransformComponent.getComponentType());
+                        if (transform != null) {
+                            Vector3d pos = transform.getPosition();
+                            if (bounds.containsXZ(pos.getX(), pos.getZ())) {
+                                toRemove.add(chunk.getReferenceTo(i));
+                            }
+                        }
+                    }
+                }
+            });
+
+            for (Ref<EntityStore> ref : toRemove) {
+                despawnHologram(ref);
+            }
+
+            return toRemove.size();
+        } catch (Exception e) {
+            System.err.println("[HologramUtil] Failed to cleanup holograms in bounds: " + e.getMessage());
+            return 0;
         }
     }
 

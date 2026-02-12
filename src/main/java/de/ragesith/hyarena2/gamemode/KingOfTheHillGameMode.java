@@ -546,6 +546,11 @@ public class KingOfTheHillGameMode implements GameMode {
         });
     }
 
+    @Override
+    public int getSpawnedEntityCount() {
+        return zoneNameHolograms.size();
+    }
+
     /**
      * Removes all zone name hologram entities.
      */

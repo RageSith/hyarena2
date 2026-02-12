@@ -73,7 +73,6 @@ public class EconomyManager {
         if (data == null || amount <= 0) return;
 
         data.setArenaPoints(data.getArenaPoints() + amount);
-        playerDataManager.logTransaction(uuid, new TransactionRecord("AP_EARN", amount, reason));
         eventBus.publish(new ArenaPointsEarnedEvent(uuid, amount, reason));
     }
 
@@ -84,7 +83,6 @@ public class EconomyManager {
         if (data.getArenaPoints() < amount) return false;
 
         data.setArenaPoints(data.getArenaPoints() - amount);
-        playerDataManager.logTransaction(uuid, new TransactionRecord("AP_SPEND", amount, reason));
         eventBus.publish(new ArenaPointsSpentEvent(uuid, amount, reason));
         return true;
     }

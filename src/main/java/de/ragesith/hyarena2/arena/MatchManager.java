@@ -19,6 +19,7 @@ import de.ragesith.hyarena2.hub.HubManager;
 import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.bot.BotManager;
 import de.ragesith.hyarena2.bot.BotParticipant;
+import de.ragesith.hyarena2.utils.ArenaCleanupUtil;
 
 import java.io.File;
 import java.util.*;
@@ -110,14 +111,15 @@ public class MatchManager {
     public void shutdown() {
         stopTicker();
 
-        // Cancel all active matches
+        // Force-cleanup all active matches (immediate entity despawn, no player teleports)
+        int matchCount = activeMatches.size();
         for (Match match : activeMatches.values()) {
-            match.cancel("Server shutdown");
+            match.forceCleanup();
         }
 
         activeMatches.clear();
         playerToMatch.clear();
-        System.out.println("MatchManager shut down");
+        System.out.println("[MatchManager] Shut down — force-cleaned " + matchCount + " active match(es)");
     }
 
     /**
@@ -305,6 +307,12 @@ public class MatchManager {
         if (world == null) {
             System.out.println("Cannot create match: world not loaded: " + arena.getConfig().getWorldName());
             return null;
+        }
+
+        // Clean up stale entities from previous matches (crash recovery)
+        ArenaConfig.Bounds bounds = arena.getBounds();
+        if (bounds != null) {
+            world.execute(() -> ArenaCleanupUtil.cleanupArena(world, bounds));
         }
 
         // Get game mode
