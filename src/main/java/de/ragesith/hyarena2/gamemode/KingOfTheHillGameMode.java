@@ -50,6 +50,7 @@ public class KingOfTheHillGameMode implements GameMode {
     private final Set<UUID> previouslyInZone = new HashSet<>();
     private String worldName;
     private int activeZoneIndex = 0;
+    private final Random random = new Random();
     private UUID currentController = null;
     private boolean contested = false;
 
@@ -153,7 +154,15 @@ public class KingOfTheHillGameMode implements GameMode {
 
         // Zone rotation
         if (zones.size() > 1 && tickCount > 0 && tickCount % rotationTicks == 0) {
-            activeZoneIndex = (activeZoneIndex + 1) % zones.size();
+            int nextIndex;
+            if (zones.size() == 2) {
+                nextIndex = 1 - activeZoneIndex;
+            } else {
+                do {
+                    nextIndex = random.nextInt(zones.size());
+                } while (nextIndex == activeZoneIndex);
+            }
+            activeZoneIndex = nextIndex;
             String newZoneName = zones.get(activeZoneIndex).getDisplayName();
             showZoneStatus(participants, newZoneName, "Zone rotated!");
             // Reset controller state on rotation
