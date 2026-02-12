@@ -1,5 +1,5 @@
 Group #LobbyHud {
-    Anchor: (Width: 900, Height: 64, Top: 60);
+    Anchor: (Width: 1000, Height: 64, Top: 60);
     Background: #1a2633(0.85);
 
     Group #Content {
@@ -96,11 +96,12 @@ Group #LobbyHud {
             Anchor: (Width: 20, Height: 64);
             Style: (FontSize: 14, TextColor: #555555, Alignment: Center, VerticalAlignment: Center);
         }
-
-        Label {
-            Text: "RANK";
-            Anchor: (Width: 45, Height: 64);
-            Style: (FontSize: 12, TextColor: #7f8c8d, VerticalAlignment: Center);
+        Group {
+            Anchor: (Width: 48, Height: 64);
+            Group {
+                Anchor: (Width: 48, Height: 48);
+                Background: PatchStyle(TexturePath: "../Images/rank.png");
+            }
         }
 
         Label #RankName {
@@ -115,15 +116,17 @@ Group #LobbyHud {
             Style: (FontSize: 14, TextColor: #555555, Alignment: Center, VerticalAlignment: Center);
         }
 
-        Label {
-            Text: "AP";
-            Anchor: (Width: 25, Height: 64);
-            Style: (FontSize: 12, TextColor: #7f8c8d, VerticalAlignment: Center);
+        Group {
+            Anchor: (Width: 48, Height: 64);
+            Group {
+                Anchor: (Width: 48, Height: 48);
+                Background: PatchStyle(TexturePath: "../Images/ap.png");
+            }
         }
 
         Label #APCount {
             Text: "0";
-            Anchor: (Width: 50, Height: 64);
+            Anchor: (Width: 75, Height: 64);
             Style: (FontSize: 18, TextColor: #f1c40f, VerticalAlignment: Center, RenderBold: true);
         }
     }

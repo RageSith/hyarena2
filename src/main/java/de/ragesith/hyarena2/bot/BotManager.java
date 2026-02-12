@@ -67,8 +67,14 @@ public class BotManager {
     // Default bot model (fallback)
     private static final String DEFAULT_BOT_MODEL = "Blook_Skeleton_Pirate_Gunner_Blunderbuss";
 
-    // Custom NPC role for objective-aware bots (Follow/Idle/Combat states controlled by Java)
-    private static final String OBJECTIVE_BOT_ROLE = "HyArena_Bot_Objective";
+    // NPC role variants (different appearances, same behavior)
+    private static final String[] BOT_ROLE_VARIANTS = {
+        "HyArena_Bot_Objective_0",
+        "HyArena_Bot_Objective_1",
+        "HyArena_Bot_Objective_2",
+        "HyArena_Bot_Objective_3"
+    };
+    private final Random roleRandom = new Random();
 
     // NPC entity health tracking (for proportional damage)
     private final Map<UUID, Float> npcMaxHealthMap = new ConcurrentHashMap<>();
@@ -137,8 +143,26 @@ public class BotManager {
         // Generate unique name
         String botName = generateBotName();
 
+        // Pick a random appearance variant, avoiding duplicates while unused variants remain
+        Set<String> usedRoles = new HashSet<>();
+        for (Participant p : match.getParticipants()) {
+            if (p.getType() == ParticipantType.BOT && p instanceof BotParticipant bp) {
+                usedRoles.add(bp.getRoleId());
+            }
+        }
+        List<String> available = new ArrayList<>();
+        for (String variant : BOT_ROLE_VARIANTS) {
+            if (!usedRoles.contains(variant)) {
+                available.add(variant);
+            }
+        }
+        if (available.isEmpty()) {
+            available = Arrays.asList(BOT_ROLE_VARIANTS);
+        }
+        String roleId = available.get(roleRandom.nextInt(available.size()));
+
         // Create bot participant
-        BotParticipant bot = new BotParticipant(botName, difficulty);
+        BotParticipant bot = new BotParticipant(botName, difficulty, roleId);
         bot.setSelectedKitId(kitId);
         bot.setSpawnPosition(spawnPosition);
         bot.setCurrentPosition(spawnPosition.copy());
@@ -179,8 +203,8 @@ public class BotManager {
             return;
         }
 
-        // All game modes use the objective bot role (Follow/Idle/Combat states controlled by Java brain)
-        String botModel = OBJECTIVE_BOT_ROLE;
+        // Use the bot's assigned role variant (set once at creation, persists through respawns)
+        String botModel = bot.getRoleId();
 
         try {
             Store<EntityStore> store = world.getEntityStore().getStore();

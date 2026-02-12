@@ -20,6 +20,7 @@ public class BotParticipant implements Participant {
     private final UUID botUuid;
     private final String botName;
     private final BotDifficulty difficulty;
+    private final String roleId;
 
     // Stats
     private boolean alive;
@@ -59,10 +60,11 @@ public class BotParticipant implements Participant {
     private UUID lastAttackerUuid;
     private long lastDamageTimestamp;
 
-    public BotParticipant(String name, BotDifficulty difficulty) {
+    public BotParticipant(String name, BotDifficulty difficulty, String roleId) {
         this.botUuid = UUID.randomUUID();
         this.botName = name;
         this.difficulty = difficulty;
+        this.roleId = roleId;
         this.alive = true;
         this.kills = 0;
         this.deaths = 0;
@@ -193,6 +195,13 @@ public class BotParticipant implements Participant {
      */
     public BotDifficulty getDifficulty() {
         return difficulty;
+    }
+
+    /**
+     * Gets the NPC role ID assigned to this bot (persists through respawns).
+     */
+    public String getRoleId() {
+        return roleId;
     }
 
     /**

@@ -149,7 +149,12 @@ public class BotBrain {
                         return currentDecision;
                     }
                 }
-                // On zone, no nearby enemies — idle and score
+                // On zone, no nearby enemies — walk to center if not there yet, then idle
+                if (ctx.botPos != null && ctx.botPos.distanceTo(ctx.objective.position()) > 1.5) {
+                    idleTicks = 0;
+                    currentDecision = BrainDecision.OBJECTIVE;
+                    return currentDecision;
+                }
                 idleTicks = 0;
                 roamWaypoint = null;
                 currentDecision = BrainDecision.IDLE;
