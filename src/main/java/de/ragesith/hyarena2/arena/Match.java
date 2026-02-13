@@ -892,9 +892,9 @@ public class Match {
                 BotParticipant bot = botManager.getBot(victimUuid);
                 if (bot != null) {
                     if (bot.isWaveEnemy()) {
-                        // Wave bots: despawn immediately — match continues and dead bots shouldn't linger
+                        // Wave bots: despawn after current tick — can't removeEntity from inside a Store system handler
                         System.out.println("[Match] Wave bot killed (despawning): " + victim.getName());
-                        botManager.despawnBot(bot);
+                        arena.getWorld().execute(() -> botManager.despawnBot(bot));
                     } else {
                         // Regular bots: neutralize only, entity removal deferred to finish()/cancel()
                         // to prevent interaction chain crashes from stale entity references.
