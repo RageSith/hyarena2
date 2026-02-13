@@ -1,0 +1,45 @@
+{% extends "base.twig" %}
+
+{% block title %}Link Account - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1>Link Game Account</h1>
+                {% if is_linked %}
+                    <p>Your account is already linked!</p>
+                {% else %}
+                    <p>Enter the 6-character code from the in-game <code>/link</code> command.</p>
+                {% endif %}
+            </div>
+
+            {% if error is defined and error %}
+                <div class="alert alert-error">{{ error }}</div>
+            {% endif %}
+
+            {% if is_linked %}
+                <div class="alert alert-success">Your game account is linked. <a href="/profile">View your profile</a></div>
+            {% else %}
+                <div class="alert alert-info">
+                    Run <strong>/link</strong> in-game to get your code. The code expires after 10 minutes.
+                </div>
+
+                <form method="POST">
+                    <div class="form-group">
+                        <label for="code">Link Code</label>
+                        <input type="text" id="code" name="code" class="form-input code-input" placeholder="ABC123" required maxlength="6" pattern="[A-Za-z0-9]{6}" autocomplete="off">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Link Account</button>
+                </form>
+            {% endif %}
+
+            <div class="auth-footer">
+                <a href="/profile">Back to Profile</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

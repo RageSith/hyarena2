@@ -1,0 +1,123 @@
+{% extends "base.twig" %}
+
+{% block title %}{{ player_name }} - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="player-profile">
+    <div class="container">
+        <div id="player-identifier" data-name="{{ player_name }}"></div>
+
+        <!-- Loading State -->
+        <div id="player-loading" class="player-loading">
+            <div class="spinner"></div>
+            <span>Loading player profile...</span>
+        </div>
+
+        <!-- Error State -->
+        <div id="player-error" class="player-error" style="display: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M15 9l-6 6M9 9l6 6"/>
+            </svg>
+            <h2>Player Not Found</h2>
+            <p>Could not find a player named "{{ player_name }}".</p>
+            <a href="/leaderboard" class="btn btn-primary" style="margin-top: var(--space-lg);">Back to Leaderboard</a>
+        </div>
+
+        <!-- Player Content -->
+        <div id="player-content" style="display: none;">
+            <!-- Header -->
+            <div class="player-header">
+                <div class="player-avatar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </div>
+                <div class="player-info">
+                    <h1 class="player-name" id="player-name">{{ player_name }}</h1>
+                    <div class="player-meta">
+                        <span id="player-rank">Unranked</span>
+                        <span id="player-joined"></span>
+                        <span id="player-last-seen"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PvP Stats -->
+            <h3 class="stats-section-title">PvP Statistics</h3>
+            <div class="player-stats-grid">
+                <div class="player-stat-card primary">
+                    <span class="stat-value" id="stat-wins">0</span>
+                    <span class="stat-label">Wins</span>
+                </div>
+                <div class="player-stat-card">
+                    <span class="stat-value" id="stat-pvp-kills">0</span>
+                    <span class="stat-label">PvP Kills</span>
+                </div>
+                <div class="player-stat-card">
+                    <span class="stat-value" id="stat-pvp-deaths">0</span>
+                    <span class="stat-label">PvP Deaths</span>
+                </div>
+                <div class="player-stat-card highlight">
+                    <span class="stat-value" id="stat-pvp-kd">0.00</span>
+                    <span class="stat-label">PvP K/D</span>
+                </div>
+                <div class="player-stat-card">
+                    <span class="stat-value" id="stat-games">0</span>
+                    <span class="stat-label">Games</span>
+                </div>
+                <div class="player-stat-card highlight">
+                    <span class="stat-value" id="stat-winrate">0.0%</span>
+                    <span class="stat-label">Win Rate</span>
+                </div>
+            </div>
+
+            <!-- PvE Stats -->
+            <h3 class="stats-section-title pve-section">PvE Statistics</h3>
+            <div class="player-stats-grid pve-stats-grid">
+                <div class="player-stat-card pve-stat">
+                    <span class="stat-value" id="stat-pve-kills">0</span>
+                    <span class="stat-label">PvE Kills</span>
+                </div>
+                <div class="player-stat-card pve-stat">
+                    <span class="stat-value" id="stat-pve-deaths">0</span>
+                    <span class="stat-label">PvE Deaths</span>
+                </div>
+                <div class="player-stat-card pve-stat highlight">
+                    <span class="stat-value" id="stat-pve-kd">0.00</span>
+                    <span class="stat-label">PvE K/D</span>
+                </div>
+            </div>
+
+            <!-- Arena Stats -->
+            <div class="player-arena-stats">
+                <h2 class="section-heading">Arena Statistics</h2>
+                <div class="arena-stats-list" id="arena-stats-list">
+                    <div class="no-data-message"><p>No arena statistics yet.</p></div>
+                </div>
+            </div>
+
+            <!-- Recent Matches -->
+            <div class="player-recent-matches">
+                <h2 class="section-heading">Recent Matches</h2>
+                <div class="recent-matches-list" id="recent-matches-list">
+                    <div class="no-data-message"><p>No matches played yet.</p></div>
+                </div>
+            </div>
+
+            <!-- Back Link -->
+            <div class="player-back">
+                <a href="/leaderboard" class="back-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Back to Leaderboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/assets/js/player.js"></script>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "admin/layout.twig" %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-page-header">
+        <h1>Notifications</h1>
+        <a href="/admin/notifications/create" class="btn btn-primary">Create Notification</a>
+    </div>
+
+    <div class="admin-table-wrapper">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Type</th>
+                    <th>Active</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for notification in notifications %}
+                <tr>
+                    <td>{{ notification.title }}</td>
+                    <td><span class="badge badge-{{ notification.type }}">{{ notification.type }}</span></td>
+                    <td>{{ notification.is_active ? 'Yes' : 'No' }}</td>
+                    <td>{{ notification.created_at }}</td>
+                    <td class="actions">
+                        <a href="/admin/notifications/{{ notification.id }}/edit" class="btn btn-sm">Edit</a>
+                        <form method="POST" action="/admin/notifications/{{ notification.id }}/delete" style="display:inline" onsubmit="return confirm('Delete this notification?')">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="empty">No notifications yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

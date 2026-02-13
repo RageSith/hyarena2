@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Primary Meta Tags -->
+    <title>{% block title %}{{ site_name }} - Hytale PvP Server{% endblock %}</title>
+    <meta name="title" content="{% block meta_title %}{{ site_name }} - Hytale PvP Server{% endblock %}">
+    <meta name="description" content="{% block meta_description %}HyArena is a Hytale PvP server for pure arena action. No survival, no farming - just combat! Play Last Man Standing, Deathmatch and more.{% endblock %}">
+    <meta name="keywords" content="Hytale, Hytale Server, Hytale PvP, PvP Server, Arena, Combat, Gaming, Server, EU, LastManStanding, Deathmatch, FFA">
+    <meta name="author" content="HyArena Team">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#1a1a2e">
+
+    <!-- Canonical -->
+    <link rel="canonical" href="{{ site_url }}/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ site_url }}/">
+    <meta property="og:title" content="{% block og_title %}{{ site_name }} - Hytale PvP Server | Pure Arena Action{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Hytale PvP server for pure arena action. No survival, no farming - just combat! Join now at play.hyarena.de{% endblock %}">
+    <meta property="og:image" content="{{ site_url }}/assets/images/og-image.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="{{ site_name }}">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="{{ site_url }}/">
+    <meta name="twitter:title" content="{{ site_name }} - Hytale PvP Server | Pure Arena Action">
+    <meta name="twitter:description" content="Hytale PvP server for pure arena action. No survival, no farming - just combat!">
+    <meta name="twitter:image" content="{{ site_url }}/assets/images/og-image.png">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/assets/images/favicon.svg">
+    <link rel="apple-touch-icon" href="/assets/images/apple-touch-icon.png">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="/assets/css/main.css">
+
+    {% block structured_data %}{% endblock %}
+    {% block head %}{% endblock %}
+</head>
+<body>
+    {% include 'partials/nav.twig' %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    {% include 'partials/footer.twig' %}
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

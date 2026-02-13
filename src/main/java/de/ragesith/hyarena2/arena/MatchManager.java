@@ -15,6 +15,7 @@ import de.ragesith.hyarena2.gamemode.GameMode;
 import de.ragesith.hyarena2.gamemode.KingOfTheHillGameMode;
 import de.ragesith.hyarena2.gamemode.KitRouletteGameMode;
 import de.ragesith.hyarena2.gamemode.LastManStandingGameMode;
+import de.ragesith.hyarena2.boundary.BoundaryManager;
 import de.ragesith.hyarena2.hub.HubManager;
 import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.bot.BotManager;
@@ -36,6 +37,7 @@ public class MatchManager {
     private final HubManager hubManager;
     private KitManager kitManager;
     private BotManager botManager;
+    private BoundaryManager boundaryManager;
     private de.ragesith.hyarena2.ui.hud.HudManager hudManager;
 
     private final Map<String, Arena> arenas;
@@ -80,6 +82,13 @@ public class MatchManager {
      */
     public void setBotManager(BotManager botManager) {
         this.botManager = botManager;
+    }
+
+    /**
+     * Sets the boundary manager for granting teleport grace in matches.
+     */
+    public void setBoundaryManager(BoundaryManager boundaryManager) {
+        this.boundaryManager = boundaryManager;
     }
 
     /**
@@ -325,6 +334,7 @@ public class MatchManager {
         // Create match
         Match match = new Match(arena, gameMode, eventBus, hubManager, kitManager);
         match.setBotManager(botManager);
+        match.setBoundaryManager(boundaryManager);
         match.setHudManager(hudManager);
         activeMatches.put(match.getMatchId(), match);
 

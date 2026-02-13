@@ -1,0 +1,44 @@
+{% extends "base.twig" %}
+
+{% block title %}Profile - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-container" style="max-width: 600px;">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1>Your Profile</h1>
+            </div>
+
+            <div style="margin-bottom: var(--space-xl);">
+                <p><strong>Email:</strong> {{ account.email }}</p>
+                <p><strong>Registered:</strong> {{ account.created_at }}</p>
+            </div>
+
+            {% if player %}
+                <div class="profile-linked">
+                    <span class="linked-badge">Linked</span>
+                    <span>Game account: <strong>{{ player.username }}</strong></span>
+                </div>
+
+                <div style="margin-bottom: var(--space-xl);">
+                    <p><strong>Player UUID:</strong> <code style="font-size: 0.85rem;">{{ player.uuid }}</code></p>
+                    <p><strong>Honor Rank:</strong> {{ player.honor_rank }}</p>
+                    <p><strong>Arena Points:</strong> {{ player.arena_points }}</p>
+                </div>
+
+                <a href="/player/{{ player.username }}" class="btn btn-primary">View Public Stats</a>
+            {% else %}
+                <div class="alert alert-info" style="margin-bottom: var(--space-lg);">
+                    Your account is not linked to a game account yet.
+                </div>
+                <a href="/link" class="btn btn-primary">Link Game Account</a>
+            {% endif %}
+
+            <div class="auth-footer" style="margin-top: var(--space-xl);">
+                <a href="/logout">Logout</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

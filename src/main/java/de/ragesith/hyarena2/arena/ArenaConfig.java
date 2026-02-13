@@ -91,6 +91,25 @@ public class ArenaConfig {
         if (waitTimeSeconds < 0) return false;
         if (spawnPoints == null || spawnPoints.size() < maxPlayers) return false;
         if (bounds == null) return false;
+
+        // Normalize bounds so min < max on all axes (Gson may deserialize swapped corners)
+        bounds.normalize();
+
+        // Normalize capture zones too
+        if (captureZones != null) {
+            for (CaptureZone zone : captureZones) {
+                double tmpMinX = Math.min(zone.getMinX(), zone.getMaxX());
+                double tmpMaxX = Math.max(zone.getMinX(), zone.getMaxX());
+                double tmpMinY = Math.min(zone.getMinY(), zone.getMaxY());
+                double tmpMaxY = Math.max(zone.getMinY(), zone.getMaxY());
+                double tmpMinZ = Math.min(zone.getMinZ(), zone.getMaxZ());
+                double tmpMaxZ = Math.max(zone.getMinZ(), zone.getMaxZ());
+                zone.setMinX(tmpMinX); zone.setMaxX(tmpMaxX);
+                zone.setMinY(tmpMinY); zone.setMaxY(tmpMaxY);
+                zone.setMinZ(tmpMinZ); zone.setMaxZ(tmpMaxZ);
+            }
+        }
+
         return true;
     }
 
@@ -189,12 +208,25 @@ public class ArenaConfig {
         public Bounds() {}
 
         public Bounds(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
-            this.minX = minX;
-            this.minY = minY;
-            this.minZ = minZ;
-            this.maxX = maxX;
-            this.maxY = maxY;
-            this.maxZ = maxZ;
+            this.minX = Math.min(minX, maxX);
+            this.minY = Math.min(minY, maxY);
+            this.minZ = Math.min(minZ, maxZ);
+            this.maxX = Math.max(minX, maxX);
+            this.maxY = Math.max(minY, maxY);
+            this.maxZ = Math.max(minZ, maxZ);
+        }
+
+        /**
+         * Normalizes bounds so min &lt; max on all axes.
+         * Called after deserialization (Gson bypasses constructors).
+         */
+        public void normalize() {
+            double tmpMinX = Math.min(minX, maxX), tmpMaxX = Math.max(minX, maxX);
+            double tmpMinY = Math.min(minY, maxY), tmpMaxY = Math.max(minY, maxY);
+            double tmpMinZ = Math.min(minZ, maxZ), tmpMaxZ = Math.max(minZ, maxZ);
+            this.minX = tmpMinX; this.maxX = tmpMaxX;
+            this.minY = tmpMinY; this.maxY = tmpMaxY;
+            this.minZ = tmpMinZ; this.maxZ = tmpMaxZ;
         }
 
         public double getMinX() { return minX; }

@@ -1,0 +1,51 @@
+{% extends "admin/layout.twig" %}
+
+{% block title %}Webhooks{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-page-header">
+        <h1>Discord Webhooks</h1>
+        <a href="/admin/webhooks/create" class="btn btn-primary">Add Webhook</a>
+    </div>
+
+    <div class="admin-table-wrapper">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Active</th>
+                    <th>Events</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for webhook in webhooks %}
+                <tr>
+                    <td>{{ webhook.name }}</td>
+                    <td>{{ webhook.is_active ? 'Yes' : 'No' }}</td>
+                    <td>
+                        {% for event in webhook.subscriptions %}
+                            <span class="badge badge-info">{{ event }}</span>
+                        {% else %}
+                            <span class="text-muted">None</span>
+                        {% endfor %}
+                    </td>
+                    <td class="actions">
+                        <a href="/admin/webhooks/{{ webhook.id }}/edit" class="btn btn-sm">Edit</a>
+                        <form method="POST" action="/admin/webhooks/{{ webhook.id }}/delete" style="display:inline" onsubmit="return confirm('Delete this webhook?')">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="empty">No webhooks configured.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

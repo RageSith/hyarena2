@@ -1,0 +1,36 @@
+{% extends "admin/layout.twig" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <h1>Dashboard</h1>
+
+    <div class="admin-stats-grid">
+        <div class="admin-stat-card">
+            <span class="admin-stat-value">{{ stats.total_players }}</span>
+            <span class="admin-stat-label">Total Players</span>
+        </div>
+        <div class="admin-stat-card">
+            <span class="admin-stat-value">{{ stats.total_matches }}</span>
+            <span class="admin-stat-label">Total Matches</span>
+        </div>
+        <div class="admin-stat-card">
+            <span class="admin-stat-value">{{ stats.matches_today }}</span>
+            <span class="admin-stat-label">Matches Today</span>
+        </div>
+        <div class="admin-stat-card">
+            <span class="admin-stat-value">{{ stats.total_arenas }}</span>
+            <span class="admin-stat-label">Arenas</span>
+        </div>
+        <div class="admin-stat-card">
+            <span class="admin-stat-value">{{ stats.total_kits }}</span>
+            <span class="admin-stat-label">Kits</span>
+        </div>
+        <div class="admin-stat-card">
+            <span class="admin-stat-value">{{ stats.linked_accounts }}</span>
+            <span class="admin-stat-label">Linked Accounts</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

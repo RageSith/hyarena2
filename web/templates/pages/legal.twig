@@ -1,0 +1,36 @@
+{% extends "base.twig" %}
+
+{% block title %}Legal Notice - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="legal-page">
+    <div class="container">
+        <h1>Legal Notice</h1>
+
+        <div class="legal-section">
+            <h2>Information according to applicable law</h2>
+            <p>This website is operated by the {{ site_name }} team.</p>
+            <p>Contact: See the contact information provided in the game server or through our community channels.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>Disclaimer</h2>
+            <p>The contents of this website have been created with the utmost care. However, we cannot guarantee the accuracy, completeness, or timeliness of the content.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>External Links</h2>
+            <p>This website may contain links to external websites. We have no influence on the content of these external websites and therefore cannot assume any liability for them.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>Copyright</h2>
+            <p>The content and works on this website are subject to copyright law. Reproduction, editing, distribution, or any form of use beyond the scope of copyright law requires the written consent of the respective author or creator.</p>
+        </div>
+
+        <div class="legal-back">
+            <a href="/">&larr; Back to Home</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -37,6 +37,7 @@ import de.ragesith.hyarena2.bot.BotDifficulty;
 import de.ragesith.hyarena2.bot.BotManager;
 import de.ragesith.hyarena2.bot.BotParticipant;
 
+import de.ragesith.hyarena2.boundary.BoundaryManager;
 import de.ragesith.hyarena2.utils.PlayerMovementControl;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -55,6 +56,7 @@ public class Match {
     private final HubManager hubManager;
     private final KitManager kitManager;
     private BotManager botManager;
+    private BoundaryManager boundaryManager;
     private de.ragesith.hyarena2.ui.hud.HudManager hudManager;
 
     private final Map<UUID, Participant> participants;
@@ -188,10 +190,20 @@ public class Match {
                 spawnConfig.getYaw(), spawnConfig.getPitch()
         );
 
+        // Grant boundary grace BEFORE teleport starts — prevents BoundaryManager from
+        // firing a second teleport during the cross-world teleport delay (causes "Incorrect teleportId" disconnect)
+        if (boundaryManager != null) {
+            boundaryManager.grantTeleportGrace(playerUuid);
+        }
+
         // Teleport to arena, then freeze player after a short delay
         World arenaWorld = arena.getWorld();
         hubManager.teleportPlayerToWorld(player, spawnPos, arenaWorld, () -> {
             participant.sendMessage("<color:#2ecc71>You have joined the match!</color>");
+            // Re-grant grace after arrival so boundary doesn't fire during settle time
+            if (boundaryManager != null) {
+                boundaryManager.grantTeleportGrace(playerUuid);
+            }
             // Wait for player to fully load, then freeze, apply kit, and mark as arrived
             CompletableFuture.delayedExecutor(500, TimeUnit.MILLISECONDS).execute(() -> {
                 arenaWorld.execute(() -> {
@@ -357,6 +369,13 @@ public class Match {
      */
     public void setBotManager(BotManager botManager) {
         this.botManager = botManager;
+    }
+
+    /**
+     * Sets the boundary manager for granting teleport grace on match join/respawn.
+     */
+    public void setBoundaryManager(BoundaryManager boundaryManager) {
+        this.boundaryManager = boundaryManager;
     }
 
     /**
@@ -1055,6 +1074,11 @@ public class Match {
         Player player = getPlayerFromUuid(playerUuid);
         if (player == null) {
             return;
+        }
+
+        // Grant boundary grace before respawn teleport
+        if (boundaryManager != null) {
+            boundaryManager.grantTeleportGrace(playerUuid);
         }
 
         World arenaWorld = arena.getWorld();

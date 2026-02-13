@@ -1,0 +1,14 @@
+{% extends "base.twig" %}
+
+{% block title %}500 - Server Error{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-container" style="text-align: center;">
+        <h1 style="font-size: 6rem; color: var(--color-error); margin-bottom: var(--space-md);">500</h1>
+        <h2 style="margin-bottom: var(--space-lg);">Server Error</h2>
+        <p style="color: var(--color-text-muted); margin-bottom: var(--space-xl);">Something went wrong on our end. Please try again later.</p>
+        <a href="/" class="btn btn-primary">Back to Home</a>
+    </div>
+</div>
+{% endblock %}

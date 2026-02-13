@@ -1,0 +1,38 @@
+{% extends "base.twig" %}
+
+{% block title %}Login - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1>Login</h1>
+                <p>Sign in to your account.</p>
+            </div>
+
+            {% if error is defined and error %}
+                <div class="alert alert-error">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" class="form-input" placeholder="your@email.com" required autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" class="form-input" placeholder="Your password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">Login</button>
+            </form>
+
+            <div class="auth-footer">
+                Don't have an account? <a href="/register">Register</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

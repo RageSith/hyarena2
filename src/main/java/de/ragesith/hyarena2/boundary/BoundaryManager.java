@@ -225,7 +225,7 @@ public class BoundaryManager {
 
                 // Only enforce during active match states
                 MatchState state = match.getState();
-                if (state == MatchState.FINISHED || state == MatchState.WAITING) {
+                if (state == MatchState.FINISHED || state == MatchState.WAITING || state == MatchState.STARTING) {
                     continue;
                 }
 

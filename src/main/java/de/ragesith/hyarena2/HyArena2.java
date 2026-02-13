@@ -147,6 +147,7 @@ public class HyArena2 extends JavaPlugin {
 
         // Wire boundary manager to match manager for state-driven boundary checks
         this.boundaryManager.setMatchManager(matchManager);
+        this.matchManager.setBoundaryManager(boundaryManager);
 
         // Initialize kit manager
         this.kitManager = new KitManager(configManager.getConfigRoot(), eventBus);

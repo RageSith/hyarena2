@@ -1,0 +1,63 @@
+{% extends "base.twig" %}
+
+{% block title %}Privacy Policy - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="legal-page">
+    <div class="container">
+        <h1>Privacy Policy</h1>
+
+        <div class="legal-section">
+            <h2>1. Data Collection</h2>
+            <p>We collect the following data when you use our services:</p>
+            <ul>
+                <li><strong>Game data:</strong> Player UUID, username, match statistics, and gameplay data from the game server.</li>
+                <li><strong>Account data:</strong> Email address and password hash when you register a web account.</li>
+                <li><strong>Technical data:</strong> IP address, browser type, and access times for security and rate limiting purposes.</li>
+            </ul>
+        </div>
+
+        <div class="legal-section">
+            <h2>2. Purpose of Data Processing</h2>
+            <p>Your data is processed for the following purposes:</p>
+            <ul>
+                <li>Displaying player statistics and leaderboards</li>
+                <li>Linking game accounts to web accounts</li>
+                <li>Preventing abuse (rate limiting, login attempt tracking)</li>
+                <li>Improving our services</li>
+            </ul>
+        </div>
+
+        <div class="legal-section">
+            <h2>3. Data Storage</h2>
+            <p>Data is stored securely in our database. Passwords are hashed using bcrypt and are never stored in plain text.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>4. Third-Party Services</h2>
+            <p>We do not share your personal data with third parties. No external analytics or tracking services are used. All fonts are self-hosted for privacy compliance.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>5. Cookies</h2>
+            <p>We use session cookies for authentication purposes only. No tracking cookies are used.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>6. Your Rights</h2>
+            <p>You have the right to:</p>
+            <ul>
+                <li>Request information about your stored data</li>
+                <li>Request correction of inaccurate data</li>
+                <li>Request deletion of your data</li>
+                <li>Withdraw consent for data processing</li>
+            </ul>
+            <p>To exercise these rights, contact us through our community channels.</p>
+        </div>
+
+        <div class="legal-back">
+            <a href="/">&larr; Back to Home</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
