@@ -1006,7 +1006,14 @@ public class BotManager {
         BotParticipant victimBot = getBotByEntityUuid(targetUuidComp.getUuid());
         if (victimBot == null || !victimBot.isAlive() || victimBot.isImmune()) return;
 
-        if (isBlocking(victimBot)) return;
+        // Block only negates damage from the front — attacks from behind go through
+        if (isBlocking(victimBot)) {
+            Position victimPos = victimBot.getCurrentPosition();
+            Position attackerPos = attacker.getCurrentPosition();
+            if (victimPos != null && attackerPos != null && BotBrain.isInFront(victimPos, attackerPos)) {
+                return;
+            }
+        }
 
         double damage = attacker.getDifficulty().getBaseDamage();
 

@@ -36,6 +36,14 @@ public class BotBrain {
     private double blockEnergy;
     private boolean currentlyBlocking;
 
+    // Reactive block: edge detection on enemy attacking + spike timer + cooldown
+    private boolean enemyWasAttacking;     // last tick's attacking state
+    private int reactiveBlockTicks;         // remaining ticks of block score spike (counts down)
+    private int reactiveBlockCooldown;      // ticks until next spike can trigger
+    private static final int REACTIVE_BLOCK_DURATION = 8;    // ~0.4s spike window
+    private static final int REACTIVE_BLOCK_COOLDOWN = 30;   // ~1.5s between spikes
+    private static final double REACTIVE_BLOCK_MULTIPLIER = 2.5;  // score multiplier during spike
+
     // Constants
     private static final double BLOCK_DRAIN_RATE = 3.0;
     private static final double BLOCK_REGEN_RATE = 1.5;
@@ -68,6 +76,31 @@ public class BotBrain {
             }
         } else {
             blockEnergy = Math.min(difficulty.getBlockMaxEnergy(), blockEnergy + BLOCK_REGEN_RATE);
+        }
+
+        // Reactive block edge detection: enemy that has damaged us starts attacking at close range
+        boolean enemyAttackingNow = false;
+        if (ctx.nearestAttackingEnemy != null
+                && !ctx.nearestAttackingEnemy.isRangedAttacking
+                && ctx.nearestAttackingEnemy.isThreat) {  // must have actually hit us
+            double maxBlockDist = difficulty.getAttackRange() + 2.0;
+            if (ctx.nearestAttackingEnemy.distance <= maxBlockDist) {
+                enemyAttackingNow = true;
+            }
+        }
+        if (reactiveBlockCooldown > 0) {
+            reactiveBlockCooldown--;
+        }
+        if (enemyAttackingNow && !enemyWasAttacking && reactiveBlockCooldown <= 0) {
+            // Edge: threat just started swinging at close range — spike block score
+            reactiveBlockTicks = REACTIVE_BLOCK_DURATION;
+        }
+        enemyWasAttacking = enemyAttackingNow;
+        if (reactiveBlockTicks > 0) {
+            reactiveBlockTicks--;
+            if (reactiveBlockTicks == 0) {
+                reactiveBlockCooldown = REACTIVE_BLOCK_COOLDOWN;
+            }
         }
 
         // Track best action
@@ -215,6 +248,9 @@ public class BotBrain {
         if (attacker.isRangedAttacking) return 0;
         if (!attacker.isAttacking) return 0;
 
+        // Can't block attacks from behind — check if attacker is in front of bot (within 90° of facing)
+        if (ctx.botPos != null && attacker.position != null && !isInFront(ctx.botPos, attacker.position)) return 0;
+
         // Proximity to attacker — KEY FIX: score drops sharply for distant enemies
         double maxBlockDist = difficulty.getAttackRange() + 2.0;
         if (attacker.distance > maxBlockDist) return 0;
@@ -230,7 +266,14 @@ public class BotBrain {
         // Incoming urgency: higher when health is lower
         double incomingUrgency = 1.0 + (1.0 - ctx.botHealthPercent) * 0.5;
 
-        return selfPres * incomingUrgency * energyFactor * energyLevel * proximityToAttacker * notMidSwing;
+        // Reactive spike: massive boost when enemy just started swinging (decays over duration)
+        double reactiveSpike = 1.0;
+        if (reactiveBlockTicks > 0) {
+            double decay = (double) reactiveBlockTicks / REACTIVE_BLOCK_DURATION;
+            reactiveSpike = 1.0 + (REACTIVE_BLOCK_MULTIPLIER - 1.0) * decay;
+        }
+
+        return selfPres * incomingUrgency * energyFactor * energyLevel * proximityToAttacker * notMidSwing * reactiveSpike;
     }
 
     /**
@@ -476,6 +519,9 @@ public class BotBrain {
         idleTicks = 0;
         blockEnergy = difficulty.getBlockMaxEnergy();
         currentlyBlocking = false;
+        enemyWasAttacking = false;
+        reactiveBlockTicks = 0;
+        reactiveBlockCooldown = 0;
         threats.clear();
         currentTick = 0;
     }
@@ -503,5 +549,23 @@ public class BotBrain {
         double y = (bounds.getMinY() + bounds.getMaxY()) / 2.0;
 
         return new Position(x, y, z);
+    }
+
+    /**
+     * Checks if a target position is in front of the bot (within 90° of facing direction).
+     * Uses the bot's yaw from its position to compute facing vector.
+     */
+    static boolean isInFront(Position botPos, Position targetPos) {
+        // Bot facing direction from yaw (degrees → radians, Hytale yaw: 0=south, 90=west)
+        double yawRad = Math.toRadians(botPos.getYaw());
+        double facingX = -Math.sin(yawRad);
+        double facingZ = Math.cos(yawRad);
+
+        // Direction from bot to target (XZ only)
+        double dx = targetPos.getX() - botPos.getX();
+        double dz = targetPos.getZ() - botPos.getZ();
+
+        // Dot product > 0 means target is in front (within 90° of facing)
+        return (facingX * dx + facingZ * dz) > 0;
     }
 }
