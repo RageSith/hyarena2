@@ -2,7 +2,7 @@ package de.ragesith.hyarena2.bot;
 
 /**
  * Bot difficulty levels with configurable parameters.
- * Each difficulty affects combat effectiveness and behavior.
+ * Each difficulty affects combat effectiveness, behavior, and utility AI weights.
  */
 public enum BotDifficulty {
     EASY(
@@ -17,7 +17,14 @@ public enum BotDifficulty {
         15.0,   // baseDamage
         0.20,   // blockProbability (20%) — legacy path
         40.0,   // blockMaxEnergy — brain path
-        20.0    // blockMinEnergy — brain path
+        20.0,   // blockMinEnergy — brain path
+        // Utility AI weights
+        0.6,    // combatWeight
+        0.5,    // objectiveWeight
+        0.4,    // selfPreservationWeight
+        0.08,   // decisionMomentum
+        80,     // threatMemoryTicks (4s at 20 TPS)
+        20.0    // threatDistanceMax
     ),
     MEDIUM(
         800,    // reactionTimeMs
@@ -31,7 +38,14 @@ public enum BotDifficulty {
         20.0,   // baseDamage
         0.40,   // blockProbability (40%) — legacy path
         70.0,   // blockMaxEnergy — brain path
-        15.0    // blockMinEnergy — brain path
+        15.0,   // blockMinEnergy — brain path
+        // Utility AI weights
+        0.75,   // combatWeight
+        0.7,    // objectiveWeight
+        0.55,   // selfPreservationWeight
+        0.05,   // decisionMomentum
+        120,    // threatMemoryTicks (6s at 20 TPS)
+        40.0    // threatDistanceMax
     ),
     HARD(
         300,    // reactionTimeMs
@@ -45,7 +59,14 @@ public enum BotDifficulty {
         28.0,   // baseDamage
         0.70,   // blockProbability (70%) — legacy path
         100.0,  // blockMaxEnergy — brain path
-        10.0    // blockMinEnergy — brain path
+        10.0,   // blockMinEnergy — brain path
+        // Utility AI weights
+        0.9,    // combatWeight
+        0.85,   // objectiveWeight
+        0.7,    // selfPreservationWeight
+        0.03,   // decisionMomentum
+        200,    // threatMemoryTicks (10s at 20 TPS)
+        60.0    // threatDistanceMax
     );
 
     private final int reactionTimeMs;
@@ -61,10 +82,20 @@ public enum BotDifficulty {
     private final double blockMaxEnergy;
     private final double blockMinEnergy;
 
+    // Utility AI weights
+    private final double combatWeight;
+    private final double objectiveWeight;
+    private final double selfPreservationWeight;
+    private final double decisionMomentum;
+    private final int threatMemoryTicks;
+    private final double threatDistanceMax;
+
     BotDifficulty(int reactionTimeMs, double aimAccuracy, double attackRange,
                   double chaseRange, double movementSpeedMultiplier, double healthMultiplier,
                   int attackCooldownMs, double retreatThreshold, double baseDamage,
-                  double blockProbability, double blockMaxEnergy, double blockMinEnergy) {
+                  double blockProbability, double blockMaxEnergy, double blockMinEnergy,
+                  double combatWeight, double objectiveWeight, double selfPreservationWeight,
+                  double decisionMomentum, int threatMemoryTicks, double threatDistanceMax) {
         this.reactionTimeMs = reactionTimeMs;
         this.aimAccuracy = aimAccuracy;
         this.attackRange = attackRange;
@@ -77,98 +108,34 @@ public enum BotDifficulty {
         this.blockProbability = blockProbability;
         this.blockMaxEnergy = blockMaxEnergy;
         this.blockMinEnergy = blockMinEnergy;
+        this.combatWeight = combatWeight;
+        this.objectiveWeight = objectiveWeight;
+        this.selfPreservationWeight = selfPreservationWeight;
+        this.decisionMomentum = decisionMomentum;
+        this.threatMemoryTicks = threatMemoryTicks;
+        this.threatDistanceMax = threatDistanceMax;
     }
 
-    /**
-     * Time in milliseconds before bot reacts to events.
-     * Lower = faster reactions.
-     */
-    public int getReactionTimeMs() {
-        return reactionTimeMs;
-    }
+    public int getReactionTimeMs() { return reactionTimeMs; }
+    public double getAimAccuracy() { return aimAccuracy; }
+    public double getAttackRange() { return attackRange; }
+    public double getChaseRange() { return chaseRange; }
+    public double getMovementSpeedMultiplier() { return movementSpeedMultiplier; }
+    public double getHealthMultiplier() { return healthMultiplier; }
+    public int getAttackCooldownMs() { return attackCooldownMs; }
+    public double getRetreatThreshold() { return retreatThreshold; }
+    public double getBaseDamage() { return baseDamage; }
+    public double getBlockProbability() { return blockProbability; }
+    public double getBlockMaxEnergy() { return blockMaxEnergy; }
+    public double getBlockMinEnergy() { return blockMinEnergy; }
 
-    /**
-     * Probability (0.0-1.0) that an attack will hit.
-     * Higher = more accurate.
-     */
-    public double getAimAccuracy() {
-        return aimAccuracy;
-    }
-
-    /**
-     * Maximum distance (blocks) at which bot can attack.
-     */
-    public double getAttackRange() {
-        return attackRange;
-    }
-
-    /**
-     * Maximum distance (blocks) at which bot will chase targets.
-     */
-    public double getChaseRange() {
-        return chaseRange;
-    }
-
-    /**
-     * Multiplier for movement speed.
-     * 1.0 = normal speed.
-     */
-    public double getMovementSpeedMultiplier() {
-        return movementSpeedMultiplier;
-    }
-
-    /**
-     * Multiplier for max health.
-     * 1.0 = base 20 HP (100 internal units).
-     */
-    public double getHealthMultiplier() {
-        return healthMultiplier;
-    }
-
-    /**
-     * Time in milliseconds between attacks.
-     */
-    public int getAttackCooldownMs() {
-        return attackCooldownMs;
-    }
-
-    /**
-     * Health percentage (0.0-1.0) at which bot will retreat.
-     */
-    public double getRetreatThreshold() {
-        return retreatThreshold;
-    }
-
-    /**
-     * Base damage per hit.
-     */
-    public double getBaseDamage() {
-        return baseDamage;
-    }
-
-    /**
-     * Probability (0.0-1.0) that the bot will block an incoming attack.
-     * Higher = blocks more often.
-     */
-    public double getBlockProbability() {
-        return blockProbability;
-    }
-
-    /**
-     * Maximum block energy pool size (brain AI path).
-     * Higher = longer sustained blocks.
-     */
-    public double getBlockMaxEnergy() {
-        return blockMaxEnergy;
-    }
-
-    /**
-     * Minimum energy required to initiate a new block (brain AI path).
-     * Lower = bot can start blocking with less energy remaining.
-     */
-    public double getBlockMinEnergy() {
-        return blockMinEnergy;
-    }
+    // Utility AI weight getters
+    public double getCombatWeight() { return combatWeight; }
+    public double getObjectiveWeight() { return objectiveWeight; }
+    public double getSelfPreservationWeight() { return selfPreservationWeight; }
+    public double getDecisionMomentum() { return decisionMomentum; }
+    public int getThreatMemoryTicks() { return threatMemoryTicks; }
+    public double getThreatDistanceMax() { return threatDistanceMax; }
 
     /**
      * Calculates the max health based on base health and difficulty multiplier.

@@ -11,45 +11,38 @@ import java.util.Random;
 import java.util.UUID;
 
 /**
- * Priority-based decision engine for bot AI.
+ * Utility-based decision engine for bot AI.
  * One instance per bot (stored on BotParticipant).
- * Each tick, evaluates all possible behaviors and returns the highest-scoring BrainDecision.
+ * Each tick, scores all possible actions and returns the highest-scoring ScoredAction.
  */
 public class BotBrain {
 
     private final BotDifficulty difficulty;
     private final Random random = new Random();
 
-    // Current decision state
+    // Current decision state (for momentum bonus)
     private BrainDecision currentDecision = BrainDecision.IDLE;
 
-    // Threat tracking — maps attacker participant UUID → tick of last damage received
-    private final Map<UUID, Long> threats = new HashMap<>();
+    // Threat tracking — maps attacker participant UUID → ThreatEntry
+    private final Map<UUID, ThreatEntry> threats = new HashMap<>();
     private long currentTick = 0;
-    private static final long THREAT_TIMEOUT_TICKS = 60;  // 3 seconds at 20 TPS
-    private static final double THREAT_DISTANCE = 5.0;    // max range to consider a threat active
 
     // Roam state
-    private Position roamWaypoint;          // Current roam target (null = needs new one)
-    private int roamTicksRemaining;         // Ticks left walking to waypoint
-    private int idleTicks;                  // Ticks spent idle before roaming
+    private Position roamWaypoint;
+    private int roamTicksRemaining;
+    private int idleTicks;
 
     // Block energy system
-    private double blockEnergy;             // Current energy (starts at max)
-    private boolean currentlyBlocking;      // True while in Block state
-    private String preBlockDecision;        // NPC state to restore after block ends
+    private double blockEnergy;
+    private boolean currentlyBlocking;
 
     // Constants
-    private static final double BLOCK_DRAIN_RATE = 3.0;   // Energy lost per tick while blocking
-    private static final double BLOCK_REGEN_RATE = 1.5;   // Energy gained per tick while not blocking
-    private static final int IDLE_BEFORE_ROAM_TICKS = 40;  // ~2s idle then roam
-    private static final int ROAM_MAX_TICKS = 100;         // ~5s max per waypoint
-    private static final double ROAM_ARRIVAL_DIST = 2.0;   // Close enough to waypoint
-    private static final double ROAM_MARGIN = 3.0;         // Margin from arena edges for waypoints
-
-    // Zone ranges (match legacy BotManager constants)
-    private static final double DEFEND_RANGE = 3.0;
-    private static final double WATCHOUT_RANGE = 10.0;
+    private static final double BLOCK_DRAIN_RATE = 3.0;
+    private static final double BLOCK_REGEN_RATE = 1.5;
+    private static final int IDLE_BEFORE_ROAM_TICKS = 40;
+    private static final int ROAM_MAX_TICKS = 100;
+    private static final double ROAM_ARRIVAL_DIST = 2.0;
+    private static final double ROAM_MARGIN = 3.0;
 
     public BotBrain(BotDifficulty difficulty) {
         this.difficulty = difficulty;
@@ -58,178 +51,420 @@ public class BotBrain {
 
     /**
      * Main evaluation method — called every tick from BotManager.
-     * Returns the highest-priority applicable decision.
+     * Scores all possible actions and returns the highest-scoring one.
      */
-    public BrainDecision evaluate(BrainContext ctx) {
-        // Tick counter for threat timestamps
+    public ScoredAction evaluate(BrainContext ctx) {
         currentTick++;
 
         // Prune stale threats
         pruneThreats(ctx);
 
-        // 1. Block energy regen when NOT blocking
-        if (!currentlyBlocking) {
+        // Block energy management
+        if (currentlyBlocking) {
+            blockEnergy -= BLOCK_DRAIN_RATE;
+            if (blockEnergy <= 0) {
+                blockEnergy = 0;
+                currentlyBlocking = false;
+            }
+        } else {
             blockEnergy = Math.min(difficulty.getBlockMaxEnergy(), blockEnergy + BLOCK_REGEN_RATE);
         }
 
-        // 2. Currently blocking — drain energy, check exit conditions
-        if (currentlyBlocking) {
-            blockEnergy -= BLOCK_DRAIN_RATE;
+        // Track best action
+        ScoredAction best = ScoredAction.of(BrainDecision.IDLE, 0.05);
 
-            boolean shouldExitBlock = !ctx.enemyIsAttacking || blockEnergy <= 0;
-            if (shouldExitBlock) {
-                currentlyBlocking = false;
-                // Restore previous decision
-                currentDecision = preBlockDecision != null ? decisionFromNpcState(preBlockDecision) : BrainDecision.COMBAT;
-                preBlockDecision = null;
-                return currentDecision;
+        // ========== Per-Enemy Actions ==========
+        for (EnemyInfo enemy : ctx.enemies) {
+            // ATTACK_ENEMY
+            double attackScore = scoreAttackEnemy(enemy, ctx);
+            if (attackScore > best.score()) {
+                best = ScoredAction.of(BrainDecision.COMBAT, attackScore, enemy);
             }
 
-            // Stay blocking
-            currentDecision = BrainDecision.BLOCK;
-            return currentDecision;
-        }
-
-        // 3. Check reactive block — enemy is attacking, bot has energy, bot not mid-swing
-        if (ctx.enemyIsAttacking && !ctx.botIsAttacking
-                && blockEnergy >= difficulty.getBlockMinEnergy()
-                && ctx.nearestEnemy != null) {
-            preBlockDecision = npcStateFromDecision(currentDecision);
-            currentlyBlocking = true;
-            blockEnergy = Math.max(0, blockEnergy); // Ensure non-negative
-            currentDecision = BrainDecision.BLOCK;
-            return currentDecision;
-        }
-
-        // 4. Check combat — enemy within chase range
-        if (ctx.nearestEnemy != null && ctx.nearestEnemy.distance <= difficulty.getChaseRange()) {
-            if (ctx.objective != null) {
-                if (!ctx.botInZone) {
-                    // Not on zone — only fight if actively being damaged (threat system)
-                    if (hasActiveThreats()) {
-                        idleTicks = 0;
-                        roamWaypoint = null;
-                        currentDecision = BrainDecision.COMBAT;
-                        return currentDecision;
-                    }
-                    // No threats — fall through to step 5 (walk to zone)
-                } else {
-                    // On zone — only COMBAT if enemies are contesting (also in zone).
-                    // Other enemies fall through to step 5 for DEFEND_ZONE (fight in place).
-                    if (!ctx.enemiesInZone.isEmpty()) {
-                        idleTicks = 0;
-                        roamWaypoint = null;
-                        currentDecision = BrainDecision.COMBAT;
-                        return currentDecision;
-                    }
+            // DEFEND_ZONE — only if bot is on the zone
+            if (ctx.objective != null && ctx.botInZone) {
+                double defendScore = scoreDefendZone(enemy, ctx);
+                if (defendScore > best.score()) {
+                    best = ScoredAction.of(BrainDecision.DEFEND_ZONE, defendScore, enemy);
                 }
-                // Fall through to step 5 for objective-aware behavior
-            } else {
-                // Non-objective mode — fight normally at chase range
-                idleTicks = 0;
-                roamWaypoint = null;
-                currentDecision = BrainDecision.COMBAT;
-                return currentDecision;
             }
         }
 
-        // 5. Check objective (if present)
+        // ========== Singleton Actions ==========
+
+        // BLOCK
+        double blockScore = scoreBlock(ctx);
+        if (blockScore > best.score()) {
+            best = ScoredAction.of(BrainDecision.BLOCK, blockScore);
+        }
+
+        // GO_TO_OBJECTIVE
         if (ctx.objective != null) {
-            if (ctx.botInZone) {
-                // On zone — check for nearby enemies
-                if (ctx.nearestEnemy != null) {
-                    if (ctx.nearestEnemy.distance <= DEFEND_RANGE) {
-                        idleTicks = 0;
-                        currentDecision = BrainDecision.DEFEND_ZONE;
-                        return currentDecision;
-                    }
-                    if (ctx.nearestEnemy.distance <= WATCHOUT_RANGE) {
-                        idleTicks = 0;
-                        currentDecision = BrainDecision.DEFEND_ZONE;
-                        return currentDecision;
+            double objectiveScore = scoreObjective(ctx);
+            if (objectiveScore > best.score()) {
+                best = ScoredAction.of(BrainDecision.OBJECTIVE, objectiveScore);
+            }
+        }
+
+        // STRAFE_EVADE
+        double strafeScore = scoreStrafeEvade(ctx);
+        if (strafeScore > best.score()) {
+            best = ScoredAction.of(BrainDecision.STRAFE_EVADE, strafeScore);
+        }
+
+        // ROAM
+        double roamScore = scoreRoam(ctx);
+        if (roamScore > best.score()) {
+            best = ScoredAction.of(BrainDecision.ROAM, roamScore);
+        }
+
+        // Apply decision momentum — current action gets a bonus
+        if (best.decision() == currentDecision) {
+            // Already the winner, momentum already implicitly applied
+        } else {
+            // Check if current decision + momentum would beat the new best
+            double currentScore = rescoreCurrentDecision(ctx);
+            double currentWithMomentum = currentScore + difficulty.getDecisionMomentum();
+            if (currentWithMomentum > best.score() && currentScore > 0.01) {
+                // Stick with current decision — but we need to rebuild the ScoredAction
+                // Use the current decision's natural score (the momentum is just tie-breaking)
+                best = rebuildCurrentAction(ctx, currentScore);
+            }
+        }
+
+        // Update roam state based on final decision
+        updateRoamState(best.decision(), ctx);
+
+        // Track blocking state
+        currentlyBlocking = (best.decision() == BrainDecision.BLOCK);
+
+        currentDecision = best.decision();
+        return best;
+    }
+
+    // ========== Scoring Functions ==========
+
+    /**
+     * ATTACK_ENEMY: combatWeight × distanceFeasibility × targetAttractiveness × threatResponse × zoneRelevance
+     */
+    private double scoreAttackEnemy(EnemyInfo enemy, BrainContext ctx) {
+        double combat = difficulty.getCombatWeight();
+
+        // Distance feasibility: 1.0 at attackRange, falls off to 0 at chaseRange, 0 beyond
+        double dist = enemy.distance;
+        double attackRange = difficulty.getAttackRange();
+        double chaseRange = difficulty.getChaseRange();
+        if (dist > chaseRange) return 0;
+        double distanceFeasibility = dist <= attackRange ? 1.0 : 1.0 - ((dist - attackRange) / (chaseRange - attackRange));
+
+        // Target attractiveness: prefer wounded enemies
+        double targetAttractiveness = 1.0 - (enemy.healthPercent * 0.4); // 1.0 for 0% HP, 0.6 for 100% HP
+
+        // Threat response: bonus for enemies that have hit us
+        double threatResponse = enemy.isThreat ? 1.3 : 1.0;
+        // Extra bonus for active attackers (they're mid-swing, punish them)
+        if (enemy.isAttacking && !enemy.isRangedAttacking) {
+            threatResponse *= 1.1;
+        }
+
+        // Zone relevance: bonus for enemies contesting the zone
+        double zoneRelevance = 1.0;
+        if (ctx.objective != null && enemy.isInZone) {
+            zoneRelevance = 1.4; // High priority to stop capturers
+        }
+
+        return combat * distanceFeasibility * targetAttractiveness * threatResponse * zoneRelevance;
+    }
+
+    /**
+     * DEFEND_ZONE: objectiveWeight × onZoneBonus × enemyProximity × holdingValue
+     * Only scored when bot is on the zone.
+     */
+    private double scoreDefendZone(EnemyInfo enemy, BrainContext ctx) {
+        double obj = difficulty.getObjectiveWeight();
+
+        // On-zone bonus: always 1.2 (we only call this when botInZone)
+        double onZoneBonus = 1.2;
+
+        // Enemy proximity: higher score for closer enemies (defend in place)
+        double maxDefendDist = 10.0;
+        if (enemy.distance > maxDefendDist) return 0;
+        double enemyProximity = 1.0 - (enemy.distance / maxDefendDist);
+
+        // Holding value: bonus when we're the controller (don't abandon the zone)
+        double holdingValue = 1.0;
+        if (ctx.objective.currentController() != null &&
+            ctx.objective.currentController().equals(ctx.bot.getUniqueId())) {
+            holdingValue = 1.3;
+        }
+
+        return obj * onZoneBonus * enemyProximity * holdingValue;
+    }
+
+    /**
+     * BLOCK: selfPreservation × incomingMeleeUrgency × blockEnergy × proximityToAttacker × notMidSwing
+     */
+    private double scoreBlock(BrainContext ctx) {
+        double selfPres = difficulty.getSelfPreservationWeight();
+
+        // Need an attacking enemy to block
+        EnemyInfo attacker = ctx.nearestAttackingEnemy;
+        if (attacker == null) return 0;
+
+        // Only block melee attacks (not ranged — strafe instead)
+        if (attacker.isRangedAttacking) return 0;
+        if (!attacker.isAttacking) return 0;
+
+        // Proximity to attacker — KEY FIX: score drops sharply for distant enemies
+        double maxBlockDist = difficulty.getAttackRange() + 2.0;
+        if (attacker.distance > maxBlockDist) return 0;
+        double proximityToAttacker = 1.0 - (attacker.distance / maxBlockDist);
+
+        // Block energy: can't block without energy
+        double energyFactor = blockEnergy >= difficulty.getBlockMinEnergy() ? 1.0 : 0;
+        double energyLevel = blockEnergy / difficulty.getBlockMaxEnergy();
+
+        // Not mid-swing: can't raise shield while attacking
+        double notMidSwing = ctx.botIsAttacking ? 0 : 1.0;
+
+        // Incoming urgency: higher when health is lower
+        double incomingUrgency = 1.0 + (1.0 - ctx.botHealthPercent) * 0.5;
+
+        return selfPres * incomingUrgency * energyFactor * energyLevel * proximityToAttacker * notMidSwing;
+    }
+
+    /**
+     * GO_TO_OBJECTIVE: objectiveWeight × hasObjective × distanceToZone × notOnZone × survivalMod × inverseThreatPressure
+     */
+    private double scoreObjective(BrainContext ctx) {
+        if (ctx.objective == null) return 0;
+
+        double obj = difficulty.getObjectiveWeight();
+
+        // Not on zone: go there
+        double notOnZone = ctx.botInZone ? 0.1 : 1.0; // Tiny score when already there (centering)
+
+        // Distance to zone center
+        double distToZone = ctx.botPos != null ? ctx.botPos.distanceTo(ctx.objective.position()) : 0;
+        // Urgency increases as we get closer (almost there, don't give up)
+        double distanceFactor = distToZone > 1.5 ? 0.8 + 0.2 * Math.min(1.0, 5.0 / distToZone) : 1.0;
+
+        // Survival modifier: reduce objective score when very low HP
+        double survivalMod = ctx.botHealthPercent < difficulty.getRetreatThreshold() ? 0.5 : 1.0;
+
+        // Inverse threat pressure: reduce objective urgency when under heavy fire
+        double threatPressure = 1.0;
+        if (ctx.activeThreatCount > 0) {
+            threatPressure = 1.0 / (1.0 + ctx.activeThreatCount * 0.3);
+        }
+
+        return obj * notOnZone * distanceFactor * survivalMod * threatPressure;
+    }
+
+    /**
+     * STRAFE_EVADE: selfPreservation × underRangedFire × healthPressure × notInMeleeRange × hasGoal
+     */
+    private double scoreStrafeEvade(BrainContext ctx) {
+        double selfPres = difficulty.getSelfPreservationWeight();
+
+        // Must be under ranged fire
+        if (ctx.rangedThreatCount == 0) return 0;
+        double underRangedFire = Math.min(1.0, ctx.rangedThreatCount * 0.6);
+
+        // Health pressure: more evasive when wounded
+        double healthPressure = 1.0 + (1.0 - ctx.botHealthPercent) * 0.5;
+
+        // Not in melee range (if a melee enemy is close, fight instead of strafe)
+        double notInMelee = 1.0;
+        if (ctx.nearestEnemy != null && ctx.nearestEnemy.distance <= difficulty.getAttackRange()) {
+            notInMelee = 0.2; // Greatly reduce strafe when melee enemy is close
+        }
+
+        // Has a goal (objective or enemy to strafe toward)
+        double hasGoal = (ctx.objective != null || ctx.nearestEnemy != null) ? 1.0 : 0.3;
+
+        return selfPres * underRangedFire * healthPressure * notInMelee * hasGoal;
+    }
+
+    /**
+     * ROAM: base score when no threats, no objective, no nearby enemies.
+     */
+    private double scoreRoam(BrainContext ctx) {
+        if (ctx.objective != null) return 0; // Objective modes don't roam
+        if (ctx.activeThreatCount > 0) return 0;
+        if (ctx.nearestEnemy != null && ctx.nearestEnemy.distance < difficulty.getChaseRange()) return 0;
+
+        // Higher score after idling for a while
+        double idleBonus = idleTicks >= IDLE_BEFORE_ROAM_TICKS ? 1.0 : 0.5;
+        return 0.15 * idleBonus;
+    }
+
+    /**
+     * Re-evaluates the score of the current decision (for momentum comparison).
+     */
+    private double rescoreCurrentDecision(BrainContext ctx) {
+        return switch (currentDecision) {
+            case COMBAT -> {
+                double best = 0;
+                for (EnemyInfo e : ctx.enemies) {
+                    best = Math.max(best, scoreAttackEnemy(e, ctx));
+                }
+                yield best;
+            }
+            case DEFEND_ZONE -> {
+                if (ctx.objective == null || !ctx.botInZone) yield 0;
+                double best = 0;
+                for (EnemyInfo e : ctx.enemies) {
+                    best = Math.max(best, scoreDefendZone(e, ctx));
+                }
+                yield best;
+            }
+            case BLOCK -> scoreBlock(ctx);
+            case OBJECTIVE -> scoreObjective(ctx);
+            case STRAFE_EVADE -> scoreStrafeEvade(ctx);
+            case ROAM -> scoreRoam(ctx);
+            case IDLE -> 0.05;
+        };
+    }
+
+    /**
+     * Rebuilds a ScoredAction for the current decision with proper target.
+     */
+    private ScoredAction rebuildCurrentAction(BrainContext ctx, double score) {
+        return switch (currentDecision) {
+            case COMBAT -> {
+                EnemyInfo bestTarget = null;
+                double bestScore = 0;
+                for (EnemyInfo e : ctx.enemies) {
+                    double s = scoreAttackEnemy(e, ctx);
+                    if (s > bestScore) {
+                        bestScore = s;
+                        bestTarget = e;
                     }
                 }
-                // On zone, no nearby enemies — walk to center if not there yet, then idle
-                if (ctx.botPos != null && ctx.botPos.distanceTo(ctx.objective.position()) > 1.5) {
+                yield ScoredAction.of(BrainDecision.COMBAT, score, bestTarget);
+            }
+            case DEFEND_ZONE -> {
+                EnemyInfo bestTarget = null;
+                double bestScore = 0;
+                for (EnemyInfo e : ctx.enemies) {
+                    double s = scoreDefendZone(e, ctx);
+                    if (s > bestScore) {
+                        bestScore = s;
+                        bestTarget = e;
+                    }
+                }
+                yield ScoredAction.of(BrainDecision.DEFEND_ZONE, score, bestTarget);
+            }
+            default -> ScoredAction.of(currentDecision, score);
+        };
+    }
+
+    /**
+     * Updates roam/idle tick state based on the chosen decision.
+     */
+    private void updateRoamState(BrainDecision decision, BrainContext ctx) {
+        if (decision == BrainDecision.ROAM) {
+            if (roamWaypoint == null && ctx.arenaBounds != null) {
+                roamWaypoint = pickRandomWaypoint(ctx.arenaBounds);
+                roamTicksRemaining = ROAM_MAX_TICKS;
+            } else if (roamWaypoint != null) {
+                roamTicksRemaining--;
+                if (roamTicksRemaining <= 0 ||
+                    (ctx.botPos != null && ctx.botPos.distanceTo(roamWaypoint) < ROAM_ARRIVAL_DIST)) {
+                    roamWaypoint = null;
                     idleTicks = 0;
-                    currentDecision = BrainDecision.OBJECTIVE;
-                    return currentDecision;
                 }
-                idleTicks = 0;
-                roamWaypoint = null;
-                currentDecision = BrainDecision.IDLE;
-                return currentDecision;
-            } else {
-                // Not on zone — walk there
-                idleTicks = 0;
-                roamWaypoint = null;
-                currentDecision = BrainDecision.OBJECTIVE;
-                return currentDecision;
             }
-        }
-
-        // 6. Roaming — no enemies visible, no objective
-        if (roamWaypoint != null) {
-            // Currently roaming — check arrival or timeout
-            roamTicksRemaining--;
-            if (ctx.botPos != null && ctx.botPos.distanceTo(roamWaypoint) < ROAM_ARRIVAL_DIST) {
-                // Arrived at waypoint
-                roamWaypoint = null;
-                idleTicks = 0;
-                currentDecision = BrainDecision.IDLE;
-                return currentDecision;
-            }
-            if (roamTicksRemaining <= 0) {
-                // Timeout
-                roamWaypoint = null;
-                idleTicks = 0;
-                currentDecision = BrainDecision.IDLE;
-                return currentDecision;
-            }
-            currentDecision = BrainDecision.ROAM;
-            return currentDecision;
-        }
-
-        // 7. Idle — wait before starting a new roam
-        idleTicks++;
-        if (idleTicks >= IDLE_BEFORE_ROAM_TICKS && ctx.arenaBounds != null) {
-            roamWaypoint = pickRandomWaypoint(ctx.arenaBounds);
-            roamTicksRemaining = ROAM_MAX_TICKS;
+        } else if (decision == BrainDecision.IDLE) {
+            idleTicks++;
+            roamWaypoint = null;
+        } else {
+            // Any active decision resets roam/idle
             idleTicks = 0;
-            currentDecision = BrainDecision.ROAM;
-            return currentDecision;
+            roamWaypoint = null;
         }
+    }
 
-        currentDecision = BrainDecision.IDLE;
-        return currentDecision;
+    // ========== Getters ==========
+
+    public Position getRoamWaypoint() { return roamWaypoint; }
+    public BrainDecision getCurrentDecision() { return currentDecision; }
+    public double getBlockEnergy() { return blockEnergy; }
+    public Map<UUID, ThreatEntry> getThreats() { return threats; }
+
+    public boolean hasActiveThreats() {
+        return !threats.isEmpty();
+    }
+
+    // ========== Threat System ==========
+
+    /**
+     * Registers an attacker as a threat with type and damage info.
+     */
+    public void registerThreat(UUID attackerUuid, ThreatType type, double damage) {
+        if (attackerUuid == null) return;
+        ThreatEntry existing = threats.get(attackerUuid);
+        if (existing != null) {
+            existing.update(currentTick, type, damage);
+        } else {
+            threats.put(attackerUuid, new ThreatEntry(attackerUuid, currentTick, type, damage));
+        }
     }
 
     /**
-     * Gets the current roam waypoint (for marker entity placement).
+     * Removes stale threats: dead, timed out, or too far (using difficulty params).
      */
-    public Position getRoamWaypoint() {
-        return roamWaypoint;
+    private void pruneThreats(BrainContext ctx) {
+        if (threats.isEmpty()) return;
+
+        long timeout = difficulty.getThreatMemoryTicks();
+        double maxDist = difficulty.getThreatDistanceMax();
+
+        Iterator<Map.Entry<UUID, ThreatEntry>> it = threats.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<UUID, ThreatEntry> entry = it.next();
+            ThreatEntry threat = entry.getValue();
+
+            // Timeout check
+            if ((currentTick - threat.getLastHitTick()) > timeout) {
+                it.remove();
+                continue;
+            }
+
+            // Dead check
+            if (ctx.match != null) {
+                Participant attacker = ctx.match.getParticipant(threat.getAttackerUuid());
+                if (attacker == null || !attacker.isAlive()) {
+                    it.remove();
+                    continue;
+                }
+            }
+
+            // Distance check — only prune if we can resolve position
+            if (ctx.botPos != null) {
+                Position attackerPos = findAttackerPosition(threat.getAttackerUuid(), ctx);
+                if (attackerPos != null) {
+                    double dist = ctx.botPos.distanceTo(attackerPos);
+                    if (dist > maxDist) {
+                        it.remove();
+                    }
+                }
+                // If position can't be resolved, keep the threat until timeout
+            }
+        }
     }
 
     /**
-     * Gets the current decision.
+     * Finds an attacker's position from the enemies list in context.
      */
-    public BrainDecision getCurrentDecision() {
-        return currentDecision;
-    }
-
-    /**
-     * Gets the NPC state name to restore after blocking ends.
-     */
-    public String getPreBlockDecision() {
-        return preBlockDecision;
-    }
-
-    /**
-     * Gets current block energy.
-     */
-    public double getBlockEnergy() {
-        return blockEnergy;
+    private Position findAttackerPosition(UUID attackerUuid, BrainContext ctx) {
+        for (EnemyInfo enemy : ctx.enemies) {
+            if (enemy.participant.getUniqueId().equals(attackerUuid)) {
+                return enemy.position;
+            }
+        }
+        return null;
     }
 
     /**
@@ -242,91 +477,8 @@ public class BotBrain {
         idleTicks = 0;
         blockEnergy = difficulty.getBlockMaxEnergy();
         currentlyBlocking = false;
-        preBlockDecision = null;
         threats.clear();
         currentTick = 0;
-    }
-
-    // ========== Threat System ==========
-
-    /**
-     * Registers an attacker as a threat. Called when this bot takes damage.
-     */
-    public void registerThreat(UUID attackerUuid) {
-        if (attackerUuid != null) {
-            threats.put(attackerUuid, currentTick);
-        }
-    }
-
-    /**
-     * Returns true if the threat map is non-empty (after pruning).
-     */
-    public boolean hasActiveThreats() {
-        return !threats.isEmpty();
-    }
-
-    /**
-     * Returns the threat map (attacker UUID → last damage tick).
-     */
-    public Map<UUID, Long> getThreats() {
-        return threats;
-    }
-
-    /**
-     * Removes stale threats: dead, too far, or timed out.
-     */
-    private void pruneThreats(BrainContext ctx) {
-        if (threats.isEmpty()) return;
-
-        Iterator<Map.Entry<UUID, Long>> it = threats.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<UUID, Long> entry = it.next();
-            UUID attackerUuid = entry.getKey();
-            long lastDamageTick = entry.getValue();
-
-            // Timeout: no damage for 3 seconds
-            if ((currentTick - lastDamageTick) > THREAT_TIMEOUT_TICKS) {
-                it.remove();
-                continue;
-            }
-
-            // Dead check
-            if (ctx.match != null) {
-                Participant attacker = ctx.match.getParticipant(attackerUuid);
-                if (attacker == null || !attacker.isAlive()) {
-                    it.remove();
-                    continue;
-                }
-            }
-
-            // Distance check — requires bot position and attacker position
-            if (ctx.botPos != null && ctx.match != null) {
-                Participant attacker = ctx.match.getParticipant(attackerUuid);
-                if (attacker != null) {
-                    Position attackerPos = getParticipantPosition(attacker, ctx);
-                    if (attackerPos != null) {
-                        double dist = ctx.botPos.distanceTo(attackerPos);
-                        if (dist > THREAT_DISTANCE) {
-                            it.remove();
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Gets a participant's current position (for threat distance checks).
-     */
-    private Position getParticipantPosition(Participant participant, BrainContext ctx) {
-        // For bots, currentPosition is tracked on BotParticipant
-        if (participant instanceof BotParticipant botP) {
-            return botP.getCurrentPosition();
-        }
-        // For players, we can't easily get position without Store access here.
-        // The threat distance check will skip players whose position can't be resolved.
-        // BotManager resolves exact positions when building the threatTarget in BrainContext.
-        return null;
     }
 
     /**
@@ -338,7 +490,6 @@ public class BotBrain {
         double minZ = bounds.getMinZ() + ROAM_MARGIN;
         double maxZ = bounds.getMaxZ() - ROAM_MARGIN;
 
-        // Clamp if arena is too small for margin
         if (minX >= maxX) {
             minX = bounds.getMinX();
             maxX = bounds.getMaxX();
@@ -350,36 +501,8 @@ public class BotBrain {
 
         double x = minX + random.nextDouble() * (maxX - minX);
         double z = minZ + random.nextDouble() * (maxZ - minZ);
-        // Use midpoint Y of bounds
         double y = (bounds.getMinY() + bounds.getMaxY()) / 2.0;
 
         return new Position(x, y, z);
-    }
-
-    /**
-     * Maps a BrainDecision to the NPC state name string (for saving pre-block state).
-     */
-    private static String npcStateFromDecision(BrainDecision decision) {
-        return switch (decision) {
-            case COMBAT -> "Combat";
-            case DEFEND_ZONE -> "Defend";
-            case OBJECTIVE -> "Follow";
-            case ROAM -> "Follow";
-            case IDLE -> "Idle";
-            case BLOCK -> "Block";
-        };
-    }
-
-    /**
-     * Maps an NPC state name back to a BrainDecision (for restoring after block).
-     */
-    private static BrainDecision decisionFromNpcState(String npcState) {
-        return switch (npcState) {
-            case "Combat" -> BrainDecision.COMBAT;
-            case "Defend", "Watchout" -> BrainDecision.DEFEND_ZONE;
-            case "Follow" -> BrainDecision.COMBAT; // After block, default to combat
-            case "Idle" -> BrainDecision.IDLE;
-            default -> BrainDecision.COMBAT;
-        };
     }
 }

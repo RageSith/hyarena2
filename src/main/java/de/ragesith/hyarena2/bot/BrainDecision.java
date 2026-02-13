@@ -10,5 +10,6 @@ public enum BrainDecision {
     OBJECTIVE,
     DEFEND_ZONE,
     COMBAT,
-    BLOCK
+    BLOCK,
+    STRAFE_EVADE
 }

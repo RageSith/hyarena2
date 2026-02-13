@@ -16,8 +16,10 @@ import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.bot.BotManager;
 import de.ragesith.hyarena2.bot.BotParticipant;
+import de.ragesith.hyarena2.bot.ThreatType;
 import de.ragesith.hyarena2.participant.Participant;
 import de.ragesith.hyarena2.participant.ParticipantType;
+import de.ragesith.hyarena2.utils.EntityInteractionHelper;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -274,9 +276,24 @@ public class KillDetectionSystem extends DamageEventSystem {
         // Apply damage to bot's internal health
         boolean died = botVictim.takeDamage(damageAmount);
 
-        // Register attacker as a threat on the victim's brain
+        // Register attacker as a threat on the victim's brain (with attack type classification)
         if (botVictim.getBrain() != null && attackerUuid != null) {
-            botVictim.getBrain().registerThreat(attackerUuid);
+            ThreatType attackType = ThreatType.MELEE;
+            if (attackerEntityRef != null && attackerEntityRef.isValid()) {
+                try {
+                    Store<EntityStore> attackerStore = attackerEntityRef.getStore();
+                    if (attackerStore != null) {
+                        String interaction = EntityInteractionHelper.getPrimaryInteraction(attackerEntityRef, attackerStore);
+                        EntityInteractionHelper.InteractionKind kind = EntityInteractionHelper.classifyInteraction(interaction);
+                        if (kind == EntityInteractionHelper.InteractionKind.RANGED_ATTACK) {
+                            attackType = ThreatType.RANGED;
+                        }
+                    }
+                } catch (Exception e) {
+                    // Default to MELEE
+                }
+            }
+            botVictim.getBrain().registerThreat(attackerUuid, attackType, damageAmount);
         }
 
         // Also update the NPC entity health bar
