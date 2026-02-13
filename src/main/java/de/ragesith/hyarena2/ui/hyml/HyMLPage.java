@@ -120,13 +120,14 @@ public class HyMLPage extends InteractiveCustomUIPage<HyMLPage.PageEventData> im
         // Content area (replicates @DecoratedContainer #Content)
         sb.append(" Group #Content {");
         sb.append("   LayoutMode: Top;");
-        sb.append("   Anchor: (Top: 38);");
+        sb.append("   Anchor: (Top: 38, Bottom: 0);");
         sb.append("   Padding: (Full: 17);");
         sb.append("   Background: (TexturePath: \"Common/ContainerPatch.png\", Border: 23);");
 
         // Inner content layout
         sb.append("   Group #InnerContent {");
         sb.append("     Padding: (Full: 3);");
+        sb.append("     FlexWeight: 1;");
         sb.append("     LayoutMode: Left;");
 
         if (sectioned) {
