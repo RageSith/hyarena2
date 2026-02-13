@@ -59,8 +59,10 @@ public class BotManager {
 
     // Bot name pool
     private static final List<String> BOT_NAMES = Arrays.asList(
-        "Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot",
-        "Golf", "Hotel", "India", "Juliet", "Kilo", "Lima"
+        "Chompers", "Bonkus", "Sir Lags", "Waffles", "Noodle",
+        "Stabitha", "Clanky", "Spud", "Grug", "Fumbles",
+        "Biscuit", "Yeetimus", "Wobble", "Turnip", "Clonk",
+        "Pickles", "Dingus", "Snoot", "Bumble", "Thwack"
     );
     private int nameCounter = 0;
 
@@ -1423,7 +1425,7 @@ public class BotManager {
         String baseName = BOT_NAMES.get(nameCounter % BOT_NAMES.size());
         int suffix = nameCounter / BOT_NAMES.size();
         nameCounter++;
-        return suffix > 0 ? "Bot_" + baseName + "_" + suffix : "Bot_" + baseName;
+        return suffix > 0 ? baseName + " " + (suffix + 1) : baseName;
     }
 
     /**
