@@ -805,7 +805,8 @@ public class BotManager {
             Store<EntityStore> targetStore = targetRef.getStore();
             if (targetStore == null) return false;
             String interaction = EntityInteractionHelper.getPrimaryInteraction(targetRef, targetStore);
-            return EntityInteractionHelper.classifyInteraction(interaction) == EntityInteractionHelper.InteractionKind.ATTACK;
+            EntityInteractionHelper.InteractionKind kind = EntityInteractionHelper.classifyInteraction(interaction);
+            return kind == EntityInteractionHelper.InteractionKind.ATTACK || kind == EntityInteractionHelper.InteractionKind.RANGED_ATTACK;
         } catch (Exception e) {
             return false;
         }
@@ -1107,7 +1108,8 @@ public class BotManager {
                 Store<EntityStore> enemyStore = nearest.entityRef.getStore();
                 if (enemyStore != null) {
                     String interaction = EntityInteractionHelper.getPrimaryInteraction(nearest.entityRef, enemyStore);
-                    enemyAttacking = EntityInteractionHelper.classifyInteraction(interaction) == EntityInteractionHelper.InteractionKind.ATTACK;
+                    EntityInteractionHelper.InteractionKind kind = EntityInteractionHelper.classifyInteraction(interaction);
+                    enemyAttacking = kind == EntityInteractionHelper.InteractionKind.ATTACK || kind == EntityInteractionHelper.InteractionKind.RANGED_ATTACK;
                 }
             } catch (Exception e) {
                 // Ignore
@@ -1211,6 +1213,12 @@ public class BotManager {
 
         UUID botId = bot.getUniqueId();
         String prevState = botNpcState.get(botId);
+
+        // After taking damage, the NPC's native hit reaction may have interrupted the current state.
+        // Force a re-apply by clearing the tracked state so the switch cases always call setState().
+        if (bot.consumeStateRefresh()) {
+            prevState = null;
+        }
 
         switch (decision) {
             case BLOCK -> {

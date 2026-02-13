@@ -60,6 +60,9 @@ public class BotParticipant implements Participant {
     private UUID lastAttackerUuid;
     private long lastDamageTimestamp;
 
+    // Flag: NPC state needs forced re-apply after taking damage (hit reaction may interrupt current state)
+    private volatile boolean needsStateRefresh = false;
+
     public BotParticipant(String name, BotDifficulty difficulty, String roleId) {
         this.botUuid = UUID.randomUUID();
         this.botName = name;
@@ -244,6 +247,7 @@ public class BotParticipant implements Participant {
 
         this.health -= damage;
         this.damageTaken += damage;
+        this.needsStateRefresh = true;
 
         if (this.health <= 0) {
             this.health = 0;
@@ -273,6 +277,19 @@ public class BotParticipant implements Participant {
      */
     public double getHealthPercentage() {
         return maxHealth > 0 ? health / maxHealth : 0;
+    }
+
+    /**
+     * Returns true if the bot needs its NPC state forcibly re-applied
+     * (e.g. after taking damage, the NPC's native hit reaction may have interrupted the current state).
+     * Calling this consumes the flag.
+     */
+    public boolean consumeStateRefresh() {
+        if (needsStateRefresh) {
+            needsStateRefresh = false;
+            return true;
+        }
+        return false;
     }
 
     /**
