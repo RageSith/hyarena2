@@ -8,6 +8,10 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.modules.entity.EntityModule;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.modules.entity.teleport.Teleport;
+import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap;
+import com.hypixel.hytale.server.core.modules.entitystats.EntityStatValue;
+import com.hypixel.hytale.server.core.modules.entitystats.EntityStatsModule;
+import com.hypixel.hytale.server.core.modules.entitystats.asset.EntityStatType;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
@@ -80,6 +84,7 @@ public class HubManager {
 
     /**
      * Teleports a player to the hub spawn point with a completion callback.
+     * Automatically heals the player to full health on arrival.
      */
     public void teleportToHub(Player player, Runnable onComplete) {
         Position spawn = config.getSpawnPoint();
@@ -91,14 +96,25 @@ public class HubManager {
 
         World hubWorld = getHubWorld();
 
-        if (hubWorld != null) {
-            teleportPlayerToWorld(player, spawn, hubWorld, onComplete);
-        } else {
-            // Fallback: same-world teleport
-            teleportPlayer(player, spawn);
+        // Wrap callback to heal player after a short delay (entity needs time to settle after teleport)
+        Runnable wrappedCallback = () -> {
             if (onComplete != null) {
                 onComplete.run();
             }
+            World hw = getHubWorld();
+            if (hw != null) {
+                CompletableFuture.delayedExecutor(500, TimeUnit.MILLISECONDS).execute(() -> {
+                    hw.execute(() -> healPlayer(player));
+                });
+            }
+        };
+
+        if (hubWorld != null) {
+            teleportPlayerToWorld(player, spawn, hubWorld, wrappedCallback);
+        } else {
+            // Fallback: same-world teleport
+            teleportPlayer(player, spawn);
+            wrappedCallback.run();
         }
     }
 
@@ -258,6 +274,34 @@ public class HubManager {
         Vector3f rot = transform.getRotation();
 
         return new Position(pos.getX(), pos.getY(), pos.getZ(), rot.getY(), rot.getX());
+    }
+
+    /**
+     * Heals a player to full health.
+     * Must be called on the player's current world thread.
+     */
+    private void healPlayer(Player player) {
+        try {
+            Ref<EntityStore> ref = player.getReference();
+            if (ref == null) return;
+            Store<EntityStore> store = ref.getStore();
+            if (store == null) return;
+
+            EntityStatMap stats = store.getComponent(ref,
+                EntityStatsModule.get().getEntityStatMapComponentType());
+            if (stats == null) return;
+
+            int healthIndex = EntityStatType.getAssetMap().getIndex("health");
+            EntityStatValue healthStat = stats.get(healthIndex);
+            if (healthStat == null) return;
+
+            float maxHealth = healthStat.getMax();
+            if (healthStat.get() < maxHealth) {
+                stats.setStatValue(healthIndex, maxHealth);
+            }
+        } catch (Exception e) {
+            System.err.println("[HubManager] Error healing player: " + e.getMessage());
+        }
     }
 
     // ========== Hub Holograms ==========
