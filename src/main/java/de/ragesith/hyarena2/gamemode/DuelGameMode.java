@@ -1,6 +1,7 @@
 package de.ragesith.hyarena2.gamemode;
 
 import de.ragesith.hyarena2.arena.ArenaConfig;
+import de.ragesith.hyarena2.arena.Match;
 import de.ragesith.hyarena2.participant.Participant;
 
 import java.util.ArrayList;
@@ -60,7 +61,7 @@ public class DuelGameMode implements GameMode {
     }
 
     @Override
-    public void onTick(ArenaConfig config, List<Participant> participants, int tickCount) {
+    public void onTick(Match match, ArenaConfig config, List<Participant> participants, int tickCount) {
         // No periodic behavior needed for duel mode
     }
 

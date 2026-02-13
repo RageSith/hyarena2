@@ -278,8 +278,8 @@ public class Match {
             return false;
         }
 
-        // Check capacity
-        if (participants.size() >= arena.getMaxPlayers()) {
+        // Check capacity (wave enemy bots bypass the limit)
+        if (participants.size() >= arena.getMaxPlayers() && !bot.isWaveEnemy()) {
             return false;
         }
 
@@ -845,14 +845,19 @@ public class Match {
                 victim.sendMessage("<color:#f39c12>Respawning...</color>");
             }
         } else if (victim.getType() == ParticipantType.BOT) {
-            // No respawn — neutralize the bot but don't remove the entity yet.
-            // Entity removal is deferred to finish()/cancel() after players leave,
-            // to prevent interaction chain crashes from stale entity references.
             if (botManager != null) {
                 BotParticipant bot = botManager.getBot(victimUuid);
                 if (bot != null) {
-                    System.out.println("[Match] Bot killed (entity removal deferred): " + victim.getName());
-                    botManager.neutralizeBot(bot);
+                    if (bot.isWaveEnemy()) {
+                        // Wave bots: despawn immediately — match continues and dead bots shouldn't linger
+                        System.out.println("[Match] Wave bot killed (despawning): " + victim.getName());
+                        botManager.despawnBot(bot);
+                    } else {
+                        // Regular bots: neutralize only, entity removal deferred to finish()/cancel()
+                        // to prevent interaction chain crashes from stale entity references.
+                        System.out.println("[Match] Bot killed (entity removal deferred): " + victim.getName());
+                        botManager.neutralizeBot(bot);
+                    }
                 }
             }
         }
@@ -951,7 +956,7 @@ public class Match {
         }
 
         // Let game mode tick
-        gameMode.onTick(arena.getConfig(), getParticipants(), tickCount);
+        gameMode.onTick(this, arena.getConfig(), getParticipants(), tickCount);
 
         // Process respawn timers
         processRespawnTimers();
@@ -962,24 +967,27 @@ public class Match {
             return;
         }
 
-        // Check match duration timeout
-        int matchDurationTicks = arena.getConfig().getMatchDurationSeconds() * TICKS_PER_SECOND;
-        int remainingTicks = matchDurationTicks - tickCount;
-        int remainingSeconds = remainingTicks / TICKS_PER_SECOND;
+        // Check match duration timeout (0 = endless, e.g. wave defense)
+        int matchDurationSeconds = arena.getConfig().getMatchDurationSeconds();
+        if (matchDurationSeconds > 0) {
+            int matchDurationTicks = matchDurationSeconds * TICKS_PER_SECOND;
+            int remainingTicks = matchDurationTicks - tickCount;
+            int remainingSeconds = remainingTicks / TICKS_PER_SECOND;
 
-        // Send time warnings
-        for (int warningTime : TIME_WARNINGS) {
-            if (remainingSeconds == warningTime && !sentTimeWarnings.contains(warningTime)) {
-                sentTimeWarnings.add(warningTime);
-                String timeText = warningTime >= 60 ? (warningTime / 60) + " minute" + (warningTime >= 120 ? "s" : "")
-                                                    : warningTime + " second" + (warningTime > 1 ? "s" : "");
-                broadcast("<color:#f39c12>" + timeText + " remaining!</color>");
+            // Send time warnings
+            for (int warningTime : TIME_WARNINGS) {
+                if (remainingSeconds == warningTime && !sentTimeWarnings.contains(warningTime)) {
+                    sentTimeWarnings.add(warningTime);
+                    String timeText = warningTime >= 60 ? (warningTime / 60) + " minute" + (warningTime >= 120 ? "s" : "")
+                                                        : warningTime + " second" + (warningTime > 1 ? "s" : "");
+                    broadcast("<color:#f39c12>" + timeText + " remaining!</color>");
+                }
             }
-        }
 
-        // End match if time has run out
-        if (remainingTicks <= 0) {
-            endByTimeout();
+            // End match if time has run out
+            if (remainingTicks <= 0) {
+                endByTimeout();
+            }
         }
     }
 
@@ -1363,7 +1371,11 @@ public class Match {
      * Used by MatchHud for countdown display.
      */
     public int getRemainingSeconds() {
-        int matchDurationTicks = arena.getConfig().getMatchDurationSeconds() * TICKS_PER_SECOND;
+        int matchDurationSeconds = arena.getConfig().getMatchDurationSeconds();
+        if (matchDurationSeconds <= 0) {
+            return -1; // Endless match (e.g., wave defense)
+        }
+        int matchDurationTicks = matchDurationSeconds * TICKS_PER_SECOND;
         int remainingTicks = Math.max(0, matchDurationTicks - tickCount);
         return remainingTicks / TICKS_PER_SECOND;
     }

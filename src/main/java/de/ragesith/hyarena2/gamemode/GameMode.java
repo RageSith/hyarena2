@@ -1,6 +1,7 @@
 package de.ragesith.hyarena2.gamemode;
 
 import de.ragesith.hyarena2.arena.ArenaConfig;
+import de.ragesith.hyarena2.arena.Match;
 import de.ragesith.hyarena2.bot.BotObjective;
 import de.ragesith.hyarena2.participant.Participant;
 
@@ -45,11 +46,12 @@ public interface GameMode {
 
     /**
      * Called every tick while the match is in progress
+     * @param match The match instance
      * @param config The arena configuration
      * @param participants All participants in the match
      * @param tickCount Number of ticks since gameplay began
      */
-    void onTick(ArenaConfig config, List<Participant> participants, int tickCount);
+    void onTick(Match match, ArenaConfig config, List<Participant> participants, int tickCount);
 
     /**
      * Called when a participant is killed
@@ -104,6 +106,17 @@ public interface GameMode {
      */
     default String getNextKitId(ArenaConfig config, Participant participant) {
         return null;
+    }
+
+    /**
+     * Determines if damage between two participants should be allowed.
+     * Game modes can override this to disable friendly fire (e.g., wave defense).
+     * @param attacker The participant dealing damage
+     * @param victim The participant receiving damage
+     * @return true if damage should be allowed (default: always allow)
+     */
+    default boolean shouldAllowDamage(Participant attacker, Participant victim) {
+        return true;
     }
 
     /**

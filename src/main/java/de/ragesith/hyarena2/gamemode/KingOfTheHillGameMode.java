@@ -17,6 +17,7 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.core.util.NotificationUtil;
 import de.ragesith.hyarena2.arena.ArenaConfig;
+import de.ragesith.hyarena2.arena.Match;
 import de.ragesith.hyarena2.bot.BotObjective;
 import de.ragesith.hyarena2.bot.BotParticipant;
 import de.ragesith.hyarena2.config.Position;
@@ -140,7 +141,7 @@ public class KingOfTheHillGameMode implements GameMode {
     }
 
     @Override
-    public void onTick(ArenaConfig config, List<Participant> participants, int tickCount) {
+    public void onTick(Match match, ArenaConfig config, List<Participant> participants, int tickCount) {
         List<ArenaConfig.CaptureZone> zones = config.getCaptureZones();
         if (zones == null || zones.isEmpty()) {
             return;

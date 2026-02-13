@@ -559,6 +559,9 @@ public class BotManager {
             if (participant.getUniqueId().equals(bot.getUniqueId())) continue;
             if (!participant.isAlive()) continue;
 
+            // Wave enemy bots only target players, never other bots
+            if (bot.isWaveEnemy() && participant.getType() == ParticipantType.BOT) continue;
+
             Position targetPos = null;
             Ref<EntityStore> targetRef = null;
             double healthPercent = 1.0;
@@ -980,6 +983,9 @@ public class BotManager {
     private void applyBotCombatDamage(BotParticipant attacker, Match match) {
         if (!attacker.isAlive()) return;
 
+        // Wave enemy bots don't deal bot-on-bot damage
+        if (attacker.isWaveEnemy()) return;
+
         NPCEntity npcEntity = attacker.getNpcEntity();
         if (npcEntity == null) return;
 
@@ -1007,6 +1013,9 @@ public class BotManager {
 
         BotParticipant victimBot = getBotByEntityUuid(targetUuidComp.getUuid());
         if (victimBot == null || !victimBot.isAlive() || victimBot.isImmune()) return;
+
+        // Prevent wave enemy bots from damaging each other
+        if (attacker.isWaveEnemy() && victimBot.isWaveEnemy()) return;
 
         // Block only negates damage from the front — attacks from behind go through
         if (isBlocking(victimBot)) {

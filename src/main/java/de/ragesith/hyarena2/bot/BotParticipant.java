@@ -63,6 +63,9 @@ public class BotParticipant implements Participant {
     // Flag: NPC state needs forced re-apply after taking damage (hit reaction may interrupt current state)
     private volatile boolean needsStateRefresh = false;
 
+    // Wave defense: marks this bot as a wave enemy (bypasses capacity, hidden from HUD, targets players only)
+    private boolean waveEnemy = false;
+
     public BotParticipant(String name, BotDifficulty difficulty, String roleId) {
         this.botUuid = UUID.randomUUID();
         this.botName = name;
@@ -423,6 +426,20 @@ public class BotParticipant implements Participant {
      */
     public boolean canAttack() {
         return System.currentTimeMillis() - lastAttackTime >= difficulty.getAttackCooldownMs();
+    }
+
+    /**
+     * Returns true if this bot is a wave defense enemy (targets players only, hidden from HUD).
+     */
+    public boolean isWaveEnemy() {
+        return waveEnemy;
+    }
+
+    /**
+     * Sets whether this bot is a wave defense enemy.
+     */
+    public void setWaveEnemy(boolean waveEnemy) {
+        this.waveEnemy = waveEnemy;
     }
 
     @Override

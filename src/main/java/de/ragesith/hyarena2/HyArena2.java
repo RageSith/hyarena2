@@ -222,6 +222,7 @@ public class HyArena2 extends JavaPlugin {
         this.economyManager.setMatchManager(matchManager);
         this.economyManager.setHonorManager(honorManager);
         this.economyManager.subscribeToEvents();
+        this.matchManager.setEconomyManagerForModes(economyManager);
 
         // Initialize shop
         ShopConfig shopConfig = configManager.loadConfig("shop.json", ShopConfig.class);

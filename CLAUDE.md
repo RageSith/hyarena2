@@ -197,10 +197,27 @@ Key reference files in old project:
 - [x] `getNextKitId()` default method on GameMode interface - allows modes to override kit on spawn
 - [x] `randomKitPool` field on ArenaConfig - kit IDs for random assignment
 - [x] Registered in MatchManager, documented in `plan/04_arena_config_reference.md`
+- [x] Wave Defense game mode (`wave_defense`) - cooperative PvE with endless escalating bot waves
+- [x] `shouldAllowDamage()` default method on GameMode interface - friendly fire control
+- [x] `waveSpawnPoints` field on ArenaConfig - separate spawn points for wave bots
+- [x] `waveEnemy` flag on BotParticipant - distinguishes wave bots from regular bots
+- [x] Endless match support (`matchDurationSeconds: 0`) - no timeout, elapsed time display
+- [x] ArenaEditorPage wave spawn points UI section (visible when gameMode = wave_defense)
+- [x] EconomyManager wave_defense bypass (per-wave AP instead of match-end rewards)
 
-**Available game modes:** `duel`, `lms`, `deathmatch`, `koth`, `kit_roulette`
+**Available game modes:** `duel`, `lms`, `deathmatch`, `koth`, `kit_roulette`, `wave_defense`
 
-**Testing status:** Only `duel` is tested. All other modes (deathmatch, koth, lms, kit_roulette) are **untested** because we lack in-game tools for creating, managing, and editing arenas (no admin commands or arena editor yet).
+**Wave Defense (`wave_defense`):**
+- Cooperative PvE — players fight endless escalating waves of bots
+- No player respawns (one life), friendly fire disabled
+- Wave bots flagged `waveEnemy=true` — hidden from HUD scoreboard, bypass maxPlayers capacity
+- Bot count: `min(3 + wave * 2, 20)`, difficulty scales EASY→MEDIUM→HARD, health multiplier `1.0 + (wave-1) * 0.15`
+- AP reward per wave: `1 + wave / 3` to surviving players (bypasses normal match-end rewards)
+- `matchDurationSeconds: 0` for endless (timer shows elapsed time)
+- `waveSpawnPoints` in ArenaConfig for bot spawn locations (fallback to regular spawnPoints)
+- Per-match state tracked via `Map<UUID, WaveState>` — safe for concurrent matches
+
+**Testing status:** Only `duel` is tested. All other modes (deathmatch, koth, lms, kit_roulette, wave_defense) are **untested** because we lack in-game tools for creating, managing, and editing arenas (no admin commands or arena editor yet).
 
 **Respawn system notes:**
 - Currently forces instant respawn (delay 0). Timer infrastructure exists for future non-zero delay once we have a death/spectate solution.

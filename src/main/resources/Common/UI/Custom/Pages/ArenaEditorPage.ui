@@ -296,6 +296,49 @@ Group #ArenaEditorPage {
                     Group { FlexWeight: 1; }
                 }
 
+                // ===== Wave Spawn Points Section (wave_defense only) =====
+                Group #WaveSpawnPointsSection {
+                    Visible: false;
+                    Anchor: (Top: 18);
+                    LayoutMode: Top;
+
+                    $C.@ContentSeparator {}
+
+                    Label {
+                        Text: "WAVE SPAWN POINTS";
+                        Anchor: (Height: 20, Top: 12);
+                        Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                    }
+
+                    Label {
+                        Text: "Positions where wave enemies spawn (edges of the arena)";
+                        Anchor: (Height: 18, Top: 4);
+                        Style: (FontSize: 11, TextColor: #6b7d8e);
+                    }
+
+                    Group #WaveSpawnPointsList {
+                        Anchor: (Top: 6);
+                        LayoutMode: Top;
+                    }
+
+                    Group #WaveSpawnButtons {
+                        Anchor: (Height: 38, Top: 14);
+                        LayoutMode: Left;
+
+                        $C.@SecondaryTextButton #AddWaveSpawnBtn {
+                            @Text = "+ Add Spawn";
+                            @Anchor = (Width: 190);
+                        }
+
+                        $C.@SecondaryTextButton #AddWaveSpawnHereBtn {
+                            @Text = "+ Add Here";
+                            @Anchor = (Width: 180, Left: 12);
+                        }
+
+                        Group { FlexWeight: 1; }
+                    }
+                }
+
                 // ===== Bounds Section =====
                 $C.@ContentSeparator { @Anchor = (Top: 18); }
 

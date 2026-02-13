@@ -79,6 +79,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
     private double[] formBoundsMin; // [x, y, z]
     private double[] formBoundsMax;
     private List<ArenaConfig.CaptureZone> formCaptureZones;
+    private List<ArenaConfig.SpawnPoint> formWaveSpawnPoints;
 
     private List<String> gameModeIds;
     private static final String[] BOT_DIFFICULTIES = {"EASY", "MEDIUM", "HARD"};
@@ -140,6 +141,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             }
 
             formCaptureZones = existingConfig.getCaptureZones() != null ? new ArrayList<>(existingConfig.getCaptureZones()) : new ArrayList<>();
+            formWaveSpawnPoints = existingConfig.getWaveSpawnPoints() != null ? new ArrayList<>(existingConfig.getWaveSpawnPoints()) : new ArrayList<>();
         } else {
             formId = "";
             formDisplayName = "";
@@ -164,6 +166,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             formBoundsMin = new double[]{0, 0, 0};
             formBoundsMax = new double[]{0, 0, 0};
             formCaptureZones = new ArrayList<>();
+            formWaveSpawnPoints = new ArrayList<>();
         }
     }
 
@@ -201,6 +204,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
         boolean showZoneRotation = "koth".equals(formGameMode);
         boolean showRandomKitPool = "kit_roulette".equals(formGameMode);
         boolean showCaptureZones = "koth".equals(formGameMode);
+        boolean showWaveSpawnPoints = "wave_defense".equals(formGameMode);
 
         cmd.set("#KillTargetRow.Visible", showKillTarget);
         cmd.set("#RespawnDelayRow.Visible", showRespawn);
@@ -208,6 +212,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
         cmd.set("#ZoneRotationRow.Visible", showZoneRotation);
         cmd.set("#RandomKitPoolSection.Visible", showRandomKitPool);
         cmd.set("#CaptureZonesSection.Visible", showCaptureZones);
+        cmd.set("#WaveSpawnPointsSection.Visible", showWaveSpawnPoints);
 
         cmd.set("#KillTargetField.Value", formKillTarget);
         cmd.set("#RespawnDelayField.Value", formRespawnDelay);
@@ -320,6 +325,33 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             }
         }
 
+        // Wave spawn points
+        if (showWaveSpawnPoints) {
+            for (int i = 0; i < formWaveSpawnPoints.size(); i++) {
+                ArenaConfig.SpawnPoint sp = formWaveSpawnPoints.get(i);
+                cmd.append("#WaveSpawnPointsList", "Pages/AdminSpawnRow.ui");
+                String row = "#WaveSpawnPointsList[" + i + "]";
+
+                cmd.set(row + " #SpawnIndex.Text", "#" + (i + 1));
+                cmd.set(row + " #SpawnXField.Value", formatCoord(sp.getX()));
+                cmd.set(row + " #SpawnYField.Value", formatCoord(sp.getY()));
+                cmd.set(row + " #SpawnZField.Value", formatCoord(sp.getZ()));
+                cmd.set(row + " #SpawnYawField.Value", formatCoord(sp.getYaw()));
+                cmd.set(row + " #SpawnPitchField.Value", formatCoord(sp.getPitch()));
+
+                bindTextField(events, row + " #SpawnXField", "waveSpawnX", String.valueOf(i));
+                bindTextField(events, row + " #SpawnYField", "waveSpawnY", String.valueOf(i));
+                bindTextField(events, row + " #SpawnZField", "waveSpawnZ", String.valueOf(i));
+                bindTextField(events, row + " #SpawnYawField", "waveSpawnYaw", String.valueOf(i));
+                bindTextField(events, row + " #SpawnPitchField", "waveSpawnPitch", String.valueOf(i));
+
+                events.addEventBinding(CustomUIEventBindingType.Activating, row + " #SpawnSetBtn",
+                    EventData.of("Action", "setWaveSpawn").append("Index", String.valueOf(i)), false);
+                events.addEventBinding(CustomUIEventBindingType.Activating, row + " #SpawnRemoveBtn",
+                    EventData.of("Action", "removeWaveSpawn").append("Index", String.valueOf(i)), false);
+            }
+        }
+
         // Bind text field events for basic fields
         bindTextField(events, "#IdField", "id", null);
         bindTextField(events, "#DisplayNameField", "displayName", null);
@@ -374,6 +406,10 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             EventData.of("Action", "setMax"), false);
         events.addEventBinding(CustomUIEventBindingType.Activating, "#AddZoneBtn",
             EventData.of("Action", "addZone"), false);
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#AddWaveSpawnBtn",
+            EventData.of("Action", "addWaveSpawn"), false);
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#AddWaveSpawnHereBtn",
+            EventData.of("Action", "addWaveSpawnHere"), false);
 
         events.addEventBinding(CustomUIEventBindingType.Activating, "#SaveBtn",
             EventData.of("Action", "save"), false);
@@ -493,6 +529,26 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
                     setZoneBoundsFromPosition(data.index, false);
                     break;
 
+                case "addWaveSpawn":
+                    formWaveSpawnPoints.add(new ArenaConfig.SpawnPoint(0, 0, 0, 0, 0));
+                    active = true;
+                    rebuild();
+                    break;
+
+                case "addWaveSpawnHere":
+                    addWaveSpawnFromPosition();
+                    break;
+
+                case "setWaveSpawn":
+                    setWaveSpawnFromPosition(data.index);
+                    break;
+
+                case "removeWaveSpawn":
+                    removeWaveSpawnAtIndex(data.index);
+                    active = true;
+                    rebuild();
+                    break;
+
                 case "save":
                     handleSave();
                     break;
@@ -559,6 +615,23 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
                 if (idx >= 0 && idx < formSpawnPoints.size()) formSpawnPoints.get(idx).setPitch((float) parseDoubleSafe(data.value, 0));
                 break;
 
+            // Wave spawn point fields
+            case "waveSpawnX":
+                if (idx >= 0 && idx < formWaveSpawnPoints.size()) formWaveSpawnPoints.get(idx).setX(parseDoubleSafe(data.value, 0));
+                break;
+            case "waveSpawnY":
+                if (idx >= 0 && idx < formWaveSpawnPoints.size()) formWaveSpawnPoints.get(idx).setY(parseDoubleSafe(data.value, 0));
+                break;
+            case "waveSpawnZ":
+                if (idx >= 0 && idx < formWaveSpawnPoints.size()) formWaveSpawnPoints.get(idx).setZ(parseDoubleSafe(data.value, 0));
+                break;
+            case "waveSpawnYaw":
+                if (idx >= 0 && idx < formWaveSpawnPoints.size()) formWaveSpawnPoints.get(idx).setYaw((float) parseDoubleSafe(data.value, 0));
+                break;
+            case "waveSpawnPitch":
+                if (idx >= 0 && idx < formWaveSpawnPoints.size()) formWaveSpawnPoints.get(idx).setPitch((float) parseDoubleSafe(data.value, 0));
+                break;
+
             // Bounds
             case "boundsMinX": formBoundsMin[0] = parseDoubleSafe(data.value, 0); break;
             case "boundsMinY": formBoundsMin[1] = parseDoubleSafe(data.value, 0); break;
@@ -610,8 +683,9 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             showStatus("Invalid player count", "#e74c3c");
             return;
         }
-        if (formSpawnPoints.size() < formMaxPlayers) {
-            showStatus("Need at least " + formMaxPlayers + " spawn points (have " + formSpawnPoints.size() + ")", "#e74c3c");
+        int requiredSpawns = "wave_defense".equals(formGameMode) ? formMinPlayers : formMaxPlayers;
+        if (formSpawnPoints.size() < requiredSpawns) {
+            showStatus("Need at least " + requiredSpawns + " spawn points (have " + formSpawnPoints.size() + ")", "#e74c3c");
             return;
         }
 
@@ -660,6 +734,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             formBoundsMax[0], formBoundsMax[1], formBoundsMax[2]
         ));
         config.setCaptureZones(new ArrayList<>(formCaptureZones));
+        config.setWaveSpawnPoints(formWaveSpawnPoints.isEmpty() ? null : new ArrayList<>(formWaveSpawnPoints));
 
         if (matchManager.saveArena(config)) {
             shutdown();
@@ -791,6 +866,42 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
     private void removeZoneAtIndex(String indexStr) {
         int idx = parseIndex(indexStr);
         if (idx >= 0 && idx < formCaptureZones.size()) formCaptureZones.remove(idx);
+    }
+
+    private void addWaveSpawnFromPosition() {
+        double[] pos = getAdminPosition();
+        if (pos == null) {
+            showStatus("Could not read position", "#e74c3c");
+            return;
+        }
+        formWaveSpawnPoints.add(new ArenaConfig.SpawnPoint(pos[0], pos[1], pos[2], (float) pos[3], (float) pos[4]));
+        active = true;
+        rebuild();
+    }
+
+    private void setWaveSpawnFromPosition(String indexStr) {
+        int idx = parseIndex(indexStr);
+        if (idx < 0 || idx >= formWaveSpawnPoints.size()) return;
+
+        double[] pos = getAdminPosition();
+        if (pos == null) {
+            showStatus("Could not read position", "#e74c3c");
+            return;
+        }
+
+        ArenaConfig.SpawnPoint sp = formWaveSpawnPoints.get(idx);
+        sp.setX(pos[0]);
+        sp.setY(pos[1]);
+        sp.setZ(pos[2]);
+        sp.setYaw((float) pos[3]);
+        sp.setPitch((float) pos[4]);
+        active = true;
+        rebuild();
+    }
+
+    private void removeWaveSpawnAtIndex(String indexStr) {
+        int idx = parseIndex(indexStr);
+        if (idx >= 0 && idx < formWaveSpawnPoints.size()) formWaveSpawnPoints.remove(idx);
     }
 
     private int parseIndex(String s) {

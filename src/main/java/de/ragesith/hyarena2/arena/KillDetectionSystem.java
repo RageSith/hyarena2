@@ -168,6 +168,15 @@ public class KillDetectionSystem extends DamageEventSystem {
         Ref<EntityStore> attackerEntityRef = getAttackerEntityRef(damage.getSource());
         UUID attackerUuid = getAttackerUuid(damage.getSource(), store);
 
+        // Check if game mode allows this damage (e.g., friendly fire disabled in wave defense)
+        if (attackerUuid != null) {
+            Participant attackerParticipant = match.getParticipant(attackerUuid);
+            if (attackerParticipant != null && !match.getGameMode().shouldAllowDamage(attackerParticipant, participant)) {
+                damage.setCancelled(true);
+                return;
+            }
+        }
+
         // Get victim's current health
         EntityStatMap stats = store.getComponent(victimRef,
                 EntityStatsModule.get().getEntityStatMapComponentType());

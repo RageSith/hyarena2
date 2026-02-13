@@ -5,6 +5,8 @@ import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import de.ragesith.hyarena2.arena.Match;
 import de.ragesith.hyarena2.arena.MatchState;
+import de.ragesith.hyarena2.bot.BotParticipant;
+import de.ragesith.hyarena2.gamemode.WaveDefenseGameMode;
 import de.ragesith.hyarena2.participant.Participant;
 import de.ragesith.hyarena2.participant.ParticipantType;
 
@@ -63,27 +65,45 @@ public class MatchHud extends CustomUIHud {
         String gameMode = match.getGameMode().getDisplayName();
         cmd.set("#GameMode.Text", gameMode);
 
-        // Match time (countdown)
+        // Match time (countdown or elapsed for endless modes)
         int remainingSeconds = match.getRemainingSeconds();
-        int minutes = remainingSeconds / 60;
-        int seconds = remainingSeconds % 60;
-        String timeDisplay = String.format("%d:%02d", minutes, seconds);
-        cmd.set("#MatchTime.Text", timeDisplay);
-
-        // Color timer based on remaining time (red when low)
-        if (remainingSeconds <= 10) {
-            cmd.set("#MatchTime.Style.TextColor", "#e74c3c"); // Red - critical
-        } else if (remainingSeconds <= 30) {
-            cmd.set("#MatchTime.Style.TextColor", "#f39c12"); // Orange - warning
-        } else {
+        if (remainingSeconds < 0) {
+            // Endless mode — show elapsed time
+            int elapsedSeconds = match.getTickCount() / 20;
+            int minutes = elapsedSeconds / 60;
+            int seconds = elapsedSeconds % 60;
+            cmd.set("#MatchTime.Text", String.format("%d:%02d", minutes, seconds));
             cmd.set("#MatchTime.Style.TextColor", "#f1c40f"); // Yellow - normal
+        } else {
+            int minutes = remainingSeconds / 60;
+            int seconds = remainingSeconds % 60;
+            cmd.set("#MatchTime.Text", String.format("%d:%02d", minutes, seconds));
+
+            // Color timer based on remaining time (red when low)
+            if (remainingSeconds <= 10) {
+                cmd.set("#MatchTime.Style.TextColor", "#e74c3c"); // Red - critical
+            } else if (remainingSeconds <= 30) {
+                cmd.set("#MatchTime.Style.TextColor", "#f39c12"); // Orange - warning
+            } else {
+                cmd.set("#MatchTime.Style.TextColor", "#f1c40f"); // Yellow - normal
+            }
         }
 
         // Score info (KOTH etc.)
         String scoreLabel = match.getGameMode().getScoreLabel();
         boolean hasScores = scoreLabel != null;
 
-        if (hasScores) {
+        // Wave defense: show wave and enemies remaining in score area
+        boolean isWaveDefense = match.getGameMode() instanceof WaveDefenseGameMode;
+        if (isWaveDefense) {
+            WaveDefenseGameMode wdMode = (WaveDefenseGameMode) match.getGameMode();
+            cmd.set("#ScoreInfo.Visible", true);
+            int wave = wdMode.getCurrentWave(match.getMatchId());
+            int enemies = wdMode.getAliveEnemyCount(match);
+            cmd.set("#MyScore.Text", "Wave " + wave);
+            cmd.set("#BestScore.Text", enemies + " remaining");
+            cmd.set("#ScoreTarget.Text", "Enemies");
+        } else if (hasScores) {
             cmd.set("#ScoreInfo.Visible", true);
 
             int myScore = match.getGameMode().getParticipantScore(playerUuid);
@@ -104,9 +124,13 @@ public class MatchHud extends CustomUIHud {
             cmd.set("#ScoreInfo.Visible", false);
         }
 
-        // Build participant list
+        // Build participant list (filter out wave enemy bots — they're shown as enemy count instead)
         List<ParticipantInfo> participantList = new ArrayList<>();
         for (Participant p : match.getParticipants()) {
+            // Hide wave enemy bots from scoreboard
+            if (p instanceof BotParticipant bp && bp.isWaveEnemy()) {
+                continue;
+            }
             int score = hasScores ? match.getGameMode().getParticipantScore(p.getUniqueId()) : -1;
             participantList.add(new ParticipantInfo(
                 p.getName(),

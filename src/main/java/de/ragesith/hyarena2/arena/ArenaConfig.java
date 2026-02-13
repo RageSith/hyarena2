@@ -28,6 +28,7 @@ public class ArenaConfig {
     private int scoreTarget = 0; // Control-seconds needed to win (0 = unused)
     private int zoneRotationSeconds = 60; // Rotation interval for multiple zones
     private List<String> randomKitPool; // Kit IDs for random assignment (Kit Roulette)
+    private List<SpawnPoint> waveSpawnPoints; // Spawn points for wave defense enemy bots
 
     // Getters
     public String getId() { return id; }
@@ -52,6 +53,7 @@ public class ArenaConfig {
     public int getScoreTarget() { return scoreTarget; }
     public int getZoneRotationSeconds() { return zoneRotationSeconds; }
     public List<String> getRandomKitPool() { return randomKitPool; }
+    public List<SpawnPoint> getWaveSpawnPoints() { return waveSpawnPoints; }
 
     // Setters
     public void setId(String id) { this.id = id; }
@@ -76,6 +78,7 @@ public class ArenaConfig {
     public void setScoreTarget(int scoreTarget) { this.scoreTarget = scoreTarget; }
     public void setZoneRotationSeconds(int zoneRotationSeconds) { this.zoneRotationSeconds = zoneRotationSeconds; }
     public void setRandomKitPool(List<String> randomKitPool) { this.randomKitPool = randomKitPool; }
+    public void setWaveSpawnPoints(List<SpawnPoint> waveSpawnPoints) { this.waveSpawnPoints = waveSpawnPoints; }
 
     /**
      * Validates the arena configuration
@@ -89,7 +92,9 @@ public class ArenaConfig {
         if (minPlayers <= 0 || maxPlayers <= 0) return false;
         if (minPlayers > maxPlayers) return false;
         if (waitTimeSeconds < 0) return false;
-        if (spawnPoints == null || spawnPoints.size() < maxPlayers) return false;
+        // Wave defense only needs spawn points for players (bots use waveSpawnPoints)
+        int requiredSpawnPoints = "wave_defense".equals(gameMode) ? minPlayers : maxPlayers;
+        if (spawnPoints == null || spawnPoints.size() < requiredSpawnPoints) return false;
         if (bounds == null) return false;
 
         // Normalize bounds so min < max on all axes (Gson may deserialize swapped corners)

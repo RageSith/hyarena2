@@ -165,6 +165,9 @@ public class EconomyManager {
         Match match = matchManager.getMatch(event.getMatchId());
         if (match == null) return;
 
+        // Wave defense handles its own AP distribution per-wave
+        if ("wave_defense".equals(match.getGameMode().getId())) return;
+
         // Bot matches (any match with at least 1 bot) earn half AP
         boolean hasBots = match.getParticipants().stream()
             .anyMatch(p -> p.getType() == ParticipantType.BOT);

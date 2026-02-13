@@ -15,11 +15,13 @@ import de.ragesith.hyarena2.gamemode.GameMode;
 import de.ragesith.hyarena2.gamemode.KingOfTheHillGameMode;
 import de.ragesith.hyarena2.gamemode.KitRouletteGameMode;
 import de.ragesith.hyarena2.gamemode.LastManStandingGameMode;
+import de.ragesith.hyarena2.gamemode.WaveDefenseGameMode;
 import de.ragesith.hyarena2.boundary.BoundaryManager;
 import de.ragesith.hyarena2.hub.HubManager;
 import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.bot.BotManager;
 import de.ragesith.hyarena2.bot.BotParticipant;
+import de.ragesith.hyarena2.economy.EconomyManager;
 import de.ragesith.hyarena2.utils.ArenaCleanupUtil;
 
 import java.io.File;
@@ -68,6 +70,7 @@ public class MatchManager {
         registerGameMode(new DeathmatchGameMode());
         registerGameMode(new KingOfTheHillGameMode());
         registerGameMode(new KitRouletteGameMode());
+        registerGameMode(new WaveDefenseGameMode());
     }
 
     /**
@@ -103,6 +106,17 @@ public class MatchManager {
      */
     public void setHudManager(de.ragesith.hyarena2.ui.hud.HudManager hudManager) {
         this.hudManager = hudManager;
+    }
+
+    /**
+     * Wires the economy manager into game modes that handle their own rewards (e.g., WaveDefense).
+     */
+    public void setEconomyManagerForModes(EconomyManager economyManager) {
+        GameMode waveDefense = gameModes.get("wave_defense");
+        if (waveDefense instanceof WaveDefenseGameMode wdMode) {
+            wdMode.setEconomyManager(economyManager);
+            System.out.println("[MatchManager] Wired EconomyManager to WaveDefenseGameMode");
+        }
     }
 
     /**
