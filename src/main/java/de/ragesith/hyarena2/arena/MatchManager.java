@@ -350,6 +350,7 @@ public class MatchManager {
         match.setBotManager(botManager);
         match.setBoundaryManager(boundaryManager);
         match.setHudManager(hudManager);
+        match.setMatchManager(this);
         activeMatches.put(match.getMatchId(), match);
 
         System.out.println("Created match " + match.getMatchId() + " on arena " + arenaId + " (world: " + arena.getConfig().getWorldName() + ")");
@@ -463,6 +464,14 @@ public class MatchManager {
      */
     public boolean isPlayerInMatch(UUID playerUuid) {
         return playerToMatch.containsKey(playerUuid);
+    }
+
+    /**
+     * Removes a player from the playerToMatch tracking map.
+     * Called by Match when a player is fully eliminated mid-match so they can re-queue immediately.
+     */
+    public void untrackPlayer(UUID playerUuid) {
+        playerToMatch.remove(playerUuid);
     }
 
     /**

@@ -20,6 +20,7 @@ import de.ragesith.hyarena2.config.GlobalConfig;
 import de.ragesith.hyarena2.config.HubConfig;
 import de.ragesith.hyarena2.config.Position;
 import de.ragesith.hyarena2.hub.HubManager;
+import de.ragesith.hyarena2.participant.Participant;
 
 import java.util.List;
 import java.util.Map;
@@ -220,6 +221,12 @@ public class BoundaryManager {
             try {
                 Match match = matchManager.getPlayerMatch(playerId);
                 if (match == null) {
+                    continue;
+                }
+
+                // Skip dead participants — they're already in hub
+                Participant participant = match.getParticipant(playerId);
+                if (participant != null && !participant.isAlive()) {
                     continue;
                 }
 

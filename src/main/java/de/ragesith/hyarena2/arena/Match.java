@@ -23,6 +23,7 @@ import de.ragesith.hyarena2.event.match.MatchCreatedEvent;
 import de.ragesith.hyarena2.event.match.MatchEndedEvent;
 import de.ragesith.hyarena2.event.match.MatchFinishedEvent;
 import de.ragesith.hyarena2.event.match.MatchStartedEvent;
+import de.ragesith.hyarena2.event.match.PlayerMatchRewardEvent;
 import de.ragesith.hyarena2.event.participant.ParticipantDamagedEvent;
 import de.ragesith.hyarena2.event.participant.ParticipantJoinedEvent;
 import de.ragesith.hyarena2.event.participant.ParticipantKilledEvent;
@@ -58,6 +59,7 @@ public class Match {
     private BotManager botManager;
     private BoundaryManager boundaryManager;
     private de.ragesith.hyarena2.ui.hud.HudManager hudManager;
+    private MatchManager matchManager;
 
     private final Map<UUID, Participant> participants;
     private final Set<UUID> arrivedPlayers; // Players who have completed teleport to arena
@@ -393,6 +395,13 @@ public class Match {
     }
 
     /**
+     * Sets the match manager for untracking eliminated players.
+     */
+    public void setMatchManager(MatchManager matchManager) {
+        this.matchManager = matchManager;
+    }
+
+    /**
      * Checks if all participants have arrived and starts the match if ready.
      */
     private void checkAndStartIfReady() {
@@ -546,6 +555,18 @@ public class Match {
                 .toList();
         String victoryMessage = gameMode.getVictoryMessage(arena.getConfig(), winnerParticipants);
 
+        // Fire per-player reward events BEFORE VictoryHud (VictoryHud reads lastMatchReward)
+        if (!"wave_defense".equals(gameMode.getId())) {
+            boolean hasBots = hasBotParticipants();
+            for (Participant participant : getParticipants()) {
+                if (participant.getType() != ParticipantType.PLAYER) continue;
+                boolean isWinner = winners.contains(participant.getUniqueId());
+                eventBus.publish(new PlayerMatchRewardEvent(
+                    participant.getUniqueId(), matchId, isWinner,
+                    participant.getKills(), hasBots));
+            }
+        }
+
         // Get winner name for VictoryHud
         String winnerName = winnerParticipants.isEmpty() ? null : winnerParticipants.get(0).getName();
 
@@ -589,6 +610,18 @@ public class Match {
                 .toList();
         String victoryMessage = "<color:#f39c12>Time's up!</color> " +
             gameMode.getVictoryMessage(arena.getConfig(), winnerParticipants);
+
+        // Fire per-player reward events BEFORE VictoryHud (VictoryHud reads lastMatchReward)
+        if (!"wave_defense".equals(gameMode.getId())) {
+            boolean hasBots = hasBotParticipants();
+            for (Participant participant : getParticipants()) {
+                if (participant.getType() != ParticipantType.PLAYER) continue;
+                boolean isWinner = winners.contains(participant.getUniqueId());
+                eventBus.publish(new PlayerMatchRewardEvent(
+                    participant.getUniqueId(), matchId, isWinner,
+                    participant.getKills(), hasBots));
+            }
+        }
 
         String winnerName = winnerParticipants.isEmpty() ? null : winnerParticipants.get(0).getName();
 
@@ -749,6 +782,16 @@ public class Match {
     }
 
     /**
+     * Checks if this match has any bot participants.
+     */
+    private boolean hasBotParticipants() {
+        for (Participant p : participants.values()) {
+            if (p.getType() == ParticipantType.BOT) return true;
+        }
+        return false;
+    }
+
+    /**
      * Records damage dealt to a participant.
      * @return true if the damage resulted in a kill
      */
@@ -859,6 +902,53 @@ public class Match {
                         botManager.neutralizeBot(bot);
                     }
                 }
+            }
+        } else if (victim.getType() == ParticipantType.PLAYER && !shouldEnd) {
+            // No respawn, match continues — fire reward, remove from match, teleport to hub
+            UUID deadUuid = victim.getUniqueId();
+
+            // Fire per-player reward event BEFORE removing from participants (need kills/hasBots data)
+            if (!"wave_defense".equals(gameMode.getId())) {
+                boolean hasBots = hasBotParticipants();
+                eventBus.publish(new PlayerMatchRewardEvent(
+                    deadUuid, matchId, false, victim.getKills(), hasBots));
+            }
+
+            // Send elimination message (still have participant reference)
+            victim.sendMessage("<color:#e74c3c>You have been eliminated!</color>");
+
+            // Hide MatchHud BEFORE teleport — UI elements don't survive world change
+            if (hudManager != null) {
+                hudManager.hideMatchHud(deadUuid);
+            }
+
+            Player deadPlayer = getPlayerFromUuid(deadUuid);
+            if (deadPlayer != null) {
+                if (kitManager != null) {
+                    kitManager.clearKit(deadPlayer);
+                }
+                hubManager.teleportToHub(deadPlayer, () -> {
+                    PlayerRef playerRef = Universe.get().getPlayer(deadUuid);
+                    if (playerRef != null) {
+                        World hubWorld = hubManager.getHubWorld();
+                        PlayerMovementControl.enableMovementForPlayer(playerRef, hubWorld);
+                    }
+                    if (boundaryManager != null) {
+                        boundaryManager.grantTeleportGrace(deadUuid);
+                    }
+                    // Show LobbyHud so eliminated player can re-queue
+                    if (hudManager != null) {
+                        hudManager.showLobbyHud(deadUuid);
+                    }
+                });
+            }
+
+            // Remove from match tracking — player can now re-queue
+            participants.remove(deadUuid);
+            arrivedPlayers.remove(deadUuid);
+            eventBus.publish(new ParticipantLeftEvent(matchId, victim, "Eliminated"));
+            if (matchManager != null) {
+                matchManager.untrackPlayer(deadUuid);
             }
         }
 
@@ -1231,7 +1321,7 @@ public class Match {
         System.out.println("[Match] Freezing " + participants.size() + " participants (no HUD)");
         World world = arena.getWorld();
         for (Participant participant : getParticipants()) {
-            if (participant.getType() == ParticipantType.PLAYER) {
+            if (participant.getType() == ParticipantType.PLAYER && participant.isAlive()) {
                 PlayerRef playerRef = Universe.get().getPlayer(participant.getUniqueId());
                 if (playerRef != null) {
                     PlayerMovementControl.disableMovementForPlayerNoHud(playerRef, world);

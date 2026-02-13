@@ -1,13 +1,17 @@
 package de.ragesith.hyarena2.economy;
 
-import de.ragesith.hyarena2.arena.Match;
-import de.ragesith.hyarena2.arena.MatchManager;
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.Universe;
+import com.hypixel.hytale.server.core.universe.world.World;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.event.EventBus;
 import de.ragesith.hyarena2.event.economy.ArenaPointsEarnedEvent;
 import de.ragesith.hyarena2.event.economy.ArenaPointsSpentEvent;
-import de.ragesith.hyarena2.event.match.MatchEndedEvent;
-import de.ragesith.hyarena2.participant.Participant;
-import de.ragesith.hyarena2.participant.ParticipantType;
+import de.ragesith.hyarena2.event.match.PlayerMatchRewardEvent;
+import fi.sulku.hytale.TinyMsg;
 
 import java.util.Map;
 import java.util.UUID;
@@ -15,14 +19,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Manages ArenaPoints and match reward distribution.
- * Subscribes to MatchEndedEvent for automatic reward calculation.
+ * Subscribes to PlayerMatchRewardEvent for automatic per-player reward calculation.
  */
 public class EconomyManager {
 
     private final EconomyConfig config;
     private final PlayerDataManager playerDataManager;
     private final EventBus eventBus;
-    private MatchManager matchManager;
     private HonorManager honorManager;
 
     // Cache last match reward per player (for VictoryHud display)
@@ -32,10 +35,6 @@ public class EconomyManager {
         this.config = config;
         this.playerDataManager = playerDataManager;
         this.eventBus = eventBus;
-    }
-
-    public void setMatchManager(MatchManager matchManager) {
-        this.matchManager = matchManager;
     }
 
     public void setHonorManager(HonorManager honorManager) {
@@ -152,44 +151,44 @@ public class EconomyManager {
     // ========== Event Subscription ==========
 
     /**
-     * Subscribes to MatchEndedEvent for automatic reward distribution.
+     * Subscribes to PlayerMatchRewardEvent for per-player reward distribution.
      */
     public void subscribeToEvents() {
-        eventBus.subscribe(MatchEndedEvent.class, this::onMatchEnded);
-        System.out.println("[EconomyManager] Subscribed to MatchEndedEvent");
+        eventBus.subscribe(PlayerMatchRewardEvent.class, this::onPlayerMatchReward);
+        System.out.println("[EconomyManager] Subscribed to PlayerMatchRewardEvent");
     }
 
-    private void onMatchEnded(MatchEndedEvent event) {
-        if (matchManager == null) return;
+    private void onPlayerMatchReward(PlayerMatchRewardEvent event) {
+        UUID playerUuid = event.getPlayerUuid();
 
-        Match match = matchManager.getMatch(event.getMatchId());
-        if (match == null) return;
+        MatchRewardResult result = rewardMatch(playerUuid, event.isWinner(), event.getKills(),
+            event.getMatchId().toString().substring(0, 8), event.hasBots());
 
-        // Wave defense handles its own AP distribution per-wave
-        if ("wave_defense".equals(match.getGameMode().getId())) return;
-
-        // Bot matches (any match with at least 1 bot) earn half AP
-        boolean hasBots = match.getParticipants().stream()
-            .anyMatch(p -> p.getType() == ParticipantType.BOT);
-
-        for (Participant participant : match.getParticipants()) {
-            if (participant.getType() != ParticipantType.PLAYER) continue;
-
-            UUID playerUuid = participant.getUniqueId();
-            boolean isWinner = event.getWinners().contains(playerUuid);
-            int kills = participant.getKills();
-
-            MatchRewardResult result = rewardMatch(playerUuid, isWinner, kills,
-                event.getMatchId().toString().substring(0, 8), hasBots);
-
-            // Send reward message to player
-            String msg = "<color:#f1c40f>+" + result.getApEarned() + " AP</color>"
-                + " <color:#7f8c8d>|</color> "
-                + "<color:#3498db>+" + (int) result.getHonorEarned() + " Honor</color>";
-            if (hasBots) {
-                msg += " <color:#7f8c8d>(bot match, half AP)</color>";
-            }
-            participant.sendMessage(msg);
+        // Send reward message to player
+        String msg = "<color:#f1c40f>+" + result.getApEarned() + " AP</color>"
+            + " <color:#7f8c8d>|</color> "
+            + "<color:#3498db>+" + (int) result.getHonorEarned() + " Honor</color>";
+        if (event.hasBots()) {
+            msg += " <color:#7f8c8d>(bot match, half AP)</color>";
         }
+        sendMessageToPlayer(playerUuid, msg);
+    }
+
+    /**
+     * Sends a TinyMsg chat message to a player by UUID.
+     * Iterates worlds to find the player (they may have been teleported to hub).
+     */
+    private void sendMessageToPlayer(UUID playerUuid, String message) {
+        PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
+        if (playerRef == null) return;
+
+        Ref<EntityStore> ref = playerRef.getReference();
+        if (ref == null) return;
+        Store<EntityStore> store = ref.getStore();
+        if (store == null) return;
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) return;
+
+        player.sendMessage(TinyMsg.parse(message));
     }
 }

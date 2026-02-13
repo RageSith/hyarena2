@@ -219,7 +219,6 @@ public class HyArena2 extends JavaPlugin {
         this.playerDataManager = new PlayerDataManager(configManager.getConfigRoot());
         this.economyManager = new EconomyManager(economyConfig, playerDataManager, eventBus);
         this.honorManager = new HonorManager(economyConfig, playerDataManager, eventBus);
-        this.economyManager.setMatchManager(matchManager);
         this.economyManager.setHonorManager(honorManager);
         this.economyManager.subscribeToEvents();
         this.matchManager.setEconomyManagerForModes(economyManager);
