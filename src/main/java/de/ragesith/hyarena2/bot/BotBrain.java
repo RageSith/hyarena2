@@ -244,21 +244,20 @@ public class BotBrain {
         // Not on zone: go there
         double notOnZone = ctx.botInZone ? 0.1 : 1.0; // Tiny score when already there (centering)
 
-        // Distance to zone center
+        // Distance urgency: the farther from zone, the stronger the pull back
         double distToZone = ctx.botPos != null ? ctx.botPos.distanceTo(ctx.objective.position()) : 0;
-        // Urgency increases as we get closer (almost there, don't give up)
-        double distanceFactor = distToZone > 1.5 ? 0.8 + 0.2 * Math.min(1.0, 5.0 / distToZone) : 1.0;
+        double distanceUrgency = 1.0 + Math.min(distToZone / 20.0, 2.0);
 
         // Survival modifier: reduce objective score when very low HP
         double survivalMod = ctx.botHealthPercent < difficulty.getRetreatThreshold() ? 0.5 : 1.0;
 
-        // Inverse threat pressure: reduce objective urgency when under heavy fire
+        // Inverse threat pressure: being attacked slightly reduces objective urge but doesn't suppress it
         double threatPressure = 1.0;
         if (ctx.activeThreatCount > 0) {
-            threatPressure = 1.0 / (1.0 + ctx.activeThreatCount * 0.3);
+            threatPressure = 1.0 / (1.0 + ctx.activeThreatCount * 0.15);
         }
 
-        return obj * notOnZone * distanceFactor * survivalMod * threatPressure;
+        return obj * notOnZone * distanceUrgency * survivalMod * threatPressure;
     }
 
     /**

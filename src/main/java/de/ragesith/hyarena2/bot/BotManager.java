@@ -904,7 +904,9 @@ public class BotManager {
                    Math.min(objective.maxX() - margin, objective.position().getX() + offset[0]));
         double tz = Math.max(objective.minZ() + margin,
                    Math.min(objective.maxZ() - margin, objective.position().getZ() + offset[1]));
-        return new Position(tx, objective.position().getY(), tz);
+        // Use vertical midpoint of zone box so markers aren't at floor level
+        double ty = (objective.minY() + objective.maxY()) / 2.0;
+        return new Position(tx, ty, tz);
     }
 
     private Ref<EntityStore> getOrCreateObjectiveMarker(UUID botId, Position target, Store<EntityStore> store) {
