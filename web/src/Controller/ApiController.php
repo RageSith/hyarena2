@@ -7,6 +7,7 @@ use App\Repository\MatchRepository;
 use App\Repository\StatsRepository;
 use App\Repository\ArenaRepository;
 use App\Repository\KitRepository;
+use App\Repository\GameModeRepository;
 use App\Service\MatchSubmissionService;
 use App\Service\SyncService;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -82,10 +83,13 @@ class ApiController
             $matchRepo = new MatchRepository();
             $arenaRepo = new ArenaRepository();
             $kitRepo = new KitRepository();
+            $statsRepo = new StatsRepository();
 
             return $this->success($response, [
                 'total_players' => $playerRepo->getTotalCount(),
                 'total_matches' => $matchRepo->getTotalCount(),
+                'total_kills' => $statsRepo->getTotalKills(),
+                'matches_today' => $matchRepo->getMatchesToday(),
                 'total_arenas' => $arenaRepo->getCount(),
                 'total_kits' => $kitRepo->getCount(),
             ]);
@@ -104,7 +108,7 @@ class ApiController
         $perPage = min(50, max(1, (int) ($params['per_page'] ?? 25)));
         $offset = ($page - 1) * $perPage;
 
-        // Treat "global" as null (global stats)
+        // Treat "global" as null (uses player_global_stats view)
         if ($arena === 'global') {
             $arena = null;
         }
@@ -114,13 +118,22 @@ class ApiController
             $entries = $statsRepo->getLeaderboard($sort, $order, $perPage, $offset, $arena);
             $total = $statsRepo->getLeaderboardCount($arena);
 
-            return $this->success($response, [
+            $result = [
                 'entries' => $entries,
                 'total' => $total,
                 'page' => $page,
                 'per_page' => $perPage,
                 'total_pages' => (int) ceil($total / $perPage),
-            ]);
+            ];
+
+            // Include arena's game_mode so frontend can adapt columns
+            if ($arena !== null) {
+                $arenaRepo = new ArenaRepository();
+                $arenaData = $arenaRepo->findById($arena);
+                $result['game_mode'] = $arenaData['game_mode'] ?? null;
+            }
+
+            return $this->success($response, $result);
         } catch (\Exception $e) {
             return $this->error($response, 'Failed to fetch leaderboard', 'SERVER_ERROR', 500);
         }
@@ -167,7 +180,7 @@ class ApiController
         try {
             $matchRepo = new MatchRepository();
             $matches = $matchRepo->getRecentMatches($limit, $offset);
-            return $this->success($response, $matches);
+            return $this->success($response, ['matches' => $matches]);
         } catch (\Exception $e) {
             return $this->error($response, 'Failed to fetch matches', 'SERVER_ERROR', 500);
         }
@@ -177,7 +190,7 @@ class ApiController
     {
         try {
             $arenaRepo = new ArenaRepository();
-            return $this->success($response, $arenaRepo->getAll());
+            return $this->success($response, ['arenas' => $arenaRepo->getAll()]);
         } catch (\Exception $e) {
             return $this->error($response, 'Failed to fetch arenas', 'SERVER_ERROR', 500);
         }
@@ -190,6 +203,16 @@ class ApiController
             return $this->success($response, $kitRepo->getAll());
         } catch (\Exception $e) {
             return $this->error($response, 'Failed to fetch kits', 'SERVER_ERROR', 500);
+        }
+    }
+
+    public function gameModes(Request $request, Response $response): Response
+    {
+        try {
+            $gameModeRepo = new GameModeRepository();
+            return $this->success($response, ['game_modes' => $gameModeRepo->getAll()]);
+        } catch (\Exception $e) {
+            return $this->error($response, 'Failed to fetch game modes', 'SERVER_ERROR', 500);
         }
     }
 

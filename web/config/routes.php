@@ -16,6 +16,10 @@ use Slim\Routing\RouteCollectorProxy;
 return function (App $app) {
     // Public pages
     $app->get('/', [PageController::class, 'home']);
+    $app->get('/live', [PageController::class, 'live']);
+    $app->get('/arenas', [PageController::class, 'arenas']);
+    $app->get('/kits', [PageController::class, 'kits']);
+    $app->get('/features', [PageController::class, 'features']);
     $app->get('/leaderboard', [PageController::class, 'leaderboard']);
     $app->get('/player/{name}', [PageController::class, 'player']);
     $app->get('/legal', [PageController::class, 'legal']);
@@ -29,6 +33,7 @@ return function (App $app) {
         $group->get('/recent-matches', [ApiController::class, 'recentMatches']);
         $group->get('/arenas', [ApiController::class, 'arenas']);
         $group->get('/kits', [ApiController::class, 'kits']);
+        $group->get('/game-modes', [ApiController::class, 'gameModes']);
     })->add(new RateLimitMiddleware())->add(new CorsMiddleware());
 
     // Plugin API (API key protected)

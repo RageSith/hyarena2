@@ -113,6 +113,11 @@ public class MatchRecord {
                 p.addProperty("honor_rank", rec.getHonorRank());
             }
 
+            // Wave defense: last wave fully cleared while alive
+            if (rec.getWavesSurvived() >= 0) {
+                p.addProperty("waves_survived", rec.getWavesSurvived());
+            }
+
             participantsArray.add(p);
         }
         json.add("participants", participantsArray);

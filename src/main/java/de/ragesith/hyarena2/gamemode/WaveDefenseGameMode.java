@@ -48,6 +48,11 @@ public class WaveDefenseGameMode implements GameMode {
     }
 
     @Override
+    public String getWebDescription() {
+        return "Cooperative PvE survival. Team up against endless waves of bots that grow stronger each round. No respawns — survive as long as you can.";
+    }
+
+    @Override
     public String getDescription() {
         return "Group { LayoutMode: Top;"
             + " Label { Text: \"Wave Defense\"; Anchor: (Height: 28); Style: (FontSize: 18, TextColor: #e8c872, RenderBold: true); }"
@@ -221,6 +226,18 @@ public class WaveDefenseGameMode implements GameMode {
             killer.addKill();
         }
 
+        // Record the last fully cleared wave for this player
+        if (victim.getType() == ParticipantType.PLAYER) {
+            for (WaveState state : matchStates.values()) {
+                if (state.apEarnedPerPlayer.containsKey(victim.getUniqueId())
+                        || participants.stream().anyMatch(p -> p.getUniqueId().equals(victim.getUniqueId()))) {
+                    int cleared = state.waveInProgress ? state.currentWave - 1 : state.currentWave;
+                    state.wavesSurvivedPerPlayer.put(victim.getUniqueId(), Math.max(0, cleared));
+                    break;
+                }
+            }
+        }
+
         // Check if match should end (all players dead)
         return shouldMatchEnd(config, participants);
     }
@@ -349,6 +366,13 @@ public class WaveDefenseGameMode implements GameMode {
         return count;
     }
 
+    @Override
+    public int getParticipantWavesSurvived(UUID matchId, UUID participantId) {
+        WaveState state = matchStates.get(matchId);
+        if (state == null) return -1;
+        return state.wavesSurvivedPerPlayer.getOrDefault(participantId, -1);
+    }
+
     /**
      * Per-match wave state.
      */
@@ -357,5 +381,6 @@ public class WaveDefenseGameMode implements GameMode {
         int waveBreakTicks = 3 * TICKS_PER_SECOND; // Short initial delay before wave 1
         boolean waveInProgress = false;
         final Map<UUID, Integer> apEarnedPerPlayer = new HashMap<>();
+        final Map<UUID, Integer> wavesSurvivedPerPlayer = new HashMap<>();
     }
 }

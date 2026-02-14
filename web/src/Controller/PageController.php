@@ -17,6 +17,34 @@ class PageController
         ]);
     }
 
+    public function live(Request $request, Response $response): Response
+    {
+        return $this->twig->render($response, 'pages/live.twig', [
+            'active_page' => 'live',
+        ]);
+    }
+
+    public function arenas(Request $request, Response $response): Response
+    {
+        return $this->twig->render($response, 'pages/arenas.twig', [
+            'active_page' => 'arenas',
+        ]);
+    }
+
+    public function kits(Request $request, Response $response): Response
+    {
+        return $this->twig->render($response, 'pages/kits.twig', [
+            'active_page' => 'kits',
+        ]);
+    }
+
+    public function features(Request $request, Response $response): Response
+    {
+        return $this->twig->render($response, 'pages/features.twig', [
+            'active_page' => 'features',
+        ]);
+    }
+
     public function leaderboard(Request $request, Response $response): Response
     {
         return $this->twig->render($response, 'pages/leaderboard.twig', [

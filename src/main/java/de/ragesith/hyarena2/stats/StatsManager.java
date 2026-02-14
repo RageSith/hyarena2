@@ -7,9 +7,11 @@ import com.google.gson.JsonObject;
 import de.ragesith.hyarena2.api.ApiClient;
 import de.ragesith.hyarena2.arena.Arena;
 import de.ragesith.hyarena2.arena.ArenaConfig;
+import de.ragesith.hyarena2.arena.Match;
 import de.ragesith.hyarena2.arena.MatchManager;
 import de.ragesith.hyarena2.bot.BotDifficulty;
 import de.ragesith.hyarena2.bot.BotParticipant;
+import de.ragesith.hyarena2.gamemode.GameMode;
 import de.ragesith.hyarena2.economy.EconomyManager;
 import de.ragesith.hyarena2.economy.HonorManager;
 import de.ragesith.hyarena2.event.EventBus;
@@ -201,6 +203,19 @@ public class StatsManager {
                 }
             }
         }
+
+        // Capture per-player waves survived (wave_defense)
+        // Must run here (not in onMatchFinished) because WaveDefenseGameMode cleans up state in finish()
+        Match match = matchManager.getMatch(event.getMatchId());
+        if (match != null) {
+            GameMode gameMode = match.getGameMode();
+            for (Map.Entry<UUID, ParticipantRecord> entry : record.getParticipants().entrySet()) {
+                int waves = gameMode.getParticipantWavesSurvived(event.getMatchId(), entry.getKey());
+                if (waves >= 0) {
+                    entry.getValue().setWavesSurvived(waves);
+                }
+            }
+        }
     }
 
     private void onMatchFinished(MatchFinishedEvent event) {
@@ -288,9 +303,20 @@ public class StatsManager {
         }
         payload.add("kits", kitsArray);
 
+        // Game Modes
+        JsonArray gameModesArray = new JsonArray();
+        for (GameMode gm : matchManager.getGameModes()) {
+            JsonObject g = new JsonObject();
+            g.addProperty("id", gm.getId());
+            g.addProperty("display_name", gm.getDisplayName());
+            g.addProperty("description", gm.getWebDescription());
+            gameModesArray.add(g);
+        }
+        payload.add("game_modes", gameModesArray);
+
         String json = gson.toJson(payload);
-        System.out.println("[StatsManager] Syncing " + arenasArray.size() + " arenas and " +
-            kitsArray.size() + " kits to web API...");
+        System.out.println("[StatsManager] Syncing " + arenasArray.size() + " arenas, " +
+            kitsArray.size() + " kits, and " + gameModesArray.size() + " game modes to web API...");
 
         apiClient.postAsync("/api/sync", json)
             .thenAccept(response -> {

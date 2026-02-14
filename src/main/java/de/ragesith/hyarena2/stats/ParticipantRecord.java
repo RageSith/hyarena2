@@ -29,6 +29,9 @@ public class ParticipantRecord {
     private double honor;
     private String honorRank;
 
+    // Wave defense: last wave fully cleared while alive (-1 = N/A)
+    private int wavesSurvived = -1;
+
     public ParticipantRecord(UUID uuid, String username, boolean isBot, BotDifficulty botDifficulty, String kitId) {
         this.uuid = uuid;
         this.username = username;
@@ -73,4 +76,6 @@ public class ParticipantRecord {
     public void setHonor(double honor) { this.honor = honor; }
     public String getHonorRank() { return honorRank; }
     public void setHonorRank(String honorRank) { this.honorRank = honorRank; }
+    public int getWavesSurvived() { return wavesSurvived; }
+    public void setWavesSurvived(int wavesSurvived) { this.wavesSurvived = wavesSurvived; }
 }

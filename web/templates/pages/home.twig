@@ -49,7 +49,7 @@
         </p>
         <div class="hero-actions">
             <a href="#join" class="btn btn-primary">Join the Fight</a>
-            <a href="#modes" class="btn btn-secondary">Explore Modes</a>
+            <a href="/arenas" class="btn btn-secondary">Explore Arenas</a>
         </div>
         <div class="server-status" id="server-status">
             <div class="status-indicator">
@@ -63,7 +63,7 @@
         </a>
     </div>
     <div class="hero-scroll">
-        <a href="#modes" class="scroll-indicator">
+        <a href="#explore" class="scroll-indicator">
             <span>Discover</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M7 13l5 5 5-5M7 6l5 5 5-5"/>
@@ -72,268 +72,88 @@
     </div>
 </section>
 
-<!-- Live Stats Section -->
-<section class="section live-stats" id="live-stats">
+<!-- Preview Blocks -->
+<section class="section preview-section" id="explore">
     <div class="container">
-        <div class="stats-counter">
-            <div class="stat-item">
-                <span class="stat-number" id="stat-matches">0</span>
-                <span class="stat-label">Matches</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-number" id="stat-players">0</span>
-                <span class="stat-label">Players</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-number" id="stat-kills">0</span>
-                <span class="stat-label">Kills</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-number" id="stat-today">0</span>
-                <span class="stat-label">Matches Today</span>
-            </div>
-        </div>
+        <h2 class="section-title">Explore HyArena</h2>
+        <p class="section-subtitle">Everything you need to know about our server, at a glance.</p>
 
-        <div class="live-grid">
-            <!-- Leaderboard -->
-            <div class="live-card leaderboard-card">
-                <div class="live-card-header">
-                    <h3>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 15l-2 5-1-2-2 1 1.5-4.5M12 15l2 5 1-2 2 1-1.5-4.5M12 15V8M8 8h8"/>
-                            <circle cx="12" cy="5" r="3"/>
-                        </svg>
-                        Top Fighters
-                    </h3>
-                    <span class="live-badge">Live</span>
+        <div class="preview-grid">
+            <a href="/live" class="preview-card preview-live">
+                <div class="preview-icon">
+                    <span class="preview-live-dot"></span>
+                    <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="24" cy="24" r="18"/>
+                        <path d="M24 12v12l8 4"/>
+                    </svg>
                 </div>
-                <div class="leaderboard-list" id="leaderboard-list">
-                    <div class="leaderboard-loading">Loading...</div>
+                <div class="preview-content">
+                    <h3>Live Stats</h3>
+                    <p>Real-time server statistics, leaderboard highlights, and recent battles. See who's on top right now.</p>
                 </div>
-                <a href="/leaderboard" class="live-card-link">
-                    Full Leaderboard
+                <span class="preview-link">
+                    View Live
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M5 12h14M12 5l7 7-7 7"/>
                     </svg>
-                </a>
-            </div>
+                </span>
+            </a>
 
-            <!-- Recent Battles -->
-            <div class="live-card battles-card">
-                <div class="live-card-header">
-                    <h3>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14.5 4l-5 5 5 5M9.5 20l5-5-5-5"/>
-                        </svg>
-                        Recent Battles
-                    </h3>
-                    <span class="live-badge">Live</span>
-                </div>
-                <div class="battles-list" id="battles-list">
-                    <div class="battles-loading">Loading...</div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Arenas Section -->
-<section class="section arenas" id="arenas">
-    <div class="container">
-        <h2 class="section-title">Choose Your Battle</h2>
-        <p class="section-subtitle">All available arenas with their rules at a glance.</p>
-
-        <div class="arenas-table-wrapper">
-            <table class="arenas-table" id="arenas-table">
-                <thead>
-                    <tr>
-                        <th>Arena</th>
-                        <th>Players</th>
-                        <th>Match Length</th>
-                        <th>Mode</th>
-                        <th>Respawn</th>
-                        <th>Spawns</th>
-                        <th>Size</th>
-                    </tr>
-                </thead>
-                <tbody id="arenas-tbody">
-                    <tr class="arenas-loading">
-                        <td colspan="7">Loading arenas...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="arenas-info">
-            <h4>Flexible Arena System</h4>
-            <p>Every mode is fully configurable: player count, respawn rules, time limits, kill targets. That means we can offer anything from intense <strong>1v1 duels</strong> to chaotic <strong>free-for-all</strong> battles and everything in between.</p>
-        </div>
-    </div>
-</section>
-
-<!-- Kits Section -->
-<section class="section kits" id="kits">
-    <div class="container">
-        <h2 class="section-title">Choose Your Role</h2>
-        <p class="section-subtitle">Themed kits for different playstyles. Master your favorite kit or adapt to the arena.</p>
-
-        <div class="kits-grid">
-            <article class="kit-card">
-                <div class="kit-icon warrior">
-                    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M32 8v40M24 16h16M20 48h24M28 48v8M36 48v8"/>
-                    </svg>
-                </div>
-                <h3 class="kit-title">Warrior</h3>
-                <p class="kit-desc">Heavy armor, devastating melee. Go in and don't back down.</p>
-            </article>
-
-            <article class="kit-card">
-                <div class="kit-icon archer">
-                    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M16 48L48 16M16 48c-4-4-4-12 0-16M16 48c4 4 12 4 16 0M44 20l4-4M40 24l4-4"/>
-                    </svg>
-                </div>
-                <h3 class="kit-title">Archer</h3>
-                <p class="kit-desc">Precision from a distance. Control the battlefield and punish mistakes.</p>
-            </article>
-
-            <article class="kit-card">
-                <div class="kit-icon rogue">
-                    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M20 44L44 20M32 8c0 8-8 16-16 16M32 56c0-8 8-16 16-16"/>
-                    </svg>
-                </div>
-                <h3 class="kit-title">Rogue</h3>
-                <p class="kit-desc">Speed and cunning. Strike fast, vanish faster. Outsmart your opponents.</p>
-            </article>
-
-            <article class="kit-card kit-more">
-                <div class="kit-icon more">
-                    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <circle cx="20" cy="32" r="4"/>
-                        <circle cx="32" cy="32" r="4"/>
-                        <circle cx="44" cy="32" r="4"/>
-                    </svg>
-                </div>
-                <h3 class="kit-title">More Coming</h3>
-                <p class="kit-desc">Arena-specific kits and creative roles. The roster is growing steadily.</p>
-            </article>
-        </div>
-    </div>
-</section>
-
-<!-- Features Section -->
-<section class="section features" id="features">
-    <div class="container">
-        <h2 class="section-title">Built Different</h2>
-        <p class="section-subtitle">A dedicated mod. Zero client hassle. Everything just works.</p>
-
-        <div class="philosophy-box">
-            <div class="philosophy-icon">
-                <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="12" y="20" width="40" height="32" rx="4"/>
-                    <path d="M24 20V14a8 8 0 1116 0v6"/>
-                    <circle cx="32" cy="36" r="4"/>
-                    <path d="M32 40v6"/>
-                </svg>
-            </div>
-            <div class="philosophy-content">
-                <h3>No Mod Hell</h3>
-                <p>We don't stack dozens of unstable mods. Our entire server runs on <strong>one custom-built mod</strong>, dedicated to our vision. Connect with the vanilla Hytale client &ndash; no downloads, no compatibility issues, no crashes. Just smooth PvP.</p>
-            </div>
-        </div>
-
-        <div class="features-grid">
-            <article class="feature-card">
-                <div class="feature-icon">
+            <a href="/arenas" class="preview-card preview-arenas">
+                <div class="preview-icon">
                     <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M24 6v36M6 24h36"/>
-                        <circle cx="24" cy="24" r="18"/>
+                        <polygon points="24 4 44 16 44 32 24 44 4 32 4 16 24 4"/>
+                        <line x1="24" y1="44" x2="24" y2="32"/>
+                        <polyline points="44 16 24 28 4 16"/>
                     </svg>
                 </div>
-                <h3>Matchmaking & Queue</h3>
-                <p>Jump in the queue, get matched, fight. No waiting for manual team setups.</p>
-            </article>
+                <div class="preview-content">
+                    <h3>Arenas</h3>
+                    <p>Browse all available arenas with modes, player counts, and match rules. From 1v1 duels to free-for-all chaos.</p>
+                </div>
+                <span class="preview-link">
+                    Browse Arenas
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </span>
+            </a>
 
-            <article class="feature-card">
-                <div class="feature-icon">
+            <a href="/kits" class="preview-card preview-kits">
+                <div class="preview-icon">
                     <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M8 36l8-8 8 8 8-16 8 8"/>
-                        <path d="M8 12h32v28H8z"/>
+                        <path d="M24 4v32M16 12h16M12 36h24M20 36v8M28 36v8"/>
                     </svg>
                 </div>
-                <h3>Leaderboards</h3>
-                <p>Every arena has rankings. Climb the ladder and show everyone who's number one.</p>
-            </article>
+                <div class="preview-content">
+                    <h3>Kits</h3>
+                    <p>Warrior, Archer, Rogue and more. Pick a playstyle that fits you and master your role in the arena.</p>
+                </div>
+                <span class="preview-link">
+                    Explore Kits
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </span>
+            </a>
 
-            <article class="feature-card">
-                <div class="feature-icon">
+            <a href="/features" class="preview-card preview-features">
+                <div class="preview-icon">
                     <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="24" cy="16" r="8"/>
-                        <path d="M12 40c0-8 5.4-12 12-12s12 4 12 12"/>
+                        <path d="M24 4l6 12h12l-9 9 3 15-12-7.5L12 40l3-15-9-9h12z"/>
                     </svg>
                 </div>
-                <h3>Player Statistics</h3>
-                <p>Track your wins, losses, KDA and more. Know exactly where you stand.</p>
-            </article>
-
-            <article class="feature-card">
-                <div class="feature-icon">
-                    <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M24 8l4 8h8l-6 6 2 10-8-5-8 5 2-10-6-6h8z"/>
-                    </svg>
+                <div class="preview-content">
+                    <h3>Features</h3>
+                    <p>One custom mod, zero hassle. Matchmaking, leaderboards, stats, ranks, and powerful hardware. Built different.</p>
                 </div>
-                <h3>Rank Progression</h3>
-                <p>Earn ranks as you play and prove yourself. Show your dedication.</p>
-            </article>
-
-            <article class="feature-card">
-                <div class="feature-icon">
-                    <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="8" y="8" width="32" height="32" rx="4"/>
-                        <path d="M16 20h16M16 28h10"/>
+                <span class="preview-link">
+                    See Features
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
                     </svg>
-                </div>
-                <h3>Modern GUI</h3>
-                <p>Clean, responsive interface. Navigate modes, stats, and settings with ease.</p>
-            </article>
-
-            <article class="feature-card">
-                <div class="feature-icon">
-                    <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="24" cy="24" r="16"/>
-                        <path d="M24 8a16 16 0 000 32"/>
-                        <circle cx="24" cy="24" r="4"/>
-                    </svg>
-                </div>
-                <h3>Hub Area</h3>
-                <p>Socialize, chill, check stats. Not everything has to be combat.</p>
-            </article>
-
-            <article class="feature-card">
-                <div class="feature-icon">
-                    <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M10 38V20l14-10 14 10v18"/>
-                        <rect x="18" y="26" width="12" height="12"/>
-                    </svg>
-                </div>
-                <h3>Protected Arenas</h3>
-                <p>Block protection and barriers keep the fight fair and players where they belong.</p>
-            </article>
-
-            <article class="feature-card">
-                <div class="feature-icon">
-                    <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="6" y="14" width="36" height="24" rx="2"/>
-                        <path d="M12 20h8M12 26h6M12 32h10"/>
-                        <circle cx="34" cy="26" r="6"/>
-                        <path d="M34 22v8M30 26h8"/>
-                    </svg>
-                </div>
-                <h3>Powerful Hardware</h3>
-                <p>Ryzen 9 (5.7GHz), 64GB RAM, NVMe storage. Hosted in Germany for low EU ping.</p>
-            </article>
+                </span>
+            </a>
         </div>
     </div>
 </section>

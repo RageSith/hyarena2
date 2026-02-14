@@ -29,15 +29,26 @@ class MatchRepository
         return (int) $db->query('SELECT COUNT(*) FROM matches')->fetchColumn();
     }
 
+    public function getMatchesToday(): int
+    {
+        $db = Database::getConnection();
+        return (int) $db->query('SELECT COUNT(*) FROM matches WHERE DATE(ended_at) = CURDATE()')->fetchColumn();
+    }
+
     public function getRecentMatches(int $limit = 10, int $offset = 0): array
     {
         $db = Database::getConnection();
         $stmt = $db->prepare('
             SELECT m.*, a.display_name AS arena_name,
-                   p.username AS winner_name
+                   p.username AS winner_name,
+                   (SELECT COUNT(*) FROM match_participants mp WHERE mp.match_id = m.id) AS participant_count,
+                   wp.pvp_kills AS winner_kills,
+                   wp.is_bot AS winner_is_bot,
+                   wp.bot_name AS winner_bot_name
             FROM matches m
             JOIN arenas a ON m.arena_id = a.id
             LEFT JOIN players p ON m.winner_uuid = p.uuid
+            LEFT JOIN match_participants wp ON wp.match_id = m.id AND wp.is_winner = 1
             ORDER BY m.ended_at DESC
             LIMIT :limit OFFSET :offset
         ');

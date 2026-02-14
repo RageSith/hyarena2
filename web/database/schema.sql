@@ -15,6 +15,16 @@ CREATE TABLE IF NOT EXISTS `kits` (
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Game Modes (synced from plugin)
+CREATE TABLE IF NOT EXISTS `game_modes` (
+    `id` VARCHAR(64) NOT NULL,
+    `display_name` VARCHAR(128) NOT NULL,
+    `description` TEXT,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Arenas (game_mode as string ID, no FK to arena_types)
 CREATE TABLE IF NOT EXISTS `arenas` (
     `id` VARCHAR(64) NOT NULL,
@@ -80,6 +90,7 @@ CREATE TABLE IF NOT EXISTS `match_participants` (
     `damage_dealt` DOUBLE NOT NULL DEFAULT 0,
     `damage_taken` DOUBLE NOT NULL DEFAULT 0,
     `is_winner` TINYINT(1) NOT NULL DEFAULT 0,
+    `waves_survived` SMALLINT UNSIGNED DEFAULT NULL COMMENT 'Wave defense: highest wave reached',
     PRIMARY KEY (`id`),
     INDEX `idx_match` (`match_id`),
     INDEX `idx_player` (`player_uuid`),
@@ -92,7 +103,7 @@ CREATE TABLE IF NOT EXISTS `match_participants` (
 CREATE TABLE IF NOT EXISTS `player_stats` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `player_uuid` CHAR(36) NOT NULL,
-    `arena_id` VARCHAR(64) DEFAULT NULL COMMENT 'NULL = global stats',
+    `arena_id` VARCHAR(64) NOT NULL,
     `matches_played` INT UNSIGNED NOT NULL DEFAULT 0,
     `matches_won` INT UNSIGNED NOT NULL DEFAULT 0,
     `matches_lost` INT UNSIGNED NOT NULL DEFAULT 0,
@@ -103,6 +114,7 @@ CREATE TABLE IF NOT EXISTS `player_stats` (
     `damage_dealt` DOUBLE NOT NULL DEFAULT 0,
     `damage_taken` DOUBLE NOT NULL DEFAULT 0,
     `total_time_played` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'seconds',
+    `best_waves_survived` SMALLINT UNSIGNED DEFAULT NULL COMMENT 'Wave defense: personal best wave',
     `pvp_kd_ratio` DOUBLE GENERATED ALWAYS AS (
         CASE WHEN `pvp_deaths` = 0 THEN `pvp_kills` ELSE ROUND(`pvp_kills` / `pvp_deaths`, 2) END
     ) STORED,
@@ -117,6 +129,27 @@ CREATE TABLE IF NOT EXISTS `player_stats` (
     CONSTRAINT `fk_stats_player` FOREIGN KEY (`player_uuid`) REFERENCES `players`(`uuid`) ON DELETE CASCADE,
     CONSTRAINT `fk_stats_arena` FOREIGN KEY (`arena_id`) REFERENCES `arenas`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Global stats view (aggregates all per-arena rows per player)
+CREATE OR REPLACE VIEW `player_global_stats` AS
+SELECT
+    `player_uuid`,
+    SUM(`matches_played`) AS `matches_played`,
+    SUM(`matches_won`) AS `matches_won`,
+    SUM(`matches_lost`) AS `matches_lost`,
+    SUM(`pvp_kills`) AS `pvp_kills`,
+    SUM(`pvp_deaths`) AS `pvp_deaths`,
+    SUM(`pve_kills`) AS `pve_kills`,
+    SUM(`pve_deaths`) AS `pve_deaths`,
+    SUM(`damage_dealt`) AS `damage_dealt`,
+    SUM(`damage_taken`) AS `damage_taken`,
+    SUM(`total_time_played`) AS `total_time_played`,
+    CASE WHEN SUM(`pvp_deaths`) = 0 THEN SUM(`pvp_kills`)
+         ELSE ROUND(SUM(`pvp_kills`) / SUM(`pvp_deaths`), 2) END AS `pvp_kd_ratio`,
+    CASE WHEN SUM(`matches_played`) = 0 THEN 0
+         ELSE ROUND(SUM(`matches_won`) / SUM(`matches_played`) * 100, 1) END AS `win_rate`
+FROM `player_stats`
+GROUP BY `player_uuid`;
 
 -- Linked Accounts (web registration)
 CREATE TABLE IF NOT EXISTS `linked_accounts` (

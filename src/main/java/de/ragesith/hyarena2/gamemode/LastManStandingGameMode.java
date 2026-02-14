@@ -28,6 +28,11 @@ public class LastManStandingGameMode implements GameMode {
     }
 
     @Override
+    public String getWebDescription() {
+        return "Free-for-all elimination. Multiple players, no respawns — the last one alive takes the crown.";
+    }
+
+    @Override
     public String getDescription() {
         return "Group { LayoutMode: Top;"
             + " Label { Text: \"Last Man Standing\"; Anchor: (Height: 28); Style: (FontSize: 18, TextColor: #e8c872, RenderBold: true); }"

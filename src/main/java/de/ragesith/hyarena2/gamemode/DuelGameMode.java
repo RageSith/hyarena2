@@ -28,6 +28,11 @@ public class DuelGameMode implements GameMode {
     }
 
     @Override
+    public String getWebDescription() {
+        return "Classic 1v1 combat. Two players enter, one leaves. No respawns — last fighter standing wins.";
+    }
+
+    @Override
     public String getDescription() {
         return "Group { LayoutMode: Top;"
             + " Label { Text: \"Duel\"; Anchor: (Height: 28); Style: (FontSize: 18, TextColor: #e8c872, RenderBold: true); }"

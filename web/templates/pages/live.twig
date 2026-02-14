@@ -1,0 +1,89 @@
+{% extends "base.twig" %}
+
+{% block title %}{{ site_name }} - Live Stats{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="page-hero">
+    <div class="container">
+        <h1 class="page-hero-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+            </svg>
+            Live Stats
+        </h1>
+        <p class="page-hero-subtitle">Real-time server statistics, top fighters, and recent battles.</p>
+    </div>
+</section>
+
+<!-- Live Stats Section -->
+<section class="section live-stats">
+    <div class="container">
+        <div class="stats-counter">
+            <div class="stat-item">
+                <span class="stat-number" id="stat-matches">0</span>
+                <span class="stat-label">Matches</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="stat-players">0</span>
+                <span class="stat-label">Players</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="stat-kills">0</span>
+                <span class="stat-label">Kills</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="stat-today">0</span>
+                <span class="stat-label">Matches Today</span>
+            </div>
+        </div>
+
+        <div class="live-grid">
+            <!-- Leaderboard -->
+            <div class="live-card leaderboard-card">
+                <div class="live-card-header">
+                    <h3>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 15l-2 5-1-2-2 1 1.5-4.5M12 15l2 5 1-2 2 1-1.5-4.5M12 15V8M8 8h8"/>
+                            <circle cx="12" cy="5" r="3"/>
+                        </svg>
+                        Top Fighters
+                    </h3>
+                    <span class="live-badge">Live</span>
+                </div>
+                <div class="leaderboard-list" id="leaderboard-list">
+                    <div class="leaderboard-loading">Loading...</div>
+                </div>
+                <a href="/leaderboard" class="live-card-link">
+                    Full Leaderboard
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
+            </div>
+
+            <!-- Recent Battles -->
+            <div class="live-card battles-card">
+                <div class="live-card-header">
+                    <h3>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14.5 4l-5 5 5 5M9.5 20l5-5-5-5"/>
+                        </svg>
+                        Recent Battles
+                    </h3>
+                    <span class="live-badge">Live</span>
+                </div>
+                <div class="battles-list" id="battles-list">
+                    <div class="battles-loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/assets/js/main.js"></script>
+<script src="/assets/js/live.js"></script>
+{% endblock %}

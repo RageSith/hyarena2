@@ -31,6 +31,14 @@ public interface GameMode {
     String getDescription();
 
     /**
+     * Gets a plain-text description for the website.
+     * Override in each game mode to provide a concise description for the arenas page.
+     */
+    default String getWebDescription() {
+        return getDisplayName();
+    }
+
+    /**
      * Called when the match starts (transitions to STARTING state)
      * @param config The arena configuration
      * @param participants All participants in the match
@@ -162,6 +170,12 @@ public interface GameMode {
      * Used for shutdown logging.
      */
     default int getSpawnedEntityCount() { return 0; }
+
+    /**
+     * Returns the last wave a participant fully cleared while alive, or -1 if not applicable.
+     * Only meaningful for wave-based game modes (wave_defense).
+     */
+    default int getParticipantWavesSurvived(UUID matchId, UUID participantId) { return -1; }
 
     /**
      * Determines if a participant should respawn after death

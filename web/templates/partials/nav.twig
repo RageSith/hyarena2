@@ -1,4 +1,4 @@
-<nav class="navbar" id="navbar">
+<nav class="navbar{% if active_page is not defined or active_page != 'home' %} scrolled{% endif %}" id="navbar">
     <div class="nav-container">
         <a href="/" class="nav-logo">
             <span class="logo-hy">Hy</span><span class="logo-arena">Arena</span>
@@ -9,15 +9,13 @@
             <span></span>
         </button>
         <ul class="nav-menu" id="nav-menu">
-            <li><a href="/" class="nav-link">Home</a></li>
-            <li><a href="#live-stats" class="nav-link nav-live"><span class="live-dot"></span>Live</a></li>
-            <li><a href="#modes" class="nav-link">Modes</a></li>
-            <li><a href="#kits" class="nav-link">Kits</a></li>
-            <li><a href="#features" class="nav-link">Features</a></li>
-            <li><a href="/leaderboard" class="nav-link nav-ranking"><span class="ranking-icon"></span>Leaderboard</a></li>
-            <li><a href="#partner" class="nav-link">Partner</a></li>
-            <li><a href="#join" class="nav-link">Join</a></li>
-            <li><a href="#community" class="nav-link nav-cta">Discord</a></li>
+            <li><a href="/" class="nav-link{% if active_page is defined and active_page == 'home' %} active{% endif %}">Home</a></li>
+            <li><a href="/live" class="nav-link nav-live{% if active_page is defined and active_page == 'live' %} active{% endif %}"><span class="live-dot"></span>Live</a></li>
+            <li><a href="/arenas" class="nav-link{% if active_page is defined and active_page == 'arenas' %} active{% endif %}">Arenas</a></li>
+            <li><a href="/kits" class="nav-link{% if active_page is defined and active_page == 'kits' %} active{% endif %}">Kits</a></li>
+            <li><a href="/features" class="nav-link{% if active_page is defined and active_page == 'features' %} active{% endif %}">Features</a></li>
+            <li><a href="/leaderboard" class="nav-link nav-ranking{% if active_page is defined and active_page == 'leaderboard' %} active{% endif %}"><span class="ranking-icon"></span>Leaderboard</a></li>
+            <li><a href="https://discord.gg/BTUBnHhHxA" target="_blank" rel="noopener" class="nav-link nav-cta">Discord</a></li>
             {% if player_session is defined and player_session %}
                 <li><a href="/profile" class="nav-link">Profile</a></li>
                 <li><a href="/logout" class="nav-link">Logout</a></li>

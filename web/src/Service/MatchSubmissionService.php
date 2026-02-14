@@ -63,6 +63,7 @@ class MatchSubmissionService
                     'damage_dealt' => $p['damage_dealt'] ?? 0,
                     'damage_taken' => $p['damage_taken'] ?? 0,
                     'is_winner' => $isWinner,
+                    'waves_survived' => $p['waves_survived'] ?? null,
                 ]);
 
                 // Update player stats (skip bots)
@@ -78,12 +79,11 @@ class MatchSubmissionService
                         'damage_dealt' => $p['damage_dealt'] ?? 0,
                         'damage_taken' => $p['damage_taken'] ?? 0,
                         'time_played' => $data['duration_seconds'] ?? 0,
+                        'waves_survived' => $p['waves_survived'] ?? null,
                     ];
 
-                    // Update per-arena stats
+                    // Update per-arena stats (global stats derived from view)
                     $this->statsRepo->updateStats($p['uuid'], $data['arena_id'], $statsData);
-                    // Update global stats
-                    $this->statsRepo->updateStats($p['uuid'], null, $statsData);
 
                     // Update economy snapshot if provided
                     if (isset($p['arena_points'])) {

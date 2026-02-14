@@ -94,17 +94,32 @@ function displayPlayerProfile(data) {
                 const pveKd = arena.pve_deaths > 0
                     ? ((arena.pve_kills || 0) / arena.pve_deaths).toFixed(2)
                     : (arena.pve_kills || 0).toFixed(2);
+                const isWaveDef = arena.game_mode === 'wave_defense';
 
-                return `
-                <div class="arena-stat-card">
-                    <div class="arena-stat-header">
-                        <h3>${escapeHtml(arena.arena_name || arena.arena_id)}</h3>
-                        <div class="arena-header-meta">
-                            <span class="arena-games">${arena.matches_played} games</span>
+                // Wave defense: show Best Wave instead of Wins/Win Rate
+                let primaryStatsHtml;
+                if (isWaveDef) {
+                    const bestWave = arena.best_waves_survived != null ? arena.best_waves_survived : '-';
+                    primaryStatsHtml = `
+                        <div class="arena-stat highlight">
+                            <span class="value">${bestWave}</span>
+                            <span class="label">Best Wave</span>
                         </div>
-                    </div>
-                    <h4 class="arena-stat-subtitle">PvP</h4>
-                    <div class="arena-stat-grid">
+                        <div class="arena-stat">
+                            <span class="value">${arena.pve_kills || 0}</span>
+                            <span class="label">PvE Kills</span>
+                        </div>
+                        <div class="arena-stat">
+                            <span class="value">${arena.pve_deaths || 0}</span>
+                            <span class="label">PvE Deaths</span>
+                        </div>
+                        <div class="arena-stat highlight">
+                            <span class="value">${pveKd}</span>
+                            <span class="label">PvE K/D</span>
+                        </div>
+                    `;
+                } else {
+                    primaryStatsHtml = `
                         <div class="arena-stat">
                             <span class="value">${arena.matches_won || 0}</span>
                             <span class="label">Wins</span>
@@ -125,8 +140,22 @@ function displayPlayerProfile(data) {
                             <span class="value">${winRate}%</span>
                             <span class="label">Win Rate</span>
                         </div>
+                    `;
+                }
+
+                return `
+                <div class="arena-stat-card">
+                    <div class="arena-stat-header">
+                        <h3>${escapeHtml(arena.arena_name || arena.arena_id)}</h3>
+                        <div class="arena-header-meta">
+                            <span class="arena-games">${arena.matches_played} games</span>
+                        </div>
                     </div>
-                    ${hasPveStats ? `
+                    <h4 class="arena-stat-subtitle">${isWaveDef ? 'PvE' : 'PvP'}</h4>
+                    <div class="arena-stat-grid">
+                        ${primaryStatsHtml}
+                    </div>
+                    ${!isWaveDef && hasPveStats ? `
                     <h4 class="arena-stat-subtitle pve-subtitle">PvE</h4>
                     <div class="arena-stat-grid pve-grid">
                         <div class="arena-stat pve-stat">

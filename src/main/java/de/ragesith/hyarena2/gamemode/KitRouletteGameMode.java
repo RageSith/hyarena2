@@ -31,6 +31,11 @@ public class KitRouletteGameMode implements GameMode {
     }
 
     @Override
+    public String getWebDescription() {
+        return "Deathmatch with a twist — every time you respawn, you get a random kit. Adapt your playstyle on the fly to come out on top.";
+    }
+
+    @Override
     public String getDescription() {
         return "Group { LayoutMode: Top;"
             + " Label { Text: \"Kit Roulette\"; Anchor: (Height: 28); Style: (FontSize: 18, TextColor: #e8c872, RenderBold: true); }"

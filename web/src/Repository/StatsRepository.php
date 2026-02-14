@@ -7,18 +7,22 @@ use PDO;
 
 class StatsRepository
 {
-    public function updateStats(string $playerUuid, ?string $arenaId, array $data): void
+    /**
+     * Upserts per-arena stats for a player.
+     * Global stats are derived from the player_global_stats view — no NULL arena_id rows.
+     */
+    public function updateStats(string $playerUuid, string $arenaId, array $data): void
     {
         $db = Database::getConnection();
         $stmt = $db->prepare('
             INSERT INTO player_stats
                 (player_uuid, arena_id, matches_played, matches_won, matches_lost,
                  pvp_kills, pvp_deaths, pve_kills, pve_deaths,
-                 damage_dealt, damage_taken, total_time_played)
+                 damage_dealt, damage_taken, total_time_played, best_waves_survived)
             VALUES
                 (:uuid, :arena_id, :played, :won, :lost,
                  :pvp_kills, :pvp_deaths, :pve_kills, :pve_deaths,
-                 :dmg_dealt, :dmg_taken, :time_played)
+                 :dmg_dealt, :dmg_taken, :time_played, :waves)
             ON DUPLICATE KEY UPDATE
                 matches_played = matches_played + VALUES(matches_played),
                 matches_won = matches_won + VALUES(matches_won),
@@ -29,7 +33,8 @@ class StatsRepository
                 pve_deaths = pve_deaths + VALUES(pve_deaths),
                 damage_dealt = damage_dealt + VALUES(damage_dealt),
                 damage_taken = damage_taken + VALUES(damage_taken),
-                total_time_played = total_time_played + VALUES(total_time_played)
+                total_time_played = total_time_played + VALUES(total_time_played),
+                best_waves_survived = GREATEST(COALESCE(best_waves_survived, 0), COALESCE(VALUES(best_waves_survived), 0))
         ');
         $stmt->execute([
             'uuid' => $playerUuid,
@@ -44,13 +49,20 @@ class StatsRepository
             'dmg_dealt' => $data['damage_dealt'] ?? 0,
             'dmg_taken' => $data['damage_taken'] ?? 0,
             'time_played' => $data['time_played'] ?? 0,
+            'waves' => $data['waves_survived'] ?? null,
         ]);
+    }
+
+    public function getTotalKills(): int
+    {
+        $db = Database::getConnection();
+        return (int) $db->query('SELECT COALESCE(SUM(pvp_kills) + SUM(pve_kills), 0) FROM match_participants')->fetchColumn();
     }
 
     public function getGlobalStats(string $playerUuid): ?array
     {
         $db = Database::getConnection();
-        $stmt = $db->prepare('SELECT * FROM player_stats WHERE player_uuid = :uuid AND arena_id IS NULL');
+        $stmt = $db->prepare('SELECT * FROM player_global_stats WHERE player_uuid = :uuid');
         $stmt->execute(['uuid' => $playerUuid]);
         return $stmt->fetch() ?: null;
     }
@@ -71,7 +83,7 @@ class StatsRepository
 
     public function getLeaderboard(string $sort = 'pvp_kills', string $order = 'DESC', int $limit = 25, int $offset = 0, ?string $arenaId = null): array
     {
-        $allowedSorts = ['pvp_kills', 'matches_won', 'pvp_kd_ratio', 'win_rate', 'pve_kills', 'matches_played'];
+        $allowedSorts = ['pvp_kills', 'matches_won', 'pvp_kd_ratio', 'win_rate', 'pve_kills', 'matches_played', 'best_waves_survived'];
         if (!in_array($sort, $allowedSorts)) {
             $sort = 'pvp_kills';
         }
@@ -79,22 +91,33 @@ class StatsRepository
 
         $db = Database::getConnection();
 
-        $where = $arenaId !== null ? 'ps.arena_id = :arena_id' : 'ps.arena_id IS NULL';
-
-        $sql = "
-            SELECT ps.*, p.username,
-                   ROW_NUMBER() OVER (ORDER BY ps.{$sort} {$order}) AS rank_position
-            FROM player_stats ps
-            JOIN players p ON ps.player_uuid = p.uuid
-            WHERE {$where} AND ps.matches_played > 0
-            ORDER BY ps.{$sort} {$order}
-            LIMIT :limit OFFSET :offset
-        ";
-
-        $stmt = $db->prepare($sql);
         if ($arenaId !== null) {
+            // Per-arena leaderboard from the table
+            $sql = "
+                SELECT ps.*, p.username,
+                       ROW_NUMBER() OVER (ORDER BY ps.{$sort} {$order}) AS rank_position
+                FROM player_stats ps
+                JOIN players p ON ps.player_uuid = p.uuid
+                WHERE ps.arena_id = :arena_id AND ps.matches_played > 0
+                ORDER BY ps.{$sort} {$order}
+                LIMIT :limit OFFSET :offset
+            ";
+            $stmt = $db->prepare($sql);
             $stmt->bindValue('arena_id', $arenaId);
+        } else {
+            // Global leaderboard from the view
+            $sql = "
+                SELECT ps.*, p.username,
+                       ROW_NUMBER() OVER (ORDER BY ps.{$sort} {$order}) AS rank_position
+                FROM player_global_stats ps
+                JOIN players p ON ps.player_uuid = p.uuid
+                WHERE ps.matches_played > 0
+                ORDER BY ps.{$sort} {$order}
+                LIMIT :limit OFFSET :offset
+            ";
+            $stmt = $db->prepare($sql);
         }
+
         $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue('offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
@@ -104,12 +127,16 @@ class StatsRepository
     public function getLeaderboardCount(?string $arenaId = null): int
     {
         $db = Database::getConnection();
-        $where = $arenaId !== null ? 'arena_id = :arena_id' : 'arena_id IS NULL';
-        $sql = "SELECT COUNT(*) FROM player_stats WHERE {$where} AND matches_played > 0";
-        $stmt = $db->prepare($sql);
+
         if ($arenaId !== null) {
+            $sql = "SELECT COUNT(*) FROM player_stats WHERE arena_id = :arena_id AND matches_played > 0";
+            $stmt = $db->prepare($sql);
             $stmt->bindValue('arena_id', $arenaId);
+        } else {
+            $sql = "SELECT COUNT(*) FROM player_global_stats WHERE matches_played > 0";
+            $stmt = $db->prepare($sql);
         }
+
         $stmt->execute();
         return (int) $stmt->fetchColumn();
     }

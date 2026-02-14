@@ -69,6 +69,11 @@ public class KingOfTheHillGameMode implements GameMode {
     }
 
     @Override
+    public String getWebDescription() {
+        return "Fight for control of capture zones. Hold the hill to score points — first to reach the target wins. Zones rotate periodically to keep the action moving.";
+    }
+
+    @Override
     public String getDescription() {
         return "Group { LayoutMode: Top;"
             + " Label { Text: \"King of the Hill\"; Anchor: (Height: 28); Style: (FontSize: 18, TextColor: #e8c872, RenderBold: true); }"

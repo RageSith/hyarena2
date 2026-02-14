@@ -1,0 +1,61 @@
+{% extends "base.twig" %}
+
+{% block title %}{{ site_name }} - Arenas{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="page-hero">
+    <div class="container">
+        <h1 class="page-hero-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/>
+                <line x1="12" y1="22" x2="12" y2="15.5"/>
+                <polyline points="22 8.5 12 15.5 2 8.5"/>
+            </svg>
+            Arenas
+        </h1>
+        <p class="page-hero-subtitle">All available arenas with their rules at a glance.</p>
+    </div>
+</section>
+
+<!-- Arenas Section -->
+<section class="section arenas">
+    <div class="container">
+        <div class="arenas-table-wrapper">
+            <table class="arenas-table" id="arenas-table">
+                <thead>
+                    <tr>
+                        <th>Arena</th>
+                        <th>Players</th>
+                        <th>Mode</th>
+                    </tr>
+                </thead>
+                <tbody id="arenas-tbody">
+                    <tr class="arenas-loading">
+                        <td colspan="3">Loading arenas...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Game Modes -->
+        <div class="game-modes-section">
+            <h3 class="section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                </svg>
+                Game Modes
+            </h3>
+            <div class="game-modes-grid" id="game-modes-grid">
+                <div class="game-modes-loading">Loading game modes...</div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/assets/js/main.js"></script>
+<script src="/assets/js/arenas.js"></script>
+{% endblock %}

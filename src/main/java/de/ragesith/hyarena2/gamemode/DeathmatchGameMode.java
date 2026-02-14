@@ -29,6 +29,11 @@ public class DeathmatchGameMode implements GameMode {
     }
 
     @Override
+    public String getWebDescription() {
+        return "Fast-paced free-for-all with respawns. Race to the kill target or have the most kills when time runs out.";
+    }
+
+    @Override
     public String getDescription() {
         return "Group { LayoutMode: Top;"
             + " Label { Text: \"Deathmatch\"; Anchor: (Height: 28); Style: (FontSize: 18, TextColor: #e8c872, RenderBold: true); }"
