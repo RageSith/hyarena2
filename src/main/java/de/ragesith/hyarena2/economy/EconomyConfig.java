@@ -17,7 +17,7 @@ public class EconomyConfig {
     // Honor reward/decay rates
     private double honorWinReward = 12;
     private double honorLossReward = 8;
-    private double honorDecayPerHour = 1;
+    private double honorDecayPerHour = 0.5;
     private double honorMaxCap = 1200;
 
     // Honor ranks (sorted ascending by threshold)
