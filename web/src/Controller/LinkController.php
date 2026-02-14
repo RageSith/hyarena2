@@ -101,7 +101,10 @@ class LinkController
         $account = $result['account'];
         $this->startPlayerSession($account['id'], $account['email'], $account['player_uuid']);
 
-        return $response->withHeader('Location', '/profile')->withStatus(302);
+        $returnTo = $_SESSION['return_to'] ?? '/profile';
+        unset($_SESSION['return_to']);
+
+        return $response->withHeader('Location', $returnTo)->withStatus(302);
     }
 
     public function logout(Request $request, Response $response): Response
@@ -125,9 +128,13 @@ class LinkController
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
 
+        $params = $request->getQueryParams();
+        $code = $params['code'] ?? '';
+
         return $this->twig->render($response, 'auth/link.twig', [
             'active_page' => 'link',
             'is_linked' => !empty($_SESSION['player_uuid']),
+            'prefill_code' => $code,
         ]);
     }
 

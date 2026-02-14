@@ -23,6 +23,7 @@ import de.ragesith.hyarena2.economy.PlayerDataManager;
 import de.ragesith.hyarena2.boundary.BoundaryManager;
 import de.ragesith.hyarena2.command.AdminCommand;
 import de.ragesith.hyarena2.command.ArenaCommand;
+import de.ragesith.hyarena2.command.LinkCommand;
 import de.ragesith.hyarena2.command.testing.TestMatchArenasCommand;
 import de.ragesith.hyarena2.command.testing.TestMatchCreateCommand;
 import de.ragesith.hyarena2.command.testing.TestMatchJoinCommand;
@@ -106,6 +107,7 @@ public class HyArena2 extends JavaPlugin {
     private HonorManager honorManager;
     private ShopManager shopManager;
     private StatsManager statsManager;
+    private ApiClient apiClient;
     private de.ragesith.hyarena2.chat.ChatManager chatManager;
 
     // Track known players (to detect world changes vs fresh joins)
@@ -243,7 +245,7 @@ public class HyArena2 extends JavaPlugin {
             configManager.saveConfig("stats.json", statsConfig);
             System.out.println("[HyArena2] Created default stats.json");
         }
-        ApiClient apiClient = new ApiClient(statsConfig.getBaseUrl(), statsConfig.getApiKey());
+        this.apiClient = new ApiClient(statsConfig.getBaseUrl(), statsConfig.getApiKey());
         this.statsManager = new StatsManager(statsConfig, apiClient, eventBus, matchManager, kitManager, economyManager, honorManager);
         this.statsManager.subscribeToEvents();
         this.statsManager.initSyncScheduler(scheduler);
@@ -256,6 +258,7 @@ public class HyArena2 extends JavaPlugin {
         // Register commands
         this.getCommandRegistry().registerCommand(new ArenaCommand(this));
         this.getCommandRegistry().registerCommand(new AdminCommand(this));
+        this.getCommandRegistry().registerCommand(new LinkCommand(this));
 
         // Test match commands (Phase 2 testing)
         this.getCommandRegistry().registerCommand(new TestMatchArenasCommand(matchManager));
@@ -760,6 +763,10 @@ public class HyArena2 extends JavaPlugin {
 
     public ShopManager getShopManager() {
         return shopManager;
+    }
+
+    public ApiClient getApiClient() {
+        return apiClient;
     }
 
     public StatsManager getStatsManager() {

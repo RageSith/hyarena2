@@ -38,14 +38,18 @@
                     Run <strong>/link</strong> in-game to get your code. The code expires after 10 minutes.
                 </div>
 
-                <form method="POST">
+                <form method="POST" id="link-form">
                     <div class="form-group">
                         <label for="code">Link Code</label>
-                        <input type="text" id="code" name="code" class="form-input code-input" placeholder="ABC123" required maxlength="6" pattern="[A-Za-z0-9]{6}" autocomplete="off">
+                        <input type="text" id="code" name="code" class="form-input code-input" placeholder="ABC123" required maxlength="6" pattern="[A-Za-z0-9]{6}" autocomplete="off" value="{{ prefill_code }}">
                     </div>
 
                     <button type="submit" class="btn btn-primary btn-block">Link Account</button>
                 </form>
+
+                {% if prefill_code %}
+                <script>document.getElementById('link-form').submit();</script>
+                {% endif %}
             {% endif %}
 
             <div class="auth-footer">

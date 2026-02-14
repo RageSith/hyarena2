@@ -17,6 +17,12 @@ class PlayerAuthMiddleware implements MiddlewareInterface
         }
 
         if (empty($_SESSION['player_account_id'])) {
+            $path = $request->getUri()->getPath();
+            $query = $request->getUri()->getQuery();
+            $returnTo = $query ? $path . '?' . $query : $path;
+
+            $_SESSION['return_to'] = $returnTo;
+
             $response = new SlimResponse();
             return $response
                 ->withHeader('Location', '/login')

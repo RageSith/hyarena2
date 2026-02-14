@@ -19,6 +19,9 @@ public final class Permissions {
     /** Can use chat in matches */
     public static final String CHAT = "hyarena.chat";
 
+    /** Can use /link to generate account link code */
+    public static final String LINK = "hyarena.link";
+
     /** Can place and break blocks */
     public static final String BUILD = "hyarena.build";
 
