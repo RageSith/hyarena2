@@ -84,6 +84,7 @@ public class Match {
 
     private static final int TICKS_PER_SECOND = 20;
     private static final int VICTORY_DELAY_SECONDS = 3;
+    private static final int MATCH_COUNTDOWN_SECONDS = 5; // Pre-match freeze countdown before gameplay begins
     private static final int SPAWN_IMMUNITY_MS = 3000; // 3 seconds immunity after spawn
     private static final int[] TIME_WARNINGS = {60, 30, 10, 5, 4, 3, 2, 1}; // Seconds remaining for warnings
     private static final int WAITING_TIMEOUT_SECONDS = 30; // Cancel match if stuck in WAITING for too long
@@ -361,6 +362,7 @@ public class Match {
         for (PendingBot pending : toSpawn) {
             BotParticipant bot = botManager.spawnBot(this, pending.spawnPosition, pending.kitId, pending.difficulty);
             if (bot != null) {
+                botManager.updateNameplate(bot, bot.getName());
                 addBot(bot);
             }
         }
@@ -483,7 +485,7 @@ public class Match {
         }
 
         state = MatchState.STARTING;
-        countdownTicks = arena.getWaitTimeSeconds() * TICKS_PER_SECOND;
+        countdownTicks = MATCH_COUNTDOWN_SECONDS * TICKS_PER_SECOND;
         System.out.println("[Match] State changed to STARTING, countdown: " + countdownTicks + " ticks");
 
         // Freeze all players during countdown
@@ -493,10 +495,10 @@ public class Match {
         gameMode.onMatchStart(arena.getConfig(), getParticipants());
 
         // Fire event
-        eventBus.publish(new MatchStartedEvent(matchId, arena.getWaitTimeSeconds()));
+        eventBus.publish(new MatchStartedEvent(matchId, MATCH_COUNTDOWN_SECONDS));
 
         // Send countdown message
-        broadcast("<color:#2ecc71>Match starting in </color><color:#f1c40f>" + arena.getWaitTimeSeconds() + "</color><color:#2ecc71> seconds!</color>");
+        broadcast("<color:#2ecc71>Match starting in </color><color:#f1c40f>" + MATCH_COUNTDOWN_SECONDS + "</color><color:#2ecc71> seconds!</color>");
     }
 
     /**

@@ -65,6 +65,7 @@ public class BotParticipant implements Participant {
 
     // Wave defense: marks this bot as a wave enemy (bypasses capacity, hidden from HUD, targets players only)
     private boolean waveEnemy = false;
+    private int waveLevel = 0; // Wave number this bot was spawned in (0 = not a wave bot)
 
     public BotParticipant(String name, BotDifficulty difficulty, String roleId) {
         this.botUuid = UUID.randomUUID();
@@ -440,6 +441,14 @@ public class BotParticipant implements Participant {
      */
     public void setWaveEnemy(boolean waveEnemy) {
         this.waveEnemy = waveEnemy;
+    }
+
+    public int getWaveLevel() {
+        return waveLevel;
+    }
+
+    public void setWaveLevel(int waveLevel) {
+        this.waveLevel = waveLevel;
     }
 
     @Override

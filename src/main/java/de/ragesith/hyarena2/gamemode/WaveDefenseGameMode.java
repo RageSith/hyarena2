@@ -197,6 +197,10 @@ public class WaveDefenseGameMode implements GameMode {
             BotParticipant bot = botManager.spawnBot(match, spawnPos, botKit, difficulty);
             if (bot != null) {
                 bot.setWaveEnemy(true);
+                bot.setWaveLevel(wave);
+
+                // Update nameplate with level indicator
+                botManager.updateNameplate(bot, bot.getName() + " Lv." + wave);
 
                 // Scale health
                 double scaledMaxHealth = bot.getMaxHealth() * healthMultiplier;

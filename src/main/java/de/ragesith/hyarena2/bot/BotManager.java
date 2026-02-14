@@ -10,6 +10,7 @@ import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.server.core.asset.type.attitude.Attitude;
 import com.hypixel.hytale.server.core.entity.UUIDComponent;
 import com.hypixel.hytale.server.core.entity.entities.ProjectileComponent;
+import com.hypixel.hytale.server.core.entity.nameplate.Nameplate;
 import com.hypixel.hytale.server.core.entity.movement.MovementStatesComponent;
 import com.hypixel.hytale.server.core.modules.entity.component.Intangible;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
@@ -256,6 +257,35 @@ public class BotManager {
         } catch (Exception e) {
             System.err.println("[BotManager] Failed to capture NPC max health: " + e.getMessage());
         }
+    }
+
+    /**
+     * Updates the nameplate text on a bot's NPC entity.
+     * Must be called on the arena world thread.
+     */
+    /**
+     * Updates the nameplate text on a bot's NPC entity.
+     * Deferred to next world tick to ensure entity is fully committed.
+     */
+    public void updateNameplate(BotParticipant bot, String text) {
+        if (bot == null || bot.getEntityRef() == null) return;
+        Match match = botMatches.get(bot.getUniqueId());
+        if (match == null) return;
+        World world = match.getArena().getWorld();
+        if (world == null) return;
+        world.execute(() -> {
+            try {
+                Ref<EntityStore> entityRef = bot.getEntityRef();
+                if (entityRef != null && entityRef.isValid()) {
+                    Store<EntityStore> store = entityRef.getStore();
+                    if (store != null) {
+                        store.addComponent(entityRef, Nameplate.getComponentType(), new Nameplate(text));
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("[BotManager] Failed to update nameplate for " + bot.getName() + ": " + e.getMessage());
+            }
+        });
     }
 
     /**
