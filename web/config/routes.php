@@ -57,6 +57,8 @@ return function (App $app) {
         $group->get('/link', [LinkController::class, 'linkPage']);
         $group->post('/link', [LinkController::class, 'link']);
         $group->get('/profile', [LinkController::class, 'profile']);
+        $group->get('/profile/password', [LinkController::class, 'changePasswordPage']);
+        $group->post('/profile/password', [LinkController::class, 'changePassword']);
     })->add(new PlayerAuthMiddleware());
 
     // Admin routes

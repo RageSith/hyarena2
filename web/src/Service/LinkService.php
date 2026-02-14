@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Repository\LinkedAccountRepository;
+use App\Repository\PlayerRepository;
 
 class LinkService
 {
@@ -13,8 +14,12 @@ class LinkService
         $this->repo = new LinkedAccountRepository();
     }
 
-    public function generateCode(string $playerUuid): string
+    public function generateCode(string $playerUuid, string $username): string
     {
+        // Ensure player exists in DB (handles FK constraint for new players)
+        $playerRepo = new PlayerRepository();
+        $playerRepo->upsert($playerUuid, $username);
+
         // 6-char code, no ambiguous chars (0/O, 1/I/L)
         $chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
         $code = '';
@@ -73,5 +78,22 @@ class LinkService
     public function getAccount(int $id): ?array
     {
         return $this->repo->findById($id);
+    }
+
+    public function changePassword(int $accountId, string $currentPassword, string $newPassword): array
+    {
+        $account = $this->repo->findById($accountId);
+        if (!$account) {
+            return ['success' => false, 'error' => 'Account not found.'];
+        }
+
+        if (!password_verify($currentPassword, $account['password_hash'])) {
+            return ['success' => false, 'error' => 'Current password is incorrect.'];
+        }
+
+        $hash = password_hash($newPassword, PASSWORD_BCRYPT);
+        $this->repo->updatePassword($accountId, $hash);
+
+        return ['success' => true];
     }
 }

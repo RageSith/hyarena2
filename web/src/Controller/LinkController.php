@@ -20,13 +20,14 @@ class LinkController
     {
         $data = json_decode((string) $request->getBody(), true);
         $uuid = $data['uuid'] ?? '';
+        $username = $data['username'] ?? '';
 
-        if (empty($uuid)) {
-            return $this->json($response, ['success' => false, 'error' => ['message' => 'Missing uuid', 'code' => 'VALIDATION_ERROR']], 400);
+        if (empty($uuid) || empty($username)) {
+            return $this->json($response, ['success' => false, 'error' => ['message' => 'Missing uuid or username', 'code' => 'VALIDATION_ERROR']], 400);
         }
 
         $service = new LinkService();
-        $code = $service->generateCode($uuid);
+        $code = $service->generateCode($uuid, $username);
 
         return $this->json($response, ['success' => true, 'data' => ['code' => $code]]);
     }
@@ -173,6 +174,63 @@ class LinkController
             'active_page' => 'profile',
             'account' => $account,
             'player' => $player,
+        ]);
+    }
+
+    // ==========================================
+    // Web: Change Password
+    // ==========================================
+
+    public function changePasswordPage(Request $request, Response $response): Response
+    {
+        return $this->twig->render($response, 'auth/password.twig', [
+            'active_page' => 'profile',
+        ]);
+    }
+
+    public function changePassword(Request $request, Response $response): Response
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+
+        $body = $request->getParsedBody();
+        $currentPassword = $body['current_password'] ?? '';
+        $newPassword = $body['new_password'] ?? '';
+        $newPasswordConfirm = $body['new_password_confirm'] ?? '';
+
+        if (empty($currentPassword) || empty($newPassword)) {
+            return $this->twig->render($response, 'auth/password.twig', [
+                'active_page' => 'profile',
+                'error' => 'All fields are required.',
+            ]);
+        }
+
+        if (strlen($newPassword) < 8) {
+            return $this->twig->render($response, 'auth/password.twig', [
+                'active_page' => 'profile',
+                'error' => 'New password must be at least 8 characters.',
+            ]);
+        }
+
+        if ($newPassword !== $newPasswordConfirm) {
+            return $this->twig->render($response, 'auth/password.twig', [
+                'active_page' => 'profile',
+                'error' => 'New passwords do not match.',
+            ]);
+        }
+
+        $service = new LinkService();
+        $result = $service->changePassword($_SESSION['player_account_id'], $currentPassword, $newPassword);
+
+        if (!$result['success']) {
+            return $this->twig->render($response, 'auth/password.twig', [
+                'active_page' => 'profile',
+                'error' => $result['error'],
+            ]);
+        }
+
+        return $this->twig->render($response, 'auth/password.twig', [
+            'active_page' => 'profile',
+            'success' => true,
         ]);
     }
 

@@ -2,42 +2,65 @@
 
 {% block title %}Profile - {{ site_name }}{% endblock %}
 
+{% set active_tab = 'profile' %}
+
+{% set profile_nav %}
+<nav class="profile-nav">
+    <a href="/profile" class="profile-nav-link{{ active_tab == 'profile' ? ' active' : '' }}">Profile</a>
+    <a href="/link" class="profile-nav-link{{ active_tab == 'link' ? ' active' : '' }}">Link Account</a>
+    <a href="/profile/password" class="profile-nav-link{{ active_tab == 'password' ? ' active' : '' }}">Change Password</a>
+</nav>
+{% endset %}
+
 {% block content %}
 <div class="auth-page">
-    <div class="auth-container" style="max-width: 600px;">
-        <div class="auth-card">
-            <div class="auth-header">
-                <h1>Your Profile</h1>
+    <div class="auth-container" style="max-width: 700px;">
+        {{ profile_nav }}
+
+        <div class="profile-header">
+            <div class="profile-avatar">
+                {{ account.email|first|upper }}
             </div>
-
-            <div style="margin-bottom: var(--space-xl);">
-                <p><strong>Email:</strong> {{ account.email }}</p>
-                <p><strong>Registered:</strong> {{ account.created_at }}</p>
+            <div class="profile-info">
+                <h1>{{ account.email }}</h1>
+                <div class="profile-meta">Registered {{ account.created_at }}</div>
             </div>
+        </div>
 
-            {% if player %}
-                <div class="profile-linked">
-                    <span class="linked-badge">Linked</span>
-                    <span>Game account: <strong>{{ player.username }}</strong></span>
+        {% if player %}
+            <div class="profile-linked">
+                <h2>Linked Game Account</h2>
+                <div class="linked-info">
+                    <div class="linked-item">
+                        <div class="linked-label">Username</div>
+                        <div class="linked-value">{{ player.username }}</div>
+                    </div>
+                    <div class="linked-item">
+                        <div class="linked-label">UUID</div>
+                        <div class="linked-value" style="font-size: 0.8rem; font-family: var(--font-mono);">{{ player.uuid }}</div>
+                    </div>
+                    <div class="linked-item">
+                        <div class="linked-label">Honor Rank</div>
+                        <div class="linked-value">{{ player.honor_rank }}</div>
+                    </div>
+                    <div class="linked-item">
+                        <div class="linked-label">Arena Points</div>
+                        <div class="linked-value">{{ player.arena_points }}</div>
+                    </div>
                 </div>
-
-                <div style="margin-bottom: var(--space-xl);">
-                    <p><strong>Player UUID:</strong> <code style="font-size: 0.85rem;">{{ player.uuid }}</code></p>
-                    <p><strong>Honor Rank:</strong> {{ player.honor_rank }}</p>
-                    <p><strong>Arena Points:</strong> {{ player.arena_points }}</p>
+                <div style="margin-top: var(--space-xl);">
+                    <a href="/player/{{ player.username }}" class="btn btn-primary">View Public Stats</a>
                 </div>
-
-                <a href="/player/{{ player.username }}" class="btn btn-primary">View Public Stats</a>
-            {% else %}
-                <div class="alert alert-info" style="margin-bottom: var(--space-lg);">
-                    Your account is not linked to a game account yet.
-                </div>
-                <a href="/link" class="btn btn-primary">Link Game Account</a>
-            {% endif %}
-
-            <div class="auth-footer" style="margin-top: var(--space-xl);">
-                <a href="/logout">Logout</a>
             </div>
+        {% else %}
+            <div class="alert alert-info">
+                Your account is not linked to a game account yet.
+                <a href="/link" style="color: inherit; font-weight: 600;">Link your account</a> to view your stats.
+            </div>
+        {% endif %}
+
+        <div class="auth-footer" style="margin-top: var(--space-xl);">
+            <a href="/logout">Logout</a>
         </div>
     </div>
 </div>

@@ -48,6 +48,9 @@ class LinkedAccountRepository
     public function storeLinkCode(string $code, string $playerUuid, string $expiresAt): void
     {
         $db = Database::getConnection();
+        // Remove any previous unused codes for this player so we don't accumulate rows
+        $del = $db->prepare('DELETE FROM link_codes WHERE player_uuid = :uuid AND used = 0');
+        $del->execute(['uuid' => $playerUuid]);
         $stmt = $db->prepare('INSERT INTO link_codes (code, player_uuid, expires_at) VALUES (:code, :uuid, :expires)');
         $stmt->execute(['code' => $code, 'uuid' => $playerUuid, 'expires' => $expiresAt]);
     }
@@ -68,5 +71,12 @@ class LinkedAccountRepository
         $db = Database::getConnection();
         $stmt = $db->prepare('UPDATE link_codes SET used = 1 WHERE id = :id');
         $stmt->execute(['id' => $codeId]);
+    }
+
+    public function updatePassword(int $accountId, string $passwordHash): void
+    {
+        $db = Database::getConnection();
+        $stmt = $db->prepare('UPDATE linked_accounts SET password_hash = :hash WHERE id = :id');
+        $stmt->execute(['hash' => $passwordHash, 'id' => $accountId]);
     }
 }

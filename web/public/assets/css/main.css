@@ -3994,6 +3994,37 @@ ul {
     color: var(--color-text);
 }
 
+.profile-nav {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-2xl);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-sm);
+}
+
+.profile-nav-link {
+    padding: var(--space-sm) var(--space-lg);
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: all var(--transition-fast);
+    margin-bottom: calc(-1 * var(--space-sm) - 1px);
+}
+
+.profile-nav-link:hover {
+    color: var(--color-text);
+}
+
+.profile-nav-link.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
 /* ==========================================
    Alerts & Messages
    ========================================== */
