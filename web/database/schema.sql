@@ -131,25 +131,30 @@ CREATE TABLE IF NOT EXISTS `player_stats` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Global stats view (aggregates all per-arena rows per player)
+-- Win rate excludes wave_defense arenas (no winner concept)
 CREATE OR REPLACE VIEW `player_global_stats` AS
 SELECT
-    `player_uuid`,
-    SUM(`matches_played`) AS `matches_played`,
-    SUM(`matches_won`) AS `matches_won`,
-    SUM(`matches_lost`) AS `matches_lost`,
-    SUM(`pvp_kills`) AS `pvp_kills`,
-    SUM(`pvp_deaths`) AS `pvp_deaths`,
-    SUM(`pve_kills`) AS `pve_kills`,
-    SUM(`pve_deaths`) AS `pve_deaths`,
-    SUM(`damage_dealt`) AS `damage_dealt`,
-    SUM(`damage_taken`) AS `damage_taken`,
-    SUM(`total_time_played`) AS `total_time_played`,
-    CASE WHEN SUM(`pvp_deaths`) = 0 THEN SUM(`pvp_kills`)
-         ELSE ROUND(SUM(`pvp_kills`) / SUM(`pvp_deaths`), 2) END AS `pvp_kd_ratio`,
-    CASE WHEN SUM(`matches_played`) = 0 THEN 0
-         ELSE ROUND(SUM(`matches_won`) / SUM(`matches_played`) * 100, 1) END AS `win_rate`
-FROM `player_stats`
-GROUP BY `player_uuid`;
+    ps.`player_uuid`,
+    SUM(ps.`matches_played`) AS `matches_played`,
+    SUM(ps.`matches_won`) AS `matches_won`,
+    SUM(ps.`matches_lost`) AS `matches_lost`,
+    SUM(ps.`pvp_kills`) AS `pvp_kills`,
+    SUM(ps.`pvp_deaths`) AS `pvp_deaths`,
+    SUM(ps.`pve_kills`) AS `pve_kills`,
+    SUM(ps.`pve_deaths`) AS `pve_deaths`,
+    SUM(ps.`damage_dealt`) AS `damage_dealt`,
+    SUM(ps.`damage_taken`) AS `damage_taken`,
+    SUM(ps.`total_time_played`) AS `total_time_played`,
+    CASE WHEN SUM(ps.`pvp_deaths`) = 0 THEN SUM(ps.`pvp_kills`)
+         ELSE ROUND(SUM(ps.`pvp_kills`) / SUM(ps.`pvp_deaths`), 2) END AS `pvp_kd_ratio`,
+    CASE WHEN SUM(CASE WHEN a.`game_mode` != 'wave_defense' THEN ps.`matches_played` ELSE 0 END) = 0 THEN 0
+         ELSE ROUND(
+            SUM(ps.`matches_won`) /
+            SUM(CASE WHEN a.`game_mode` != 'wave_defense' THEN ps.`matches_played` ELSE 0 END) * 100, 1
+         ) END AS `win_rate`
+FROM `player_stats` ps
+JOIN `arenas` a ON ps.`arena_id` = a.`id`
+GROUP BY ps.`player_uuid`;
 
 -- Linked Accounts (web registration)
 CREATE TABLE IF NOT EXISTS `linked_accounts` (

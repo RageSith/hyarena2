@@ -36,43 +36,60 @@ const waveDefenseHeaders = [
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
-    initTabs();
+    initArenaList();
     loadArenas();
     loadLeaderboardData();
     initPagination();
 });
 
 // ==========================================
-// Tabs
+// Arena List (Sidebar)
 // ==========================================
-function initTabs() {
-    const globalTab = document.querySelector('.tab-btn[data-arena="global"]');
-    if (globalTab) {
-        globalTab.addEventListener('click', () => selectArena('global'));
+function initArenaList() {
+    const globalItem = document.querySelector('.arena-list-item[data-arena="global"]');
+    if (globalItem) {
+        globalItem.addEventListener('click', () => selectArena('global'));
     }
 }
 
+function formatGameMode(mode) {
+    return mode.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
 async function loadArenas() {
-    const tabsContainer = document.getElementById('leaderboard-tabs');
-    if (!tabsContainer) return;
+    const listContainer = document.getElementById('arena-list-items');
+    if (!listContainer) return;
 
     try {
         const response = await fetch('/api/arenas');
         const data = await response.json();
 
         if (data.success && data.data.arenas && data.data.arenas.length > 0) {
+            // Group arenas by game mode
+            const groups = {};
             data.data.arenas.forEach(arena => {
-                if (tabsContainer.querySelector(`[data-arena="${arena.id}"]`)) return;
-
                 arenaGameModes[arena.id] = arena.game_mode;
-
-                const btn = document.createElement('button');
-                btn.className = 'tab-btn';
-                btn.dataset.arena = arena.id;
-                btn.textContent = arena.display_name;
-                btn.addEventListener('click', () => selectArena(arena.id));
-                tabsContainer.appendChild(btn);
+                const mode = arena.game_mode || 'other';
+                if (!groups[mode]) groups[mode] = [];
+                groups[mode].push(arena);
             });
+
+            listContainer.innerHTML = '';
+            for (const [mode, arenas] of Object.entries(groups)) {
+                const label = document.createElement('li');
+                label.className = 'arena-list-label';
+                label.textContent = formatGameMode(mode);
+                listContainer.appendChild(label);
+
+                arenas.forEach(arena => {
+                    const li = document.createElement('li');
+                    li.className = 'arena-list-item';
+                    li.dataset.arena = arena.id;
+                    li.textContent = arena.display_name;
+                    li.addEventListener('click', () => selectArena(arena.id));
+                    listContainer.appendChild(li);
+                });
+            }
         }
     } catch (e) {
         console.log('Failed to load arenas:', e.message);
@@ -92,8 +109,8 @@ function selectArena(arenaId) {
     }
     sortDirection = 'desc';
 
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.arena === arenaId);
+    document.querySelectorAll('.arena-list-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.arena === arenaId);
     });
 
     loadLeaderboardData();

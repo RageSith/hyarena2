@@ -106,6 +106,12 @@ class LinkController
     public function logout(Request $request, Response $response): Response
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
+        $_SESSION = [];
+
+        // Clear the session cookie
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 3600, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+
         session_destroy();
         return $response->withHeader('Location', '/')->withStatus(302);
     }
@@ -120,7 +126,6 @@ class LinkController
 
         return $this->twig->render($response, 'auth/link.twig', [
             'active_page' => 'link',
-            'player_session' => true,
             'is_linked' => !empty($_SESSION['player_uuid']),
         ]);
     }
@@ -139,7 +144,6 @@ class LinkController
         if (!$result['success']) {
             return $this->twig->render($response, 'auth/link.twig', [
                 'error' => $result['error'],
-                'player_session' => true,
                 'is_linked' => !empty($_SESSION['player_uuid']),
             ]);
         }
@@ -167,7 +171,6 @@ class LinkController
 
         return $this->twig->render($response, 'auth/profile.twig', [
             'active_page' => 'profile',
-            'player_session' => true,
             'account' => $account,
             'player' => $player,
         ]);

@@ -32,6 +32,12 @@ class App
                 $twig->getEnvironment()->addGlobal('site_name', $settings['site']['name'] ?? 'HyArena');
                 $twig->getEnvironment()->addGlobal('site_url', $settings['site']['url'] ?? '');
 
+                // Start session only if a session cookie exists (logged-in user)
+                if (session_status() === PHP_SESSION_NONE && !empty($_COOKIE[session_name()])) {
+                    session_start();
+                }
+                $twig->getEnvironment()->addGlobal('player_session', !empty($_SESSION['player_account_id'] ?? null));
+
                 return $twig;
             },
         ]);
@@ -65,8 +71,21 @@ class App
                 $statusCode = $exception->getCode();
             }
 
-            $template = $statusCode === 404 ? 'errors/404.twig' : 'errors/500.twig';
             $response = new \Slim\Psr7\Response();
+
+            // API routes get JSON errors, pages get Twig templates
+            if (str_starts_with($request->getUri()->getPath(), '/api/')) {
+                $error = ['success' => false, 'error' => [
+                    'message' => $displayErrorDetails ? $exception->getMessage() : 'Internal server error',
+                    'code' => 'SERVER_ERROR',
+                ]];
+                $response->getBody()->write(json_encode($error, JSON_UNESCAPED_UNICODE));
+                return $response
+                    ->withHeader('Content-Type', 'application/json')
+                    ->withStatus($statusCode);
+            }
+
+            $template = $statusCode === 404 ? 'errors/404.twig' : 'errors/500.twig';
 
             try {
                 return $twig->render($response->withStatus($statusCode), $template);

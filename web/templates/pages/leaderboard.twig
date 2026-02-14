@@ -12,58 +12,67 @@
 
 <section class="leaderboard-section">
     <div class="container">
-        <!-- Arena Tabs -->
-        <div class="leaderboard-tabs" id="leaderboard-tabs">
-            <button class="tab-btn active" data-arena="global">Global</button>
-        </div>
+        <div class="leaderboard-layout">
+            <!-- Sidebar -->
+            <div class="leaderboard-sidebar">
+                <h3 class="sidebar-heading">Arenas</h3>
+                <ul class="arena-list">
+                    <li class="arena-list-item active" data-arena="global">Global</li>
+                    <div id="arena-list-items"></div>
+                </ul>
+            </div>
 
-        <!-- Leaderboard Table -->
-        <div class="leaderboard-table-wrapper">
-            <table class="leaderboard-table">
-                <thead>
-                    <tr>
-                        <th class="col-rank">Rank</th>
-                        <th class="col-player">Player</th>
-                        <th class="col-stat sortable active desc" data-sort="matches_won">Wins</th>
-                        <th class="col-stat sortable" data-sort="pvp_kills">PvP Kills</th>
-                        <th class="col-stat sortable" data-sort="pvp_deaths">PvP Deaths</th>
-                        <th class="col-stat sortable" data-sort="pvp_kd_ratio">PvP K/D</th>
-                        <th class="col-stat sortable" data-sort="pve_kills">PvE Kills</th>
-                        <th class="col-stat sortable" data-sort="pve_deaths">PvE Deaths</th>
-                        <th class="col-stat sortable" data-sort="win_rate">Win Rate</th>
-                    </tr>
-                </thead>
-                <tbody id="leaderboard-body">
-                    <tr>
-                        <td colspan="9">
-                            <div class="table-loading">
-                                <div class="spinner"></div>
-                                <span>Loading leaderboard...</span>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+            <!-- Main Content -->
+            <div class="leaderboard-main">
+                <!-- Leaderboard Table -->
+                <div class="leaderboard-table-wrapper">
+                    <table class="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th class="col-rank">Rank</th>
+                                <th class="col-player">Player</th>
+                                <th class="col-stat sortable active desc" data-sort="matches_won">Wins</th>
+                                <th class="col-stat sortable" data-sort="pvp_kills">PvP Kills</th>
+                                <th class="col-stat sortable" data-sort="pvp_deaths">PvP Deaths</th>
+                                <th class="col-stat sortable" data-sort="pvp_kd_ratio">PvP K/D</th>
+                                <th class="col-stat sortable" data-sort="pve_kills">PvE Kills</th>
+                                <th class="col-stat sortable" data-sort="pve_deaths">PvE Deaths</th>
+                                <th class="col-stat sortable" data-sort="win_rate">Win Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body">
+                            <tr>
+                                <td colspan="9">
+                                    <div class="table-loading">
+                                        <div class="spinner"></div>
+                                        <span>Loading leaderboard...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-        <!-- Pagination -->
-        <div class="leaderboard-pagination">
-            <button class="pagination-btn" id="prev-page" disabled>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-                <span>Previous</span>
-            </button>
-            <span class="pagination-info" id="pagination-info">Page 1 of 1</span>
-            <button class="pagination-btn" id="next-page" disabled>
-                <span>Next</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-            </button>
-        </div>
+                <!-- Pagination -->
+                <div class="leaderboard-pagination">
+                    <button class="pagination-btn" id="prev-page" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                        <span>Previous</span>
+                    </button>
+                    <span class="pagination-info" id="pagination-info">Page 1 of 1</span>
+                    <button class="pagination-btn" id="next-page" disabled>
+                        <span>Next</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                </div>
 
-        <!-- Summary -->
-        <div class="leaderboard-summary">
-            <div class="summary-item">
-                <span class="summary-value" id="summary-players">-</span>
-                <span class="summary-label">Ranked Players</span>
+                <!-- Summary -->
+                <div class="leaderboard-summary">
+                    <div class="summary-item">
+                        <span class="summary-value" id="summary-players">-</span>
+                        <span class="summary-label">Ranked Players</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

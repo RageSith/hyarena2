@@ -68,10 +68,11 @@ class MatchSubmissionService
 
                 // Update player stats (skip bots)
                 if (!$isBot && !empty($p['uuid'])) {
+                    $isWave = ($data['game_mode'] ?? '') === 'wave_defense';
                     $statsData = [
                         'matches_played' => 1,
-                        'matches_won' => $isWinner ? 1 : 0,
-                        'matches_lost' => $isWinner ? 0 : 1,
+                        'matches_won' => $isWave ? 0 : ($isWinner ? 1 : 0),
+                        'matches_lost' => $isWave ? 0 : ($isWinner ? 0 : 1),
                         'pvp_kills' => $p['pvp_kills'] ?? 0,
                         'pvp_deaths' => $p['pvp_deaths'] ?? 0,
                         'pve_kills' => $p['pve_kills'] ?? 0,

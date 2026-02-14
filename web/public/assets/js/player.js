@@ -61,11 +61,19 @@ function displayPlayerProfile(data) {
         lastSeenEl.textContent = `Last seen: ${getTimeAgo(new Date(player.last_seen))}`;
     }
 
-    // Honor rank
+    // Honor rank badge
     const rankEl = document.getElementById('player-rank');
     if (rankEl) {
-        rankEl.textContent = player.honor_rank || 'Unranked';
+        const rank = player.honor_rank || 'Unranked';
+        rankEl.textContent = rank;
+        rankEl.dataset.rank = rank.toLowerCase();
     }
+
+    // Honor value
+    setStatText('player-honor', formatNumber(player.honor || 0));
+
+    // Arena Points
+    setStatText('player-ap', formatNumber(player.arena_points || 0));
 
     // Global PvP Stats
     setStatText('stat-wins', formatNumber(globalStats.matches_won || 0));
@@ -185,9 +193,12 @@ function displayPlayerProfile(data) {
     if (matchesContainer) {
         if (recentMatches.length > 0) {
             matchesContainer.innerHTML = recentMatches.map(match => {
+                const isWave = match.game_mode === 'wave_defense';
                 const isWinner = match.is_winner == 1;
-                const resultClass = isWinner ? 'win' : 'loss';
-                const resultText = isWinner ? 'Victory' : 'Defeat';
+                const resultClass = isWave ? 'wave' : (isWinner ? 'win' : 'loss');
+                const resultText = isWave
+                    ? `Wave ${match.waves_survived != null ? match.waves_survived : '?'}`
+                    : (isWinner ? 'Victory' : 'Defeat');
                 const timeAgo = getTimeAgo(new Date(match.ended_at));
 
                 let statsHtml = `<span class="match-stats-pvp">${match.pvp_kills || 0} PvP Kills / ${match.pvp_deaths || 0} Deaths</span>`;
