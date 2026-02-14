@@ -139,9 +139,10 @@ class ApiController
         }
     }
 
-    public function player(Request $request, Response $response, array $args): Response
+    public function player(Request $request, Response $response): Response
     {
-        $identifier = $args['identifier'];
+        $route = \Slim\Routing\RouteContext::fromRequest($request)->getRoute();
+        $identifier = $route->getArgument('identifier');
 
         try {
             $playerRepo = new PlayerRepository();
@@ -183,6 +184,29 @@ class ApiController
             return $this->success($response, ['matches' => $matches]);
         } catch (\Exception $e) {
             return $this->error($response, 'Failed to fetch matches', 'SERVER_ERROR', 500);
+        }
+    }
+
+    public function matchDetails(Request $request, Response $response): Response
+    {
+        $routeContext = \Slim\Routing\RouteContext::fromRequest($request);
+        $route = $routeContext->getRoute();
+        $matchId = (int) ($route->getArgument('id', '0'));
+        if ($matchId <= 0) {
+            return $this->error($response, 'Invalid match ID', 'VALIDATION_ERROR');
+        }
+
+        try {
+            $matchRepo = new MatchRepository();
+            $match = $matchRepo->getMatchWithParticipants($matchId);
+
+            if (!$match) {
+                return $this->error($response, 'Match not found', 'NOT_FOUND', 404);
+            }
+
+            return $this->success($response, ['match' => $match]);
+        } catch (\Throwable $e) {
+            return $this->error($response, $e->getMessage(), 'SERVER_ERROR', 500);
         }
     }
 

@@ -42,9 +42,10 @@ class MatchRepository
             SELECT m.*, a.display_name AS arena_name,
                    p.username AS winner_name,
                    (SELECT COUNT(*) FROM match_participants mp WHERE mp.match_id = m.id) AS participant_count,
-                   wp.pvp_kills AS winner_kills,
+                   (wp.pvp_kills + wp.pve_kills) AS winner_kills,
                    wp.is_bot AS winner_is_bot,
-                   wp.bot_name AS winner_bot_name
+                   wp.bot_name AS winner_bot_name,
+                   (SELECT MAX(mp2.waves_survived) FROM match_participants mp2 WHERE mp2.match_id = m.id) AS max_waves_survived
             FROM matches m
             JOIN arenas a ON m.arena_id = a.id
             LEFT JOIN players p ON m.winner_uuid = p.uuid
@@ -78,7 +79,7 @@ class MatchRepository
             FROM match_participants mp
             LEFT JOIN players p ON mp.player_uuid = p.uuid
             WHERE mp.match_id = :match_id
-            ORDER BY mp.is_winner DESC, mp.pvp_kills DESC
+            ORDER BY mp.is_winner DESC, (mp.pvp_kills + mp.pve_kills) DESC
         ');
         $stmt->execute(['match_id' => $matchId]);
         $match['participants'] = $stmt->fetchAll();

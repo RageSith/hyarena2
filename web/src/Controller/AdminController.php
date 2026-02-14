@@ -82,12 +82,14 @@ class AdminController
         ]);
     }
 
-    public function notificationForm(Request $request, Response $response, array $args = []): Response
+    public function notificationForm(Request $request, Response $response): Response
     {
+        $route = \Slim\Routing\RouteContext::fromRequest($request)->getRoute();
         $notification = null;
-        if (!empty($args['id'])) {
+        $id = $route->getArgument('id');
+        if ($id) {
             $service = new NotificationService();
-            $notification = $service->findById((int) $args['id']);
+            $notification = $service->findById((int) $id);
         }
 
         return $this->twig->render($response, 'admin/notification-form.twig', [
@@ -116,12 +118,13 @@ class AdminController
         return $response->withHeader('Location', '/admin/notifications')->withStatus(302);
     }
 
-    public function updateNotification(Request $request, Response $response, array $args): Response
+    public function updateNotification(Request $request, Response $response): Response
     {
+        $route = \Slim\Routing\RouteContext::fromRequest($request)->getRoute();
         $body = $request->getParsedBody();
 
         $service = new NotificationService();
-        $service->update((int) $args['id'], [
+        $service->update((int) $route->getArgument('id'), [
             'title' => $body['title'] ?? '',
             'message' => $body['message'] ?? '',
             'type' => $body['type'] ?? 'info',
@@ -133,10 +136,11 @@ class AdminController
         return $response->withHeader('Location', '/admin/notifications')->withStatus(302);
     }
 
-    public function deleteNotification(Request $request, Response $response, array $args): Response
+    public function deleteNotification(Request $request, Response $response): Response
     {
+        $route = \Slim\Routing\RouteContext::fromRequest($request)->getRoute();
         $service = new NotificationService();
-        $service->delete((int) $args['id']);
+        $service->delete((int) $route->getArgument('id'));
         return $response->withHeader('Location', '/admin/notifications')->withStatus(302);
     }
 
@@ -154,12 +158,14 @@ class AdminController
         ]);
     }
 
-    public function webhookForm(Request $request, Response $response, array $args = []): Response
+    public function webhookForm(Request $request, Response $response): Response
     {
+        $route = \Slim\Routing\RouteContext::fromRequest($request)->getRoute();
         $webhook = null;
-        if (!empty($args['id'])) {
+        $id = $route->getArgument('id');
+        if ($id) {
             $service = new WebhookService();
-            $webhook = $service->findById((int) $args['id']);
+            $webhook = $service->findById((int) $id);
         }
 
         return $this->twig->render($response, 'admin/webhook-form.twig', [
@@ -184,12 +190,13 @@ class AdminController
         return $response->withHeader('Location', '/admin/webhooks')->withStatus(302);
     }
 
-    public function updateWebhook(Request $request, Response $response, array $args): Response
+    public function updateWebhook(Request $request, Response $response): Response
     {
+        $route = \Slim\Routing\RouteContext::fromRequest($request)->getRoute();
         $body = $request->getParsedBody();
 
         $service = new WebhookService();
-        $service->update((int) $args['id'], [
+        $service->update((int) $route->getArgument('id'), [
             'name' => $body['name'] ?? '',
             'url' => $body['url'] ?? '',
             'is_active' => isset($body['is_active']) ? 1 : 0,
@@ -199,10 +206,11 @@ class AdminController
         return $response->withHeader('Location', '/admin/webhooks')->withStatus(302);
     }
 
-    public function deleteWebhook(Request $request, Response $response, array $args): Response
+    public function deleteWebhook(Request $request, Response $response): Response
     {
+        $route = \Slim\Routing\RouteContext::fromRequest($request)->getRoute();
         $service = new WebhookService();
-        $service->delete((int) $args['id']);
+        $service->delete((int) $route->getArgument('id'));
         return $response->withHeader('Location', '/admin/webhooks')->withStatus(302);
     }
 }

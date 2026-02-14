@@ -52,10 +52,11 @@ class PageController
         ]);
     }
 
-    public function player(Request $request, Response $response, array $args): Response
+    public function player(Request $request, Response $response): Response
     {
+        $route = \Slim\Routing\RouteContext::fromRequest($request)->getRoute();
         return $this->twig->render($response, 'pages/player.twig', [
-            'player_name' => $args['name'],
+            'player_name' => $route->getArgument('name'),
         ]);
     }
 

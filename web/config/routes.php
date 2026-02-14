@@ -31,6 +31,7 @@ return function (App $app) {
         $group->get('/leaderboard', [ApiController::class, 'leaderboard']);
         $group->get('/player/{identifier}', [ApiController::class, 'player']);
         $group->get('/recent-matches', [ApiController::class, 'recentMatches']);
+        $group->get('/match/{id}', [ApiController::class, 'matchDetails']);
         $group->get('/arenas', [ApiController::class, 'arenas']);
         $group->get('/kits', [ApiController::class, 'kits']);
         $group->get('/game-modes', [ApiController::class, 'gameModes']);

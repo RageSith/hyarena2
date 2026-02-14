@@ -136,22 +136,32 @@ async function loadRecentMatches() {
                 const winnerKills = match.winner_kills ?? 0;
                 const winnerIsBot = match.winner_is_bot == 1;
                 const duration = formatDuration(match.duration_seconds);
+                const isWaveDefense = match.game_mode === 'wave_defense';
+                const maxWaves = match.max_waves_survived;
 
                 let winnerDisplay;
-                if (!match.winner_name && !match.winner_bot_name) {
+                let detailSpan;
+
+                if (isWaveDefense && maxWaves != null) {
+                    winnerDisplay = `Wave ${maxWaves}`;
+                    detailSpan = `<span class="vs">survived in ${duration}</span>`;
+                } else if (!match.winner_name && !match.winner_bot_name) {
                     winnerDisplay = 'Draw';
+                    detailSpan = '';
                 } else if (winnerIsBot) {
                     winnerDisplay = `<span class="bot-winner">Bot: ${escapeHtml(match.winner_bot_name || 'Unknown')}</span>`;
+                    detailSpan = `<span class="vs">scored ${winnerKills} kills in ${duration}</span>`;
                 } else {
                     winnerDisplay = escapeHtml(match.winner_name);
+                    detailSpan = `<span class="vs">scored ${winnerKills} kills in ${duration}</span>`;
                 }
 
                 return `
                     <div class="battle-entry clickable" onclick="showMatchDetails(${match.id})" title="Click for details">
                         <span class="battle-arena">${escapeHtml(match.arena_name)}</span>
                         <span class="battle-result">
-                            <span class="winner ${winnerIsBot ? 'bot-winner' : ''}">${winnerDisplay}</span>
-                            ${(match.winner_name || match.winner_bot_name) ? `<span class="vs">scored ${winnerKills} kills in ${duration}</span>` : ''}
+                            <span class="winner ${isWaveDefense ? 'wave-result' : (winnerIsBot ? 'bot-winner' : '')}">${winnerDisplay}</span>
+                            ${detailSpan}
                         </span>
                         <span class="battle-time">${timeAgo}</span>
                     </div>
@@ -201,58 +211,134 @@ async function showMatchDetails(matchId) {
     modal.classList.add('show');
     document.body.style.overflow = 'hidden';
 
-    // Find basic match info from cached data
-    const match = recentMatchesData.find(m => m.id == matchId);
-    if (!match) {
-        document.getElementById('match-modal-body').innerHTML = '<p>Match not found.</p>';
-        return;
+    try {
+        const response = await fetch(`/api/match/${matchId}`);
+        const data = await response.json();
+
+        if (!data.success || !data.data.match) {
+            document.getElementById('match-modal-body').innerHTML = '<p>Match not found.</p>';
+            return;
+        }
+
+        const match = data.data.match;
+        const participants = match.participants || [];
+        const duration = formatDuration(match.duration_seconds);
+        const endedAt = new Date(match.ended_at).toLocaleString('en-US');
+        const gameMode = translateGameMode(match.game_mode);
+        const isWaveDefense = match.game_mode === 'wave_defense';
+
+        // Result row
+        let resultLabel, resultHtml;
+        if (isWaveDefense) {
+            const maxWaves = Math.max(...participants.map(p => p.waves_survived ?? 0));
+            resultLabel = 'Best Wave';
+            resultHtml = `Wave ${maxWaves}`;
+        } else if (!match.winner_name) {
+            resultLabel = 'Winner';
+            resultHtml = '<span class="no-data-text">Draw</span>';
+        } else {
+            resultLabel = 'Winner';
+            resultHtml = `<a href="/player/${encodeURIComponent(match.winner_name)}" class="participant-player">${escapeHtml(match.winner_name)}</a>`;
+        }
+
+        // Participants table
+        let participantsHtml;
+        if (isWaveDefense) {
+            // Wave defense: only real players, show wave survived
+            const players = participants.filter(p => p.is_bot == 0);
+            participantsHtml = `
+                <table class="participants-table">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Kills</th>
+                            <th>Deaths</th>
+                            <th>Wave</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${players.map(p => {
+                            const kills = (parseInt(p.pvp_kills) || 0) + (parseInt(p.pve_kills) || 0);
+                            const deaths = (parseInt(p.pvp_deaths) || 0) + (parseInt(p.pve_deaths) || 0);
+                            const wave = p.waves_survived ?? '-';
+                            const name = p.username || 'Unknown';
+                            return `
+                                <tr>
+                                    <td><a href="/player/${encodeURIComponent(name)}" class="player-link">${escapeHtml(name)}</a></td>
+                                    <td>${kills}</td>
+                                    <td>${deaths}</td>
+                                    <td class="wave-col">${wave}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        } else {
+            // Normal modes: all participants, combined kills/deaths
+            participantsHtml = `
+                <table class="participants-table">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Kills</th>
+                            <th>Deaths</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${participants.map(p => {
+                            const kills = (parseInt(p.pvp_kills) || 0) + (parseInt(p.pve_kills) || 0);
+                            const deaths = (parseInt(p.pvp_deaths) || 0) + (parseInt(p.pve_deaths) || 0);
+                            const isBot = p.is_bot == 1;
+                            const isWinner = p.is_winner == 1;
+                            const name = isBot ? (p.bot_name || 'Bot') : (p.username || 'Unknown');
+                            const nameHtml = isBot
+                                ? `<span class="participant-bot">${escapeHtml(name)}</span>`
+                                : `<a href="/player/${encodeURIComponent(name)}" class="player-link">${escapeHtml(name)}</a>`;
+                            return `
+                                <tr class="${isWinner ? 'winner-row' : ''}">
+                                    <td>${nameHtml}${isWinner ? ' <span class="winner-badge">W</span>' : ''}</td>
+                                    <td>${kills}</td>
+                                    <td>${deaths}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        document.getElementById('match-modal-body').innerHTML = `
+            <h2>Match Details</h2>
+            <div class="match-info">
+                <div class="match-info-row">
+                    <span class="label">Arena:</span>
+                    <span class="value">${escapeHtml(match.arena_name)}</span>
+                </div>
+                <div class="match-info-row">
+                    <span class="label">Game Mode:</span>
+                    <span class="value">${gameMode}</span>
+                </div>
+                <div class="match-info-row">
+                    <span class="label">Duration:</span>
+                    <span class="value">${duration}</span>
+                </div>
+                <div class="match-info-row">
+                    <span class="label">${resultLabel}:</span>
+                    <span class="value">${resultHtml}</span>
+                </div>
+                <div class="match-info-row">
+                    <span class="label">Ended:</span>
+                    <span class="value">${endedAt}</span>
+                </div>
+            </div>
+            <h3>Participants</h3>
+            ${participantsHtml}
+        `;
+    } catch (e) {
+        console.log('Failed to load match details:', e.message);
+        document.getElementById('match-modal-body').innerHTML = '<p>Failed to load match details.</p>';
     }
-
-    const duration = formatDuration(match.duration_seconds);
-    const endedAt = new Date(match.ended_at).toLocaleString('en-US');
-    const gameMode = translateGameMode(match.game_mode);
-
-    // The match data from the list doesn't include participants.
-    // Show what we have from the match summary.
-    const winnerIsBot = match.winner_is_bot == 1;
-    let winnerHtml;
-    if (!match.winner_name && !match.winner_bot_name) {
-        winnerHtml = '<span class="no-data-text">Draw</span>';
-    } else if (winnerIsBot) {
-        winnerHtml = `<span class="participant-bot">Bot: ${escapeHtml(match.winner_bot_name || 'Unknown')}</span>`;
-    } else {
-        winnerHtml = `<a href="/player/${encodeURIComponent(match.winner_name)}" class="participant-player">${escapeHtml(match.winner_name)}</a>`;
-    }
-
-    document.getElementById('match-modal-body').innerHTML = `
-        <h2>Match Details</h2>
-        <div class="match-info">
-            <div class="match-info-row">
-                <span class="label">Arena:</span>
-                <span class="value">${escapeHtml(match.arena_name)}</span>
-            </div>
-            <div class="match-info-row">
-                <span class="label">Game Mode:</span>
-                <span class="value">${gameMode}</span>
-            </div>
-            <div class="match-info-row">
-                <span class="label">Duration:</span>
-                <span class="value">${duration}</span>
-            </div>
-            <div class="match-info-row">
-                <span class="label">Participants:</span>
-                <span class="value">${match.participant_count ?? '?'}</span>
-            </div>
-            <div class="match-info-row">
-                <span class="label">Winner:</span>
-                <span class="value">${winnerHtml} ${(match.winner_kills ?? 0) > 0 ? `(${match.winner_kills} kills)` : ''}</span>
-            </div>
-            <div class="match-info-row">
-                <span class="label">Ended:</span>
-                <span class="value">${endedAt}</span>
-            </div>
-        </div>
-    `;
 }
 
 /**
