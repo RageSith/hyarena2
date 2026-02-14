@@ -102,6 +102,7 @@ class ApiController
     {
         $params = $request->getQueryParams();
         $arena = $params['arena'] ?? null;
+        $gameMode = $params['game_mode'] ?? null;
         $sort = $params['sort'] ?? 'pvp_kills';
         $order = $params['order'] ?? 'DESC';
         $page = max(1, (int) ($params['page'] ?? 1));
@@ -115,22 +116,37 @@ class ApiController
 
         try {
             $statsRepo = new StatsRepository();
-            $entries = $statsRepo->getLeaderboard($sort, $order, $perPage, $offset, $arena);
-            $total = $statsRepo->getLeaderboardCount($arena);
 
-            $result = [
-                'entries' => $entries,
-                'total' => $total,
-                'page' => $page,
-                'per_page' => $perPage,
-                'total_pages' => (int) ceil($total / $perPage),
-            ];
+            if ($gameMode !== null) {
+                // Per-game-mode aggregation
+                $entries = $statsRepo->getLeaderboardByGameMode($gameMode, $sort, $order, $perPage, $offset);
+                $total = $statsRepo->getLeaderboardCountByGameMode($gameMode);
+                $result = [
+                    'entries' => $entries,
+                    'total' => $total,
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'total_pages' => (int) ceil($total / $perPage),
+                    'game_mode' => $gameMode,
+                ];
+            } else {
+                // Existing per-arena or global logic
+                $entries = $statsRepo->getLeaderboard($sort, $order, $perPage, $offset, $arena);
+                $total = $statsRepo->getLeaderboardCount($arena);
+                $result = [
+                    'entries' => $entries,
+                    'total' => $total,
+                    'page' => $page,
+                    'per_page' => $perPage,
+                    'total_pages' => (int) ceil($total / $perPage),
+                ];
 
-            // Include arena's game_mode so frontend can adapt columns
-            if ($arena !== null) {
-                $arenaRepo = new ArenaRepository();
-                $arenaData = $arenaRepo->findById($arena);
-                $result['game_mode'] = $arenaData['game_mode'] ?? null;
+                // Include arena's game_mode so frontend can adapt columns
+                if ($arena !== null) {
+                    $arenaRepo = new ArenaRepository();
+                    $arenaData = $arenaRepo->findById($arena);
+                    $result['game_mode'] = $arenaData['game_mode'] ?? null;
+                }
             }
 
             return $this->success($response, $result);

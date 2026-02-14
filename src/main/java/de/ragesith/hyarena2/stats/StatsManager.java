@@ -32,13 +32,18 @@ import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.participant.Participant;
 import de.ragesith.hyarena2.participant.ParticipantType;
 
+import com.google.gson.JsonElement;
+
 import java.net.http.HttpResponse;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -51,6 +56,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class StatsManager {
     private static final long FLUSH_DELAY_MS = 2000; // 2s debounce
+    private static final long CACHE_TTL_MS = 60_000; // 1 minute
 
     private final StatsConfig config;
     private final ApiClient apiClient;
@@ -67,6 +73,10 @@ public class StatsManager {
     private final Set<UUID> dirtyPlayers = ConcurrentHashMap.newKeySet();
     private volatile ScheduledExecutorService syncScheduler;
     private volatile ScheduledFuture<?> pendingFlush;
+
+    // Leaderboard cache
+    private final Map<String, CachedLeaderboard> leaderboardCache = new ConcurrentHashMap<>();
+    private final Map<String, CompletableFuture<LeaderboardResult>> inFlightRequests = new ConcurrentHashMap<>();
 
     public StatsManager(StatsConfig config, ApiClient apiClient, EventBus eventBus,
                         MatchManager matchManager, KitManager kitManager,
@@ -462,6 +472,152 @@ public class StatsManager {
         }, 5, 5, TimeUnit.MINUTES);
 
         System.out.println("[StatsManager] Sync scheduler initialized (5-min safety-net flush)");
+    }
+
+    // ========== Leaderboard Cache ==========
+
+    /**
+     * Fetches a leaderboard page. Returns cached data if fresh (<60s),
+     * piggybacks on in-flight requests, or fires a new API call.
+     *
+     * @param scope "global" or a game mode id (e.g. "duel", "wave_defense")
+     * @param sort  API sort field (e.g. "pvp_kills", "win_rate")
+     * @param page  1-based page number
+     */
+    public CompletableFuture<LeaderboardResult> fetchLeaderboard(String scope, String sort, int page) {
+        String cacheKey = scope + ":" + sort + ":" + page;
+
+        // 1. Check cache
+        CachedLeaderboard cached = leaderboardCache.get(cacheKey);
+        if (cached != null && !cached.isExpired()) {
+            return CompletableFuture.completedFuture(cached.result);
+        }
+
+        // 2. Piggyback on in-flight request
+        CompletableFuture<LeaderboardResult> inFlight = inFlightRequests.get(cacheKey);
+        if (inFlight != null) {
+            return inFlight;
+        }
+
+        // 3. Fire new request
+        CompletableFuture<LeaderboardResult> future = doFetchLeaderboard(scope, sort, page);
+        inFlightRequests.put(cacheKey, future);
+
+        future.whenComplete((result, ex) -> {
+            inFlightRequests.remove(cacheKey);
+            if (result != null && !result.isError()) {
+                leaderboardCache.put(cacheKey, new CachedLeaderboard(result, System.currentTimeMillis()));
+            }
+        });
+
+        return future;
+    }
+
+    private CompletableFuture<LeaderboardResult> doFetchLeaderboard(String scope, String sort, int page) {
+        StringBuilder path = new StringBuilder("/api/leaderboard?");
+        if ("global".equals(scope)) {
+            path.append("arena=global");
+        } else {
+            path.append("game_mode=").append(URLEncoder.encode(scope, StandardCharsets.UTF_8));
+        }
+        path.append("&sort=").append(URLEncoder.encode(sort, StandardCharsets.UTF_8));
+        path.append("&page=").append(page);
+        path.append("&per_page=10");
+
+        return apiClient.getAsync(path.toString())
+            .thenApply(response -> {
+                if (response == null || response.statusCode() != 200) {
+                    return LeaderboardResult.ERROR;
+                }
+                return parseLeaderboardResponse(response.body());
+            })
+            .exceptionally(ex -> {
+                System.err.println("[StatsManager] Leaderboard fetch error: " + ex.getMessage());
+                return LeaderboardResult.ERROR;
+            });
+    }
+
+    private LeaderboardResult parseLeaderboardResponse(String json) {
+        try {
+            JsonObject root = gson.fromJson(json, JsonObject.class);
+            if (!root.has("success") || !root.get("success").getAsBoolean()) {
+                return LeaderboardResult.ERROR;
+            }
+
+            JsonObject data = root.getAsJsonObject("data");
+            int total = data.get("total").getAsInt();
+            int page = data.get("page").getAsInt();
+            int perPage = data.get("per_page").getAsInt();
+            int totalPages = data.get("total_pages").getAsInt();
+            String gameMode = data.has("game_mode") && !data.get("game_mode").isJsonNull()
+                ? data.get("game_mode").getAsString() : null;
+
+            JsonArray entriesArr = data.getAsJsonArray("entries");
+            List<LeaderboardEntry> entries = new ArrayList<>();
+
+            for (JsonElement el : entriesArr) {
+                JsonObject e = el.getAsJsonObject();
+                entries.add(new LeaderboardEntry(
+                    getIntOr(e, "rank_position", entries.size() + 1),
+                    getStringOr(e, "username", "Unknown"),
+                    getStringOr(e, "player_uuid", ""),
+                    getIntOr(e, "pvp_kills", 0),
+                    getIntOr(e, "pvp_deaths", 0),
+                    getDoubleOr(e, "pvp_kd_ratio", 0.0),
+                    getIntOr(e, "matches_won", 0),
+                    getDoubleOr(e, "win_rate", 0.0),
+                    getIntOr(e, "pve_kills", 0),
+                    getIntOr(e, "pve_deaths", 0),
+                    getIntOr(e, "best_waves_survived", 0),
+                    getIntOr(e, "matches_played", 0)
+                ));
+            }
+
+            if (entries.isEmpty()) {
+                return LeaderboardResult.EMPTY;
+            }
+
+            return new LeaderboardResult(entries, total, page, perPage, totalPages, gameMode);
+        } catch (Exception e) {
+            System.err.println("[StatsManager] Failed to parse leaderboard JSON: " + e.getMessage());
+            return LeaderboardResult.ERROR;
+        }
+    }
+
+    private static int getIntOr(JsonObject obj, String key, int fallback) {
+        JsonElement el = obj.get(key);
+        if (el == null || el.isJsonNull()) return fallback;
+        try { return el.getAsInt(); } catch (Exception e) {
+            try { return (int) Double.parseDouble(el.getAsString()); } catch (Exception e2) { return fallback; }
+        }
+    }
+
+    private static double getDoubleOr(JsonObject obj, String key, double fallback) {
+        JsonElement el = obj.get(key);
+        if (el == null || el.isJsonNull()) return fallback;
+        try { return el.getAsDouble(); } catch (Exception e) {
+            try { return Double.parseDouble(el.getAsString()); } catch (Exception e2) { return fallback; }
+        }
+    }
+
+    private static String getStringOr(JsonObject obj, String key, String fallback) {
+        JsonElement el = obj.get(key);
+        if (el == null || el.isJsonNull()) return fallback;
+        return el.getAsString();
+    }
+
+    private static class CachedLeaderboard {
+        final LeaderboardResult result;
+        final long timestamp;
+
+        CachedLeaderboard(LeaderboardResult result, long timestamp) {
+            this.result = result;
+            this.timestamp = timestamp;
+        }
+
+        boolean isExpired() {
+            return System.currentTimeMillis() - timestamp > CACHE_TTL_MS;
+        }
     }
 
     /**

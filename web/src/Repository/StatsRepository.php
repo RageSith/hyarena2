@@ -141,6 +141,67 @@ class StatsRepository
         return (int) $stmt->fetchColumn();
     }
 
+    public function getLeaderboardByGameMode(string $gameMode, string $sort = 'pvp_kills', string $order = 'DESC', int $limit = 25, int $offset = 0): array
+    {
+        $allowedSorts = ['pvp_kills', 'matches_won', 'pvp_kd_ratio', 'win_rate', 'pve_kills', 'matches_played', 'best_waves_survived'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'pvp_kills';
+        }
+        $order = strtoupper($order) === 'ASC' ? 'ASC' : 'DESC';
+
+        $db = Database::getConnection();
+
+        $sql = "
+            SELECT
+                p.username,
+                ps.player_uuid,
+                SUM(ps.pvp_kills) AS pvp_kills,
+                SUM(ps.pvp_deaths) AS pvp_deaths,
+                CASE WHEN SUM(ps.pvp_deaths) > 0
+                     THEN ROUND(SUM(ps.pvp_kills) / SUM(ps.pvp_deaths), 2)
+                     ELSE SUM(ps.pvp_kills)
+                END AS pvp_kd_ratio,
+                SUM(ps.matches_won) AS matches_won,
+                CASE WHEN SUM(ps.matches_played) > 0
+                     THEN ROUND(SUM(ps.matches_won) / SUM(ps.matches_played) * 100, 1)
+                     ELSE 0
+                END AS win_rate,
+                SUM(ps.pve_kills) AS pve_kills,
+                SUM(ps.pve_deaths) AS pve_deaths,
+                MAX(ps.best_waves_survived) AS best_waves_survived,
+                SUM(ps.matches_played) AS matches_played,
+                ROW_NUMBER() OVER (ORDER BY {$sort} {$order}) AS rank_position
+            FROM player_stats ps
+            JOIN arenas a ON ps.arena_id = a.id
+            JOIN players p ON ps.player_uuid = p.uuid
+            WHERE a.game_mode = :game_mode AND ps.matches_played > 0
+            GROUP BY ps.player_uuid, p.username
+            ORDER BY {$sort} {$order}
+            LIMIT :limit OFFSET :offset
+        ";
+        $stmt = $db->prepare($sql);
+        $stmt->bindValue('game_mode', $gameMode);
+        $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue('offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    public function getLeaderboardCountByGameMode(string $gameMode): int
+    {
+        $db = Database::getConnection();
+        $sql = "
+            SELECT COUNT(DISTINCT ps.player_uuid)
+            FROM player_stats ps
+            JOIN arenas a ON ps.arena_id = a.id
+            WHERE a.game_mode = :game_mode AND ps.matches_played > 0
+        ";
+        $stmt = $db->prepare($sql);
+        $stmt->bindValue('game_mode', $gameMode);
+        $stmt->execute();
+        return (int) $stmt->fetchColumn();
+    }
+
     public function getPlayerRecentMatches(string $playerUuid, int $limit = 10): array
     {
         $db = Database::getConnection();

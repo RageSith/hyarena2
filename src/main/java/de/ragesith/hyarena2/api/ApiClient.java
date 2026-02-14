@@ -47,6 +47,28 @@ public class ApiClient {
             });
     }
 
+    /**
+     * Sends an async GET request.
+     * Never blocks the calling thread. Errors are logged, never thrown.
+     */
+    public CompletableFuture<HttpResponse<String>> getAsync(String path) {
+        String url = baseUrl + path;
+
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .timeout(Duration.ofSeconds(30))
+            .header("Accept", "application/json")
+            .header("X-API-Key", apiKey)
+            .GET()
+            .build();
+
+        return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+            .exceptionally(ex -> {
+                System.err.println("[ApiClient] GET " + path + " failed: " + ex.getMessage());
+                return null;
+            });
+    }
+
     public String getBaseUrl() {
         return baseUrl;
     }

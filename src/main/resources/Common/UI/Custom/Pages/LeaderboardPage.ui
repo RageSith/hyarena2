@@ -1,0 +1,141 @@
+$C = "../Common.ui";
+
+Group #LeaderboardPage {
+    $C.@PageOverlay {}
+
+    $C.@DecoratedContainer {
+        @CloseButton = true;
+        Anchor: (Width: 780, Height: 540);
+
+        Group #Title {
+            $C.@Title #TitleLabel {
+                @Text = "Leaderboard";
+                Anchor: (Top: 12, Height: 24);
+            }
+        }
+
+        Group #Content {
+            Padding: (Full: 20);
+            Anchor: (Top: 35);
+            LayoutMode: Left;
+
+            // Left Column - Scope Tabs
+            Group #LeftColumn {
+                Anchor: (Width: 180);
+                LayoutMode: Top;
+
+                Label #ScopeHeader {
+                    Text: "Category";
+                    Anchor: (Height: 24);
+                    Style: (FontSize: 16, TextColor: #e8c872, RenderBold: true);
+                }
+
+                Group #ScopeList {
+                    Anchor: (Top: 6);
+                    FlexWeight: 1;
+                    LayoutMode: TopScrolling;
+                    ScrollbarStyle: $C.@DefaultScrollbarStyle;
+                }
+            }
+
+            // Vertical separator
+            $C.@VerticalSeparator {
+                Anchor: (Left: 12, Right: 12);
+            }
+
+            // Right Column - Leaderboard Data
+            Group #RightColumn {
+                FlexWeight: 1;
+                LayoutMode: Top;
+
+                Label #ScopeName {
+                    Text: "Global";
+                    Anchor: (Height: 24);
+                    Style: (FontSize: 16, TextColor: #e8c872, RenderBold: true);
+                }
+
+                Label #TotalPlayers {
+                    Text: "";
+                    Anchor: (Height: 18);
+                    Style: (FontSize: 11, TextColor: #96a9be);
+                }
+
+                // Column headers — same layout as LeaderboardRow.ui
+                Group #HeaderRow {
+                    Anchor: (Height: 24, Top: 8);
+                    LayoutMode: Left;
+
+                    Label #HdrRank {
+                        Text: "";
+                        Anchor: (Width: 30);
+                        Style: (FontSize: 11, TextColor: #e8c872, Alignment: Center, VerticalAlignment: Center, RenderBold: true);
+                    }
+
+                    Label #HdrName {
+                        Text: "Player";
+                        Anchor: (Width: 90);
+                        Style: (FontSize: 11, TextColor: #e8c872, VerticalAlignment: Center, RenderBold: true);
+                    }
+
+                    Label #HdrStat0 {
+                        Text: "";
+                        FlexWeight: 1;
+                        Style: (FontSize: 11, TextColor: #e8c872, Alignment: Center, VerticalAlignment: Center, RenderBold: true);
+                    }
+
+                    Label #HdrStat1 {
+                        Text: "";
+                        FlexWeight: 1;
+                        Style: (FontSize: 11, TextColor: #e8c872, Alignment: Center, VerticalAlignment: Center, RenderBold: true);
+                    }
+
+                    Label #HdrStat2 {
+                        Text: "";
+                        FlexWeight: 1;
+                        Style: (FontSize: 11, TextColor: #e8c872, Alignment: Center, VerticalAlignment: Center, RenderBold: true);
+                    }
+
+                    Label #HdrStat3 {
+                        Text: "";
+                        FlexWeight: 1;
+                        Style: (FontSize: 11, TextColor: #e8c872, Alignment: Center, VerticalAlignment: Center, RenderBold: true);
+                    }
+
+                    Label #HdrStat4 {
+                        Text: "";
+                        FlexWeight: 1;
+                        Style: (FontSize: 11, TextColor: #e8c872, Alignment: Center, VerticalAlignment: Center, RenderBold: true);
+                    }
+                }
+
+                Label #LoadingLabel {
+                    Text: "Loading...";
+                    Anchor: (Height: 30, Top: 8);
+                    Visible: false;
+                    Style: (FontSize: 14, TextColor: #96a9be, Alignment: Center);
+                }
+
+                Label #ErrorLabel {
+                    Text: "Failed to load leaderboard.";
+                    Anchor: (Height: 30);
+                    Visible: false;
+                    Style: (FontSize: 14, TextColor: #e74c3c, Alignment: Center);
+                }
+
+                Label #EmptyNotice {
+                    Text: "No data available yet.";
+                    Anchor: (Height: 30);
+                    Visible: false;
+                    Style: (FontSize: 14, TextColor: #96a9be, Alignment: Center);
+                }
+
+                Group #EntryList {
+                    Anchor: (Top: 4);
+                    FlexWeight: 1;
+                    LayoutMode: TopScrolling;
+                    ScrollbarStyle: $C.@DefaultScrollbarStyle;
+                }
+            }
+        }
+    }
+}

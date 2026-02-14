@@ -1,0 +1,46 @@
+Group #LBRow {
+    Anchor: (Height: 28);
+    LayoutMode: Left;
+
+    Label #Rank {
+        Text: "1";
+        Anchor: (Width: 30);
+        Style: (FontSize: 13, TextColor: #b7cedd, Alignment: Center, VerticalAlignment: Center, RenderBold: true);
+    }
+
+    Label #PlayerName {
+        Text: "Player";
+        Anchor: (Width: 90);
+        Style: (FontSize: 13, TextColor: #b7cedd, VerticalAlignment: Center);
+    }
+
+    Label #Stat0 {
+        Text: "";
+        FlexWeight: 1;
+        Style: (FontSize: 12, TextColor: #96a9be, Alignment: Center, VerticalAlignment: Center);
+    }
+
+    Label #Stat1 {
+        Text: "";
+        FlexWeight: 1;
+        Style: (FontSize: 12, TextColor: #96a9be, Alignment: Center, VerticalAlignment: Center);
+    }
+
+    Label #Stat2 {
+        Text: "";
+        FlexWeight: 1;
+        Style: (FontSize: 12, TextColor: #96a9be, Alignment: Center, VerticalAlignment: Center);
+    }
+
+    Label #Stat3 {
+        Text: "";
+        FlexWeight: 1;
+        Style: (FontSize: 12, TextColor: #96a9be, Alignment: Center, VerticalAlignment: Center);
+    }
+
+    Label #Stat4 {
+        Text: "";
+        FlexWeight: 1;
+        Style: (FontSize: 12, TextColor: #96a9be, Alignment: Center, VerticalAlignment: Center);
+    }
+}
