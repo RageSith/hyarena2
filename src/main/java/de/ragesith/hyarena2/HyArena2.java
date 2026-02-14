@@ -63,6 +63,9 @@ import de.ragesith.hyarena2.queue.Matchmaker;
 import de.ragesith.hyarena2.queue.QueueManager;
 import de.ragesith.hyarena2.shop.ShopConfig;
 import de.ragesith.hyarena2.shop.ShopManager;
+import de.ragesith.hyarena2.stats.StatsConfig;
+import de.ragesith.hyarena2.stats.StatsManager;
+import de.ragesith.hyarena2.api.ApiClient;
 import de.ragesith.hyarena2.ui.hud.HudManager;
 import de.ragesith.hyarena2.utils.ArenaCleanupUtil;
 import de.ragesith.hyarena2.utils.PlayerMovementControl;
@@ -102,6 +105,7 @@ public class HyArena2 extends JavaPlugin {
     private EconomyManager economyManager;
     private HonorManager honorManager;
     private ShopManager shopManager;
+    private StatsManager statsManager;
     private de.ragesith.hyarena2.chat.ChatManager chatManager;
 
     // Track known players (to detect world changes vs fresh joins)
@@ -232,10 +236,21 @@ public class HyArena2 extends JavaPlugin {
         }
         this.shopManager = new ShopManager(shopConfig, configManager, economyManager, playerDataManager, eventBus);
 
+        // Initialize stats tracking & web API
+        StatsConfig statsConfig = configManager.loadConfig("stats.json", StatsConfig.class);
+        if (statsConfig == null) {
+            statsConfig = new StatsConfig();
+            configManager.saveConfig("stats.json", statsConfig);
+            System.out.println("[HyArena2] Created default stats.json");
+        }
+        ApiClient apiClient = new ApiClient(statsConfig.getBaseUrl(), statsConfig.getApiKey());
+        this.statsManager = new StatsManager(statsConfig, apiClient, eventBus, matchManager, kitManager);
+        this.statsManager.subscribeToEvents();
+
         // Initialize chat formatting
         this.chatManager = new de.ragesith.hyarena2.chat.ChatManager(honorManager);
 
-        System.out.println("[HyArena2] Economy & shop system initialized");
+        System.out.println("[HyArena2] Economy, shop & stats system initialized");
 
         // Register commands
         this.getCommandRegistry().registerCommand(new ArenaCommand(this));
@@ -360,6 +375,17 @@ public class HyArena2 extends JavaPlugin {
                     System.err.println("[HyArena2] Error in honor decay tick: " + e.getMessage());
                 }
             }, 60, 60, TimeUnit.SECONDS);
+        }
+
+        // Stats config sync on startup (delayed to let arenas/kits fully load)
+        if (statsManager != null && statsManager.getConfig().isEnabled() && statsManager.getConfig().isSyncOnStartup()) {
+            scheduler.schedule(() -> {
+                try {
+                    statsManager.syncConfigsToWeb();
+                } catch (Exception e) {
+                    System.err.println("[HyArena2] Error in stats config sync: " + e.getMessage());
+                }
+            }, 5, TimeUnit.SECONDS);
         }
 
         // Economy auto-save every 5 minutes
@@ -723,6 +749,10 @@ public class HyArena2 extends JavaPlugin {
 
     public ShopManager getShopManager() {
         return shopManager;
+    }
+
+    public StatsManager getStatsManager() {
+        return statsManager;
     }
 
     public de.ragesith.hyarena2.chat.ChatManager getChatManager() {
