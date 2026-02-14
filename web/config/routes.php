@@ -35,6 +35,7 @@ return function (App $app) {
     $app->group('/api', function (RouteCollectorProxy $group) {
         $group->post('/match/submit', [ApiController::class, 'submitMatch']);
         $group->post('/sync', [ApiController::class, 'sync']);
+        $group->post('/player/sync', [ApiController::class, 'playerSync']);
         $group->post('/link/generate', [LinkController::class, 'generateCode']);
     })->add(new ApiKeyMiddleware())->add(new CorsMiddleware());
 

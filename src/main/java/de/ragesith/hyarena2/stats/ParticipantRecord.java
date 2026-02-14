@@ -24,6 +24,11 @@ public class ParticipantRecord {
     private double damageDealt;
     private double damageTaken;
 
+    // Economy snapshot (populated before API submission for non-bot participants)
+    private int arenaPoints;
+    private double honor;
+    private String honorRank;
+
     public ParticipantRecord(UUID uuid, String username, boolean isBot, BotDifficulty botDifficulty, String kitId) {
         this.uuid = uuid;
         this.username = username;
@@ -60,4 +65,12 @@ public class ParticipantRecord {
 
     public int getTotalKills() { return pvpKills + pveKills; }
     public int getTotalDeaths() { return pvpDeaths + pveDeaths; }
+
+    // Economy snapshot getters/setters
+    public int getArenaPoints() { return arenaPoints; }
+    public void setArenaPoints(int arenaPoints) { this.arenaPoints = arenaPoints; }
+    public double getHonor() { return honor; }
+    public void setHonor(double honor) { this.honor = honor; }
+    public String getHonorRank() { return honorRank; }
+    public void setHonorRank(String honorRank) { this.honorRank = honorRank; }
 }

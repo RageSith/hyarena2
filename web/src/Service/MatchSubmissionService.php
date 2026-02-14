@@ -84,6 +84,16 @@ class MatchSubmissionService
                     $this->statsRepo->updateStats($p['uuid'], $data['arena_id'], $statsData);
                     // Update global stats
                     $this->statsRepo->updateStats($p['uuid'], null, $statsData);
+
+                    // Update economy snapshot if provided
+                    if (isset($p['arena_points'])) {
+                        $this->playerRepo->updateEconomy(
+                            $p['uuid'],
+                            (int) $p['arena_points'],
+                            (int) ($p['honor'] ?? 0),
+                            $p['honor_rank'] ?? 'Unranked'
+                        );
+                    }
                 }
             }
 

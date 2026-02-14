@@ -192,4 +192,24 @@ class ApiController
             return $this->error($response, 'Failed to fetch kits', 'SERVER_ERROR', 500);
         }
     }
+
+    public function playerSync(Request $request, Response $response): Response
+    {
+        $data = $request->getParsedBody();
+        if (!$data) {
+            $data = json_decode((string) $request->getBody(), true);
+        }
+
+        if (empty($data['players']) || !is_array($data['players'])) {
+            return $this->error($response, 'Missing required field: players (array)', 'VALIDATION_ERROR');
+        }
+
+        try {
+            $playerRepo = new PlayerRepository();
+            $updated = $playerRepo->batchUpdateEconomy($data['players']);
+            return $this->success($response, ['updated' => $updated]);
+        } catch (\Exception $e) {
+            return $this->error($response, 'Player sync failed: ' . $e->getMessage(), 'SYNC_ERROR', 500);
+        }
+    }
 }

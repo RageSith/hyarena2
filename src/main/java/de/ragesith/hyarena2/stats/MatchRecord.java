@@ -91,8 +91,11 @@ public class MatchRecord {
             }
             p.addProperty("username", rec.getUsername());
             p.addProperty("is_bot", rec.isBot());
-            if (rec.isBot() && rec.getBotDifficulty() != null) {
-                p.addProperty("bot_difficulty", rec.getBotDifficulty().name());
+            if (rec.isBot()) {
+                p.addProperty("bot_name", rec.getUsername());
+                if (rec.getBotDifficulty() != null) {
+                    p.addProperty("bot_difficulty", rec.getBotDifficulty().name());
+                }
             }
             p.addProperty("kit_id", rec.getKitId());
             p.addProperty("pvp_kills", rec.getPvpKills());
@@ -102,6 +105,14 @@ public class MatchRecord {
             p.addProperty("damage_dealt", rec.getDamageDealt());
             p.addProperty("damage_taken", rec.getDamageTaken());
             p.addProperty("is_winner", rec.isWinner());
+
+            // Economy snapshot for non-bot participants
+            if (!rec.isBot()) {
+                p.addProperty("arena_points", rec.getArenaPoints());
+                p.addProperty("honor", (int) rec.getHonor());
+                p.addProperty("honor_rank", rec.getHonorRank());
+            }
+
             participantsArray.add(p);
         }
         json.add("participants", participantsArray);

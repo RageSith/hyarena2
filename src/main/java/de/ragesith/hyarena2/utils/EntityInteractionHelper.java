@@ -61,6 +61,23 @@ public class EntityInteractionHelper {
     }
 
     /**
+     * Cancels all pending interaction chains on an entity.
+     * Must be called before teleporting a player to prevent stale interaction
+     * chains from crashing the InteractionManager tick after world transfer.
+     */
+    public static void clearInteractions(Ref<EntityStore> ref, Store<EntityStore> store) {
+        if (ref == null || !ref.isValid() || store == null) return;
+        try {
+            InteractionManager im = store.getComponent(ref, getImType());
+            if (im != null) {
+                im.clear();
+            }
+        } catch (Exception e) {
+            // Entity may already be removed — safe to ignore
+        }
+    }
+
+    /**
      * Classifies an interaction ID string into an InteractionKind.
      */
     public static InteractionKind classifyInteraction(String interactionId) {

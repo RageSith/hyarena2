@@ -39,6 +39,7 @@ import de.ragesith.hyarena2.bot.BotManager;
 import de.ragesith.hyarena2.bot.BotParticipant;
 
 import de.ragesith.hyarena2.boundary.BoundaryManager;
+import de.ragesith.hyarena2.utils.EntityInteractionHelper;
 import de.ragesith.hyarena2.utils.PlayerMovementControl;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -442,6 +443,7 @@ public class Match {
         // Teleport player back to hub and unfreeze
         Player player = getPlayerFromUuid(uuid);
         if (player != null) {
+            clearPlayerInteractions(uuid);
             hubManager.teleportToHub(player, () -> {
                 // Unfreeze after teleport to hub (runs on hub world thread via HubManager)
                 PlayerRef playerRef = Universe.get().getPlayer(uuid);
@@ -671,6 +673,7 @@ public class Match {
                     if (kitManager != null) {
                         kitManager.clearKit(player);
                     }
+                    clearPlayerInteractions(participantUuid);
                     hubManager.teleportToHub(player, () -> {
                         // Unfreeze after teleport to hub (runs on hub world thread via HubManager)
                         PlayerRef playerRef = Universe.get().getPlayer(participantUuid);
@@ -724,6 +727,7 @@ public class Match {
                     if (kitManager != null) {
                         kitManager.clearKit(player);
                     }
+                    clearPlayerInteractions(participantUuid);
                     hubManager.teleportToHub(player, () -> {
                         // Unfreeze after teleport to hub (runs on hub world thread via HubManager)
                         PlayerRef playerRef = Universe.get().getPlayer(participantUuid);
@@ -929,6 +933,7 @@ public class Match {
                 if (kitManager != null) {
                     kitManager.clearKit(deadPlayer);
                 }
+                clearPlayerInteractions(deadUuid);
                 hubManager.teleportToHub(deadPlayer, () -> {
                     PlayerRef playerRef = Universe.get().getPlayer(deadUuid);
                     if (playerRef != null) {
@@ -1285,6 +1290,21 @@ public class Match {
         Store<EntityStore> store = ref.getStore();
         if (store == null) return null;
         return store.getComponent(ref, Player.getComponentType());
+    }
+
+    /**
+     * Cancels all pending interaction chains on a player before teleporting.
+     * Prevents stale interaction chains from crashing the InteractionManager
+     * tick after a world transfer.
+     */
+    private void clearPlayerInteractions(UUID uuid) {
+        PlayerRef playerRef = Universe.get().getPlayer(uuid);
+        if (playerRef == null) return;
+        Ref<EntityStore> ref = playerRef.getReference();
+        if (ref == null) return;
+        Store<EntityStore> store = ref.getStore();
+        if (store == null) return;
+        EntityInteractionHelper.clearInteractions(ref, store);
     }
 
     /**

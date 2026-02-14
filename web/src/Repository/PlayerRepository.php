@@ -57,4 +57,53 @@ class PlayerRepository
         $stmt = $db->prepare('UPDATE players SET honor = :honor, honor_rank = :rank WHERE uuid = :uuid');
         $stmt->execute(['honor' => $honor, 'rank' => $rank, 'uuid' => $uuid]);
     }
+
+    public function updateEconomy(string $uuid, int $arenaPoints, int $honor, string $honorRank): void
+    {
+        $db = Database::getConnection();
+        $stmt = $db->prepare('
+            UPDATE players
+            SET arena_points = :ap, honor = :honor, honor_rank = :rank
+            WHERE uuid = :uuid
+        ');
+        $stmt->execute([
+            'ap' => $arenaPoints,
+            'honor' => $honor,
+            'rank' => $honorRank,
+            'uuid' => $uuid,
+        ]);
+    }
+
+    public function batchUpdateEconomy(array $players): int
+    {
+        if (empty($players)) {
+            return 0;
+        }
+
+        $db = Database::getConnection();
+        $stmt = $db->prepare('
+            INSERT INTO players (uuid, username, arena_points, honor, honor_rank)
+            VALUES (:uuid, :username, :ap, :honor, :rank)
+            ON DUPLICATE KEY UPDATE
+                username = VALUES(username),
+                arena_points = VALUES(arena_points),
+                honor = VALUES(honor),
+                honor_rank = VALUES(honor_rank),
+                last_seen = CURRENT_TIMESTAMP
+        ');
+
+        $updated = 0;
+        foreach ($players as $p) {
+            $stmt->execute([
+                'uuid' => $p['uuid'],
+                'username' => $p['username'],
+                'ap' => (int) ($p['arena_points'] ?? 0),
+                'honor' => (int) ($p['honor'] ?? 0),
+                'rank' => $p['honor_rank'] ?? 'Unranked',
+            ]);
+            $updated++;
+        }
+
+        return $updated;
+    }
 }

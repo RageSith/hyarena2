@@ -244,8 +244,9 @@ public class HyArena2 extends JavaPlugin {
             System.out.println("[HyArena2] Created default stats.json");
         }
         ApiClient apiClient = new ApiClient(statsConfig.getBaseUrl(), statsConfig.getApiKey());
-        this.statsManager = new StatsManager(statsConfig, apiClient, eventBus, matchManager, kitManager);
+        this.statsManager = new StatsManager(statsConfig, apiClient, eventBus, matchManager, kitManager, economyManager, honorManager);
         this.statsManager.subscribeToEvents();
+        this.statsManager.initSyncScheduler(scheduler);
 
         // Initialize chat formatting
         this.chatManager = new de.ragesith.hyarena2.chat.ChatManager(honorManager);
@@ -411,6 +412,11 @@ public class HyArena2 extends JavaPlugin {
         // Despawn hub holograms so they don't persist as orphans across restarts
         if (hubManager != null) {
             hubManager.despawnHubHolograms();
+        }
+
+        // Flush remaining dirty economy data to web API before saving locally
+        if (statsManager != null) {
+            statsManager.shutdown();
         }
 
         if (economyManager != null) {
@@ -644,6 +650,11 @@ public class HyArena2 extends JavaPlugin {
 
         // Remove from match if in one
         matchManager.removePlayerFromMatch(playerId, "Disconnected");
+
+        // Flush economy to web API before saving/unloading
+        if (statsManager != null) {
+            statsManager.flushPlayerEconomy(playerId);
+        }
 
         // Save and unload economy data
         if (economyManager != null) {

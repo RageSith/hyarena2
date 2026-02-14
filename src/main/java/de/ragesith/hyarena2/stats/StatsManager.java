@@ -10,7 +10,13 @@ import de.ragesith.hyarena2.arena.ArenaConfig;
 import de.ragesith.hyarena2.arena.MatchManager;
 import de.ragesith.hyarena2.bot.BotDifficulty;
 import de.ragesith.hyarena2.bot.BotParticipant;
+import de.ragesith.hyarena2.economy.EconomyManager;
+import de.ragesith.hyarena2.economy.HonorManager;
 import de.ragesith.hyarena2.event.EventBus;
+import de.ragesith.hyarena2.event.economy.ArenaPointsEarnedEvent;
+import de.ragesith.hyarena2.event.economy.ArenaPointsSpentEvent;
+import de.ragesith.hyarena2.event.economy.HonorEarnedEvent;
+import de.ragesith.hyarena2.event.economy.HonorRankChangedEvent;
 import de.ragesith.hyarena2.event.match.MatchCreatedEvent;
 import de.ragesith.hyarena2.event.match.MatchEndedEvent;
 import de.ragesith.hyarena2.event.match.MatchFinishedEvent;
@@ -25,10 +31,15 @@ import de.ragesith.hyarena2.participant.ParticipantType;
 
 import java.net.http.HttpResponse;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Orchestrates match stats recording and web API submission.
@@ -36,22 +47,34 @@ import java.util.concurrent.ConcurrentHashMap;
  * so eliminated players' stats are preserved.
  */
 public class StatsManager {
+    private static final long FLUSH_DELAY_MS = 2000; // 2s debounce
+
     private final StatsConfig config;
     private final ApiClient apiClient;
     private final EventBus eventBus;
     private final MatchManager matchManager;
     private final KitManager kitManager;
+    private final EconomyManager economyManager;
+    private final HonorManager honorManager;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
     private final Map<UUID, MatchRecord> activeRecords = new ConcurrentHashMap<>();
 
+    // Dirty-player sync for economy pushes
+    private final Set<UUID> dirtyPlayers = ConcurrentHashMap.newKeySet();
+    private volatile ScheduledExecutorService syncScheduler;
+    private volatile ScheduledFuture<?> pendingFlush;
+
     public StatsManager(StatsConfig config, ApiClient apiClient, EventBus eventBus,
-                        MatchManager matchManager, KitManager kitManager) {
+                        MatchManager matchManager, KitManager kitManager,
+                        EconomyManager economyManager, HonorManager honorManager) {
         this.config = config;
         this.apiClient = apiClient;
         this.eventBus = eventBus;
         this.matchManager = matchManager;
         this.kitManager = kitManager;
+        this.economyManager = economyManager;
+        this.honorManager = honorManager;
     }
 
     /**
@@ -66,7 +89,14 @@ public class StatsManager {
         eventBus.subscribe(ParticipantDamagedEvent.class, this::onParticipantDamaged);
         eventBus.subscribe(MatchEndedEvent.class, this::onMatchEnded);
         eventBus.subscribe(MatchFinishedEvent.class, this::onMatchFinished);
-        System.out.println("[StatsManager] Subscribed to match/participant events");
+
+        // Economy events — mark players dirty for web sync
+        eventBus.subscribe(ArenaPointsEarnedEvent.class, e -> markDirty(e.getPlayerUuid()));
+        eventBus.subscribe(ArenaPointsSpentEvent.class, e -> markDirty(e.getPlayerUuid()));
+        eventBus.subscribe(HonorEarnedEvent.class, e -> markDirty(e.getPlayerUuid()));
+        eventBus.subscribe(HonorRankChangedEvent.class, e -> markDirty(e.getPlayerUuid()));
+
+        System.out.println("[StatsManager] Subscribed to match/participant/economy events");
     }
 
     // ========== Event Handlers ==========
@@ -188,6 +218,15 @@ public class StatsManager {
             record.getParticipants().size() + " participants, " +
             record.getDurationSeconds() + "s)");
 
+        // Snapshot economy data onto each non-bot participant before submission
+        for (ParticipantRecord rec : record.getParticipants().values()) {
+            if (!rec.isBot() && rec.getUuid() != null) {
+                rec.setArenaPoints(economyManager.getArenaPoints(rec.getUuid()));
+                rec.setHonor(economyManager.getHonor(rec.getUuid()));
+                rec.setHonorRank(honorManager.getRankDisplayName(rec.getUuid()));
+            }
+        }
+
         if (config.isEnabled()) {
             submitMatchRecord(record);
         }
@@ -263,6 +302,134 @@ public class StatsManager {
                         response.statusCode() + ": " + response.body());
                 }
             });
+    }
+
+    // ========== Dirty-Player Economy Sync ==========
+
+    /**
+     * Marks a player as dirty so their economy data will be pushed to the web API.
+     * Schedules a debounced flush if one isn't already pending.
+     */
+    private void markDirty(UUID uuid) {
+        if (!config.isEnabled() || syncScheduler == null) return;
+        dirtyPlayers.add(uuid);
+
+        if (pendingFlush == null || pendingFlush.isDone()) {
+            pendingFlush = syncScheduler.schedule(this::flushDirtyPlayers, FLUSH_DELAY_MS, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    /**
+     * Flushes all dirty players' economy data to the web API.
+     * Snapshots and clears the dirty set, then POSTs a batch update.
+     * On failure, re-adds UUIDs for retry on the next flush.
+     */
+    private void flushDirtyPlayers() {
+        if (dirtyPlayers.isEmpty()) return;
+
+        // Snapshot and clear
+        List<UUID> toFlush = new ArrayList<>(dirtyPlayers);
+        dirtyPlayers.removeAll(toFlush);
+
+        JsonObject payload = new JsonObject();
+        JsonArray playersArray = new JsonArray();
+
+        for (UUID uuid : toFlush) {
+            var playerData = economyManager.getPlayerData(uuid);
+            if (playerData == null) continue;
+
+            JsonObject p = new JsonObject();
+            p.addProperty("uuid", uuid.toString());
+            p.addProperty("username", playerData.getPlayerName());
+            p.addProperty("arena_points", economyManager.getArenaPoints(uuid));
+            p.addProperty("honor", (int) economyManager.getHonor(uuid));
+            p.addProperty("honor_rank", honorManager.getRankDisplayName(uuid));
+            playersArray.add(p);
+        }
+
+        if (playersArray.isEmpty()) return;
+
+        payload.add("players", playersArray);
+        String json = gson.toJson(payload);
+
+        System.out.println("[StatsManager] Flushing economy data for " + playersArray.size() + " player(s)");
+
+        apiClient.postAsync("/api/player/sync", json)
+            .thenAccept(response -> {
+                if (response == null) {
+                    // Network error — re-add for retry
+                    dirtyPlayers.addAll(toFlush);
+                    return;
+                }
+                if (response.statusCode() == 200) {
+                    System.out.println("[StatsManager] Economy sync successful for " + playersArray.size() + " player(s)");
+                } else {
+                    System.err.println("[StatsManager] Economy sync returned HTTP " +
+                        response.statusCode() + ": " + response.body());
+                    dirtyPlayers.addAll(toFlush);
+                }
+            });
+    }
+
+    /**
+     * Eagerly flushes a single player's economy data (e.g. on disconnect).
+     */
+    public void flushPlayerEconomy(UUID uuid) {
+        if (!config.isEnabled()) return;
+
+        // Remove from dirty set so the periodic flush won't duplicate
+        dirtyPlayers.remove(uuid);
+
+        var playerData = economyManager.getPlayerData(uuid);
+        if (playerData == null) return;
+
+        JsonObject payload = new JsonObject();
+        JsonArray playersArray = new JsonArray();
+
+        JsonObject p = new JsonObject();
+        p.addProperty("uuid", uuid.toString());
+        p.addProperty("username", playerData.getPlayerName());
+        p.addProperty("arena_points", economyManager.getArenaPoints(uuid));
+        p.addProperty("honor", (int) economyManager.getHonor(uuid));
+        p.addProperty("honor_rank", honorManager.getRankDisplayName(uuid));
+        playersArray.add(p);
+
+        payload.add("players", playersArray);
+        String json = gson.toJson(payload);
+
+        apiClient.postAsync("/api/player/sync", json)
+            .thenAccept(response -> {
+                if (response != null && response.statusCode() == 200) {
+                    System.out.println("[StatsManager] Disconnect flush for " + playerData.getPlayerName() + " successful");
+                }
+            });
+    }
+
+    /**
+     * Initializes the sync scheduler for periodic and debounced economy flushes.
+     * Must be called after subscribeToEvents().
+     */
+    public void initSyncScheduler(ScheduledExecutorService scheduler) {
+        this.syncScheduler = scheduler;
+
+        // Safety-net periodic flush every 5 minutes
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                flushDirtyPlayers();
+            } catch (Exception e) {
+                System.err.println("[StatsManager] Error in periodic economy flush: " + e.getMessage());
+            }
+        }, 5, 5, TimeUnit.MINUTES);
+
+        System.out.println("[StatsManager] Sync scheduler initialized (5-min safety-net flush)");
+    }
+
+    /**
+     * Performs a final flush of all dirty players on shutdown.
+     */
+    public void shutdown() {
+        System.out.println("[StatsManager] Shutting down, flushing remaining dirty players...");
+        flushDirtyPlayers();
     }
 
     public StatsConfig getConfig() {
