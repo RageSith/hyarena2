@@ -142,8 +142,8 @@ async function loadRecentMatches() {
                 let winnerDisplay;
                 let detailSpan;
 
-                if (isWaveDefense && maxWaves != null) {
-                    winnerDisplay = `Wave ${maxWaves}`;
+                if (isWaveDefense) {
+                    winnerDisplay = maxWaves != null ? `Wave ${maxWaves}` : 'Wave Defense';
                     detailSpan = `<span class="vs">survived in ${duration}</span>`;
                 } else if (!match.winner_name && !match.winner_bot_name) {
                     winnerDisplay = 'Draw';
@@ -230,9 +230,10 @@ async function showMatchDetails(matchId) {
         // Result row
         let resultLabel, resultHtml;
         if (isWaveDefense) {
-            const maxWaves = Math.max(...participants.map(p => p.waves_survived ?? 0));
+            const wavesValues = participants.map(p => p.waves_survived).filter(w => w != null);
+            const maxWaves = wavesValues.length > 0 ? Math.max(...wavesValues) : null;
             resultLabel = 'Best Wave';
-            resultHtml = `Wave ${maxWaves}`;
+            resultHtml = maxWaves != null ? `Wave ${maxWaves}` : 'N/A';
         } else if (!match.winner_name) {
             resultLabel = 'Winner';
             resultHtml = '<span class="no-data-text">Draw</span>';

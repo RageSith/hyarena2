@@ -12,6 +12,7 @@ import de.ragesith.hyarena2.arena.MatchManager;
 import de.ragesith.hyarena2.bot.BotDifficulty;
 import de.ragesith.hyarena2.bot.BotParticipant;
 import de.ragesith.hyarena2.gamemode.GameMode;
+import de.ragesith.hyarena2.gamemode.WaveDefenseGameMode;
 import de.ragesith.hyarena2.economy.EconomyManager;
 import de.ragesith.hyarena2.economy.HonorManager;
 import de.ragesith.hyarena2.event.EventBus;
@@ -213,6 +214,19 @@ public class StatsManager {
                 int waves = gameMode.getParticipantWavesSurvived(event.getMatchId(), entry.getKey());
                 if (waves >= 0) {
                     entry.getValue().setWavesSurvived(waves);
+                }
+            }
+
+            // Fallback: if any player participant still has no wave data, use the match's current wave.
+            // This covers edge cases where onParticipantKilled didn't record the wave (e.g. concurrent matches
+            // causing the matchStates iteration to find the wrong state).
+            if (gameMode instanceof WaveDefenseGameMode wdgm) {
+                int currentWave = wdgm.getCurrentWave(event.getMatchId());
+                for (ParticipantRecord pr : record.getParticipants().values()) {
+                    if (!pr.isBot() && pr.getWavesSurvived() < 0) {
+                        pr.setWavesSurvived(Math.max(0, currentWave > 0 ? currentWave - 1 : 0));
+                        System.out.println("[StatsManager] Wave fallback for " + pr.getUsername() + ": wave " + pr.getWavesSurvived());
+                    }
                 }
             }
         }
