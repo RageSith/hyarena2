@@ -86,6 +86,12 @@ class MatchSubmissionService
                     // Update per-arena stats (global stats derived from view)
                     $this->statsRepo->updateStats($p['uuid'], $data['arena_id'], $statsData);
 
+                    // Update per-kit stats
+                    $kitId = $p['kit_id'] ?? null;
+                    if ($kitId !== null) {
+                        $this->statsRepo->updateKitStats($p['uuid'], $kitId, $statsData);
+                    }
+
                     // Update economy snapshot if provided
                     if (isset($p['arena_points'])) {
                         $this->playerRepo->updateEconomy(

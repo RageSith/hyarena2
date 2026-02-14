@@ -91,6 +91,56 @@ function displayPlayerProfile(data) {
         : (globalStats.pve_kills || 0).toFixed(2);
     setStatText('stat-pve-kd', pveKd);
 
+    // Kit Stats
+    const kitStats = data.kit_stats || [];
+    const kitContainer = document.getElementById('kit-stats-container');
+    if (kitContainer) {
+        if (kitStats.length > 0) {
+            const rows = kitStats.map(kit => {
+                const avgDmg = kit.matches_played > 0
+                    ? Math.round(kit.damage_dealt / kit.matches_played)
+                    : 0;
+                return `
+                    <tr>
+                        <td class="col-kit">${escapeHtml(kit.kit_name || kit.kit_id)}</td>
+                        <td class="col-stat">${kit.matches_played}</td>
+                        <td class="col-stat col-usage">
+                            <div class="usage-bar-wrapper">
+                                <div class="usage-bar-fill" style="width: ${parseFloat(kit.usage_pct || 0)}%"></div>
+                                <span class="usage-bar-text">${parseFloat(kit.usage_pct || 0).toFixed(1)}%</span>
+                            </div>
+                        </td>
+                        <td class="col-stat">${kit.matches_won}</td>
+                        <td class="col-stat highlight">${parseFloat(kit.win_rate || 0).toFixed(1)}%</td>
+                        <td class="col-stat highlight">${parseFloat(kit.pvp_kd_ratio || 0).toFixed(2)}</td>
+                        <td class="col-stat pve-stat">${parseFloat(kit.pve_kd_ratio || 0).toFixed(2)}</td>
+                        <td class="col-stat">${formatNumber(avgDmg)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            kitContainer.innerHTML = `
+                <table class="kit-stats-table">
+                    <thead>
+                        <tr>
+                            <th class="col-kit">Kit</th>
+                            <th class="col-stat">Matches</th>
+                            <th class="col-stat col-usage">Usage</th>
+                            <th class="col-stat">Wins</th>
+                            <th class="col-stat">Win Rate</th>
+                            <th class="col-stat">PvP K/D</th>
+                            <th class="col-stat">PvE K/D</th>
+                            <th class="col-stat">Avg Dmg</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        } else {
+            kitContainer.innerHTML = '<div class="no-data-message"><p>No kit statistics yet.</p></div>';
+        }
+    }
+
     // Arena Stats
     const arenaContainer = document.getElementById('arena-stats-list');
     if (arenaContainer) {

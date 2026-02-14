@@ -175,12 +175,14 @@ class ApiController
 
             $globalStats = $statsRepo->getGlobalStats($player['uuid']);
             $arenaStats = $statsRepo->getArenaStats($player['uuid']);
+            $kitStats = $statsRepo->getKitStats($player['uuid']);
             $recentMatches = $statsRepo->getPlayerRecentMatches($player['uuid']);
 
             return $this->success($response, [
                 'player' => $player,
                 'global_stats' => $globalStats,
                 'arena_stats' => $arenaStats,
+                'kit_stats' => $kitStats,
                 'recent_matches' => $recentMatches,
             ]);
         } catch (\Exception $e) {

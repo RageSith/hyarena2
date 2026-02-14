@@ -3257,6 +3257,131 @@ ul {
     color: var(--color-text);
 }
 
+/* Kit Stats */
+.player-kit-stats {
+    margin-bottom: var(--space-3xl);
+}
+
+.kit-stats-table-wrapper {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.kit-stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+.kit-stats-table thead {
+    background: var(--color-bg-light);
+}
+
+.kit-stats-table th {
+    padding: var(--space-md) var(--space-lg);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+.kit-stats-table th.col-kit {
+    text-align: left;
+}
+
+.kit-stats-table th.col-stat {
+    text-align: right;
+}
+
+.kit-stats-table th.col-usage {
+    text-align: center;
+    min-width: 120px;
+}
+
+.kit-stats-table tbody tr {
+    border-bottom: 1px solid var(--color-border);
+    transition: background 0.15s ease;
+}
+
+.kit-stats-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.kit-stats-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.kit-stats-table td {
+    padding: var(--space-md) var(--space-lg);
+}
+
+.kit-stats-table td.col-kit {
+    text-align: left;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.kit-stats-table td.col-stat {
+    text-align: right;
+    font-family: var(--font-display);
+    color: var(--color-text);
+}
+
+.kit-stats-table td.col-stat.highlight {
+    color: var(--color-primary-light);
+}
+
+.kit-stats-table td.col-stat.pve-stat {
+    color: var(--color-text-muted);
+}
+
+.kit-stats-table td.col-usage {
+    text-align: center;
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+}
+
+.usage-bar-wrapper {
+    position: relative;
+    height: 24px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.usage-bar-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(224, 122, 47, 0.3), rgba(224, 122, 47, 0.15));
+    border-radius: var(--radius-sm);
+    transition: width 0.3s ease;
+}
+
+.usage-bar-text {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-size: 0.8rem;
+    font-family: var(--font-display);
+    color: var(--color-text);
+}
+
+@media (max-width: 768px) {
+    .kit-stats-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
 /* Recent Matches */
 .player-recent-matches {
     margin-bottom: var(--space-3xl);

@@ -53,6 +53,61 @@ class StatsRepository
         ]);
     }
 
+    public function updateKitStats(string $playerUuid, string $kitId, array $data): void
+    {
+        $db = Database::getConnection();
+        $stmt = $db->prepare('
+            INSERT INTO player_kit_stats
+                (player_uuid, kit_id, matches_played, matches_won,
+                 pvp_kills, pvp_deaths, pve_kills, pve_deaths,
+                 damage_dealt, damage_taken)
+            VALUES
+                (:uuid, :kit_id, :played, :won,
+                 :pvp_kills, :pvp_deaths, :pve_kills, :pve_deaths,
+                 :dmg_dealt, :dmg_taken)
+            ON DUPLICATE KEY UPDATE
+                matches_played = matches_played + VALUES(matches_played),
+                matches_won = matches_won + VALUES(matches_won),
+                pvp_kills = pvp_kills + VALUES(pvp_kills),
+                pvp_deaths = pvp_deaths + VALUES(pvp_deaths),
+                pve_kills = pve_kills + VALUES(pve_kills),
+                pve_deaths = pve_deaths + VALUES(pve_deaths),
+                damage_dealt = damage_dealt + VALUES(damage_dealt),
+                damage_taken = damage_taken + VALUES(damage_taken)
+        ');
+        $stmt->execute([
+            'uuid' => $playerUuid,
+            'kit_id' => $kitId,
+            'played' => $data['matches_played'] ?? 0,
+            'won' => $data['matches_won'] ?? 0,
+            'pvp_kills' => $data['pvp_kills'] ?? 0,
+            'pvp_deaths' => $data['pvp_deaths'] ?? 0,
+            'pve_kills' => $data['pve_kills'] ?? 0,
+            'pve_deaths' => $data['pve_deaths'] ?? 0,
+            'dmg_dealt' => $data['damage_dealt'] ?? 0,
+            'dmg_taken' => $data['damage_taken'] ?? 0,
+        ]);
+    }
+
+    public function getKitStats(string $playerUuid): array
+    {
+        $db = Database::getConnection();
+        $stmt = $db->prepare('
+            SELECT
+                pks.*,
+                k.display_name AS kit_name,
+                ROUND(pks.matches_played / GREATEST(
+                    (SELECT SUM(matches_played) FROM player_kit_stats WHERE player_uuid = :uuid2), 1
+                ) * 100, 1) AS usage_pct
+            FROM player_kit_stats pks
+            JOIN kits k ON pks.kit_id = k.id
+            WHERE pks.player_uuid = :uuid
+            ORDER BY pks.matches_played DESC
+        ');
+        $stmt->execute(['uuid' => $playerUuid, 'uuid2' => $playerUuid]);
+        return $stmt->fetchAll();
+    }
+
     public function getTotalKills(): int
     {
         $db = Database::getConnection();

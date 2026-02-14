@@ -130,6 +130,33 @@ CREATE TABLE IF NOT EXISTS `player_stats` (
     CONSTRAINT `fk_stats_arena` FOREIGN KEY (`arena_id`) REFERENCES `arenas`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Player Kit Stats (per-kit aggregates)
+CREATE TABLE IF NOT EXISTS `player_kit_stats` (
+    `player_uuid` CHAR(36) NOT NULL,
+    `kit_id` VARCHAR(64) NOT NULL,
+    `matches_played` INT UNSIGNED NOT NULL DEFAULT 0,
+    `matches_won` INT UNSIGNED NOT NULL DEFAULT 0,
+    `pvp_kills` INT UNSIGNED NOT NULL DEFAULT 0,
+    `pvp_deaths` INT UNSIGNED NOT NULL DEFAULT 0,
+    `pve_kills` INT UNSIGNED NOT NULL DEFAULT 0,
+    `pve_deaths` INT UNSIGNED NOT NULL DEFAULT 0,
+    `damage_dealt` DOUBLE NOT NULL DEFAULT 0,
+    `damage_taken` DOUBLE NOT NULL DEFAULT 0,
+    `pvp_kd_ratio` DOUBLE GENERATED ALWAYS AS (
+        CASE WHEN `pvp_deaths` = 0 THEN `pvp_kills` ELSE ROUND(`pvp_kills` / `pvp_deaths`, 2) END
+    ) STORED,
+    `pve_kd_ratio` DOUBLE GENERATED ALWAYS AS (
+        CASE WHEN `pve_deaths` = 0 THEN `pve_kills` ELSE ROUND(`pve_kills` / `pve_deaths`, 2) END
+    ) STORED,
+    `win_rate` DOUBLE GENERATED ALWAYS AS (
+        CASE WHEN `matches_played` = 0 THEN 0 ELSE ROUND(`matches_won` / `matches_played` * 100, 1) END
+    ) STORED,
+    UNIQUE INDEX `idx_player_kit` (`player_uuid`, `kit_id`),
+    INDEX `idx_matches_played` (`matches_played` DESC),
+    CONSTRAINT `fk_kit_stats_player` FOREIGN KEY (`player_uuid`) REFERENCES `players`(`uuid`) ON DELETE CASCADE,
+    CONSTRAINT `fk_kit_stats_kit` FOREIGN KEY (`kit_id`) REFERENCES `kits`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Global stats view (aggregates all per-arena rows per player)
 -- Win rate excludes wave_defense arenas (no winner concept)
 CREATE OR REPLACE VIEW `player_global_stats` AS
