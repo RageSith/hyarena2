@@ -5,7 +5,7 @@ Group #AdminPanelPage {
 
     $C.@DecoratedContainer {
         @CloseButton = true;
-        Anchor: (Width: 420, Height: 432);
+        Anchor: (Width: 420, Height: 488);
 
         Group #Title {
             $C.@Title #TitleLabel {
@@ -54,10 +54,16 @@ Group #AdminPanelPage {
                 @Anchor = (Top: 12);
             }
 
+            // Hub Teleport Button
+            $C.@SecondaryTextButton #HubTeleportBtn {
+                @Text = "Teleport to Hub";
+                @Anchor = (Height: 44, Top: 12);
+            }
+
             // Reload All Configs Button
             $C.@SecondaryTextButton #ReloadBtn {
                 @Text = "Reload All Configs";
-                @Anchor = (Height: 44, Top: 12);
+                @Anchor = (Height: 44, Top: 8);
             }
 
             // Status Message

@@ -107,6 +107,13 @@ public class AdminPanelPage extends InteractiveCustomUIPage<AdminPanelPage.PageE
 
         events.addEventBinding(
             CustomUIEventBindingType.Activating,
+            "#HubTeleportBtn",
+            EventData.of("Action", "hub_tp"),
+            false
+        );
+
+        events.addEventBinding(
+            CustomUIEventBindingType.Activating,
             "#ReloadBtn",
             EventData.of("Action", "reload"),
             false
@@ -153,6 +160,12 @@ public class AdminPanelPage extends InteractiveCustomUIPage<AdminPanelPage.PageE
 
                 case "holograms":
                     openHologramList(ref, store, player);
+                    break;
+
+                case "hub_tp":
+                    active = false;
+                    player.getPageManager().setPage(ref, store, Page.None);
+                    hubManager.teleportToHub(player);
                     break;
 
                 case "reload":
