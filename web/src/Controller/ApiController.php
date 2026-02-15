@@ -242,7 +242,7 @@ class ApiController
     {
         try {
             $kitRepo = new KitRepository();
-            return $this->success($response, $kitRepo->getAll());
+            return $this->success($response, ['kits' => $kitRepo->getVisibleWithStats()]);
         } catch (\Exception $e) {
             return $this->error($response, 'Failed to fetch kits', 'SERVER_ERROR', 500);
         }

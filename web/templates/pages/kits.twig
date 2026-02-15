@@ -12,55 +12,26 @@
             </svg>
             Kits
         </h1>
-        <p class="page-hero-subtitle">Themed kits for different playstyles. Master your favorite or adapt to the arena.</p>
+        <p class="page-hero-subtitle">Every kit brings its own identity to the arena &mdash; from aggressive rushdown to calculated range play. We're regularly adding new kits to keep the meta fresh and give you more ways to express your playstyle.</p>
     </div>
 </section>
 
-<!-- Kits Section -->
-<section class="section kits">
+<!-- Kits Overview -->
+<section class="section kits-overview">
     <div class="container">
-        <div class="kits-grid">
-            <article class="kit-card">
-                <div class="kit-icon warrior">
-                    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M32 8v40M24 16h16M20 48h24M28 48v8M36 48v8"/>
-                    </svg>
-                </div>
-                <h3 class="kit-title">Warrior</h3>
-                <p class="kit-desc">Heavy armor, devastating melee. Go in and don't back down.</p>
-            </article>
+        <div id="kits-loading" class="kits-loading">
+            <div class="spinner"></div>
+            <p>Loading kit data...</p>
+        </div>
 
-            <article class="kit-card">
-                <div class="kit-icon archer">
-                    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M16 48L48 16M16 48c-4-4-4-12 0-16M16 48c4 4 12 4 16 0M44 20l4-4M40 24l4-4"/>
-                    </svg>
-                </div>
-                <h3 class="kit-title">Archer</h3>
-                <p class="kit-desc">Precision from a distance. Control the battlefield and punish mistakes.</p>
-            </article>
+        <div id="kits-content" style="display: none;">
+            <h2 class="section-title">Kit Usage</h2>
+            <p class="section-subtitle">Server-wide statistics across all players and matches.</p>
+            <div id="kits-stats-container"></div>
 
-            <article class="kit-card">
-                <div class="kit-icon rogue">
-                    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M20 44L44 20M32 8c0 8-8 16-16 16M32 56c0-8 8-16 16-16"/>
-                    </svg>
-                </div>
-                <h3 class="kit-title">Rogue</h3>
-                <p class="kit-desc">Speed and cunning. Strike fast, vanish faster. Outsmart your opponents.</p>
-            </article>
-
-            <article class="kit-card kit-more">
-                <div class="kit-icon more">
-                    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <circle cx="20" cy="32" r="4"/>
-                        <circle cx="32" cy="32" r="4"/>
-                        <circle cx="44" cy="32" r="4"/>
-                    </svg>
-                </div>
-                <h3 class="kit-title">More Coming</h3>
-                <p class="kit-desc">Arena-specific kits and creative roles. The roster is growing steadily.</p>
-            </article>
+            <h2 class="section-title" style="margin-top: var(--space-4xl);">Available Kits</h2>
+            <p class="section-subtitle">Choose a kit that matches your playstyle and dominate the arena.</p>
+            <div id="kits-grid-container"></div>
         </div>
     </div>
 </section>
@@ -68,4 +39,5 @@
 
 {% block scripts %}
 <script src="/assets/js/main.js"></script>
+<script src="/assets/js/kits.js"></script>
 {% endblock %}

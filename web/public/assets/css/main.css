@@ -1783,6 +1783,28 @@ ul {
     opacity: 1;
 }
 
+.kit-mini-stats {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    font-family: var(--font-display);
+    margin-top: var(--space-sm);
+}
+
+.kits-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    color: var(--color-text-muted);
+    gap: var(--space-lg);
+}
+
+.kit-icon.default {
+    background: rgba(224, 122, 47, 0.15);
+    color: var(--color-primary);
+}
+
 /* ==========================================
    Features Section
    ========================================== */
