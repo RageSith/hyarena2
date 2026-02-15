@@ -23,7 +23,9 @@ import de.ragesith.hyarena2.economy.PlayerDataManager;
 import de.ragesith.hyarena2.boundary.BoundaryManager;
 import de.ragesith.hyarena2.command.AdminCommand;
 import de.ragesith.hyarena2.command.ArenaCommand;
+import de.ragesith.hyarena2.command.DebugCommand;
 import de.ragesith.hyarena2.command.LinkCommand;
+import de.ragesith.hyarena2.debug.DebugViewManager;
 import de.ragesith.hyarena2.command.testing.TestMatchArenasCommand;
 import de.ragesith.hyarena2.command.testing.TestMatchCreateCommand;
 import de.ragesith.hyarena2.command.testing.TestMatchJoinCommand;
@@ -109,6 +111,7 @@ public class HyArena2 extends JavaPlugin {
     private StatsManager statsManager;
     private ApiClient apiClient;
     private de.ragesith.hyarena2.chat.ChatManager chatManager;
+    private DebugViewManager debugViewManager;
 
     // Track known players (to detect world changes vs fresh joins)
     private final Map<UUID, String> knownPlayers = new ConcurrentHashMap<>();
@@ -255,10 +258,15 @@ public class HyArena2 extends JavaPlugin {
 
         System.out.println("[HyArena2] Economy, shop & stats system initialized");
 
+        // Initialize debug view manager
+        this.debugViewManager = new DebugViewManager(configManager, matchManager);
+        System.out.println("[HyArena2] DebugViewManager initialized");
+
         // Register commands
         this.getCommandRegistry().registerCommand(new ArenaCommand(this));
         this.getCommandRegistry().registerCommand(new AdminCommand(this));
         this.getCommandRegistry().registerCommand(new LinkCommand(this));
+        this.getCommandRegistry().registerCommand(new DebugCommand(debugViewManager));
 
         // Test match commands (Phase 2 testing)
         this.getCommandRegistry().registerCommand(new TestMatchArenasCommand(matchManager));
@@ -401,6 +409,17 @@ public class HyArena2 extends JavaPlugin {
                     System.err.println("[HyArena2] Error in economy auto-save: " + e.getMessage());
                 }
             }, 5, 5, TimeUnit.MINUTES);
+        }
+
+        // Debug view tick every 1.5 seconds
+        if (debugViewManager != null) {
+            scheduler.scheduleAtFixedRate(() -> {
+                try {
+                    debugViewManager.tick();
+                } catch (Exception e) {
+                    System.err.println("[HyArena2] Error in debug view tick: " + e.getMessage());
+                }
+            }, 1500, 1500, TimeUnit.MILLISECONDS);
         }
 
         System.out.println("[HyArena2] Scheduled tasks started (boundary check every " + boundaryCheckIntervalMs + "ms, matchmaker every 1s, honor decay every 60s, auto-save every 5min)");
@@ -671,6 +690,11 @@ public class HyArena2 extends JavaPlugin {
         // Clean up chat cache
         chatManager.removePlayer(playerId);
 
+        // Clean up debug view state
+        if (debugViewManager != null) {
+            debugViewManager.handlePlayerDisconnect(playerId);
+        }
+
         // Remove from tracking
         knownPlayers.remove(playerId);
     }
@@ -775,5 +799,21 @@ public class HyArena2 extends JavaPlugin {
 
     public de.ragesith.hyarena2.chat.ChatManager getChatManager() {
         return chatManager;
+    }
+
+    /**
+     * Triggers an asynchronous web sync of all arena, kit, and game mode configs.
+     * Called after admin saves (arena editor, kit editor) so the website stays up-to-date.
+     */
+    public void triggerWebSync() {
+        if (statsManager != null && statsManager.getConfig().isEnabled()) {
+            scheduler.execute(() -> {
+                try {
+                    statsManager.syncConfigsToWeb();
+                } catch (Exception e) {
+                    System.err.println("[HyArena2] Web sync error: " + e.getMessage());
+                }
+            });
+        }
     }
 }

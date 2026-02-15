@@ -3,6 +3,7 @@ package de.ragesith.hyarena2.ui.page.admin;
 import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
+import de.ragesith.hyarena2.HyArena2;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
@@ -737,6 +738,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
         config.setWaveSpawnPoints(formWaveSpawnPoints.isEmpty() ? null : new ArrayList<>(formWaveSpawnPoints));
 
         if (matchManager.saveArena(config)) {
+            HyArena2.getInstance().triggerWebSync();
             shutdown();
             if (onBack != null) onBack.run();
         } else {
