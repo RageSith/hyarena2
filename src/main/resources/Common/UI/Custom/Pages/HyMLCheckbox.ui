@@ -1,0 +1,36 @@
+$C = "../Common.ui";
+
+Group #HyMLCheckboxOverlay {
+    Anchor: (Width: 700, Height: 480);
+
+    Group #HyMLCheckboxFooter {
+        Anchor: (Height: 55, Bottom: 17, Left: 17, Right: 17);
+        LayoutMode: Top;
+        Padding: (Horizontal: 3);
+
+        // Separator
+        Group { Anchor: (Height: 1); Background: #2b3542; }
+
+        // Checkbox row
+        Group {
+            Anchor: (Height: 28, Top: 8);
+            LayoutMode: Left;
+
+            $C.@CheckBox #HyMLCheckbox { }
+
+            Label {
+                Text: "Don't show this again";
+                Anchor: (Left: 11);
+                FlexWeight: 1;
+                Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center, Wrap: true);
+            }
+        }
+
+        // Hint text
+        Label {
+            Anchor: (Top: 4);
+            Text: "Use /welcome to show this page anytime";
+            Style: (FontSize: 11, TextColor: #596673, Alignment: Center, Wrap: true);
+        }
+    }
+}

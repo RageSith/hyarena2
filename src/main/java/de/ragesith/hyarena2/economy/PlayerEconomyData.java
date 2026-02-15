@@ -17,6 +17,7 @@ public class PlayerEconomyData {
     private long lastHonorDecayTimestamp;
     private long lastOnlineTimestamp;
     private List<String> purchasedItems;
+    private boolean hideWelcome;
 
     public PlayerEconomyData() {
         this.arenaPoints = 0;
@@ -106,5 +107,13 @@ public class PlayerEconomyData {
 
     public void addPurchase(String itemId) {
         getPurchasedItems().add(itemId);
+    }
+
+    public boolean isHideWelcome() {
+        return hideWelcome;
+    }
+
+    public void setHideWelcome(boolean hideWelcome) {
+        this.hideWelcome = hideWelcome;
     }
 }

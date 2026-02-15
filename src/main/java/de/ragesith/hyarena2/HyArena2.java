@@ -26,6 +26,7 @@ import de.ragesith.hyarena2.command.AdminPlayCommand;
 import de.ragesith.hyarena2.command.ArenaCommand;
 import de.ragesith.hyarena2.command.DebugCommand;
 import de.ragesith.hyarena2.command.LinkCommand;
+import de.ragesith.hyarena2.command.WelcomeCommand;
 import de.ragesith.hyarena2.debug.DebugViewManager;
 import de.ragesith.hyarena2.command.testing.TestMatchArenasCommand;
 import de.ragesith.hyarena2.command.testing.TestMatchCreateCommand;
@@ -268,6 +269,7 @@ public class HyArena2 extends JavaPlugin {
         this.getCommandRegistry().registerCommand(new AdminCommand(this));
         this.getCommandRegistry().registerCommand(new LinkCommand(this));
         this.getCommandRegistry().registerCommand(new DebugCommand(debugViewManager));
+        this.getCommandRegistry().registerCommand(new WelcomeCommand(this));
         this.getCommandRegistry().registerCommand(new AdminPlayCommand(scheduler));
 
         // Test match commands (Phase 2 testing)
@@ -641,18 +643,31 @@ public class HyArena2 extends JavaPlugin {
             }
             // Otherwise, LobbyHud will be shown when world change event fires
 
-            // Show welcome page
-            Map<String, String> vars = new java.util.HashMap<>();
-            vars.put("player_name", playerName);
-            vars.put("ap", String.valueOf(economyManager.getArenaPoints(playerId)));
-            vars.put("rank", honorManager.getRankDisplayName(playerId));
-            hudManager.showHyMLPage(playerId, "welcome.hyml", vars);
+            // Show welcome page (unless player opted out)
+            if (!playerDataManager.getData(playerId).isHideWelcome()) {
+                showWelcomePage(playerId, playerName);
+            }
         });
         boundaryManager.grantTeleportGrace(playerId);
 
         // Publish event
         eventBus.publish(new PlayerJoinedHubEvent(playerId, playerName, true));
         }); // end world.execute()
+    }
+
+    /**
+     * Shows the welcome HyML page with the "Don't show again" checkbox listener.
+     */
+    public void showWelcomePage(UUID playerId, String playerName) {
+        Map<String, String> vars = new java.util.HashMap<>();
+        vars.put("player_name", playerName);
+        vars.put("ap", String.valueOf(economyManager.getArenaPoints(playerId)));
+        vars.put("rank", honorManager.getRankDisplayName(playerId));
+        boolean currentHideWelcome = playerDataManager.getData(playerId).isHideWelcome();
+        hudManager.showHyMLPage(playerId, "welcome.hyml", vars, "hide_welcome", currentHideWelcome, (uuid, cbId, value) -> {
+            playerDataManager.getData(uuid).setHideWelcome(value);
+            playerDataManager.save(uuid);
+        });
     }
 
     /**

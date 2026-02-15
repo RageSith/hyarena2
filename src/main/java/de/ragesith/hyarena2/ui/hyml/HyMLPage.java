@@ -49,6 +49,9 @@ public class HyMLPage extends InteractiveCustomUIPage<HyMLPage.PageEventData> im
         "Pressed: (Background: PatchStyle(TexturePath: \"Common/Buttons/Secondary_Pressed.png\", Border: 12)), " +
         "Disabled: (Background: PatchStyle(TexturePath: \"Common/Buttons/Disabled.png\", Border: 12)))";
 
+    /** Height reserved at the bottom of the content area for the checkbox overlay. */
+    private static final int CHECKBOX_FOOTER_HEIGHT = 55;
+
     private final PlayerRef playerRef;
     private final UUID playerUuid;
     private final HyMLDocument document;
@@ -56,12 +59,31 @@ public class HyMLPage extends InteractiveCustomUIPage<HyMLPage.PageEventData> im
 
     private int selectedSectionIndex = 0;
 
+    // Checkbox overlay — set via attachCheckbox() before the page is opened
+    private String checkboxId;
+    private boolean checkboxInitialValue;
+    private CheckboxListener checkboxListener;
+
     public HyMLPage(PlayerRef playerRef, UUID playerUuid, HyMLDocument document, HudManager hudManager) {
         super(playerRef, CustomPageLifetime.CanDismiss, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
         this.document = document;
         this.hudManager = hudManager;
+    }
+
+    /**
+     * Attaches a checkbox overlay (HyMLCheckbox.ui) to this page.
+     * Must be called before the page is opened.
+     *
+     * @param checkboxId   the logical id sent in checkbox events
+     * @param initialValue the starting checked state (reflects saved preference)
+     * @param listener     callback when the checkbox value changes
+     */
+    public void attachCheckbox(String checkboxId, boolean initialValue, CheckboxListener listener) {
+        this.checkboxId = checkboxId;
+        this.checkboxInitialValue = initialValue;
+        this.checkboxListener = listener;
     }
 
     @Override
@@ -85,6 +107,20 @@ public class HyMLPage extends InteractiveCustomUIPage<HyMLPage.PageEventData> im
             buildSectioned(cmd, events);
         } else {
             buildSimple(cmd);
+        }
+
+        // Checkbox overlay — loads a separate .ui file positioned over the container bottom
+        if (checkboxId != null) {
+            cmd.append("Pages/HyMLCheckbox.ui");
+            cmd.set("#HyMLCheckbox.Value", checkboxInitialValue);
+            events.addEventBinding(
+                CustomUIEventBindingType.ValueChanged,
+                "#HyMLCheckbox",
+                EventData.of("Action", "checkbox")
+                    .append("Id", checkboxId)
+                    .append("@BoolValue", "#HyMLCheckbox.Value"),
+                false
+            );
         }
 
         // Register with HudManager for proper cleanup
@@ -151,6 +187,11 @@ public class HyMLPage extends InteractiveCustomUIPage<HyMLPage.PageEventData> im
         sb.append("     ScrollbarStyle: ").append(SCROLLBAR_STYLE).append("; }");
 
         sb.append("   }"); // InnerContent
+
+        // Reserve space at the bottom for the checkbox overlay so content isn't hidden behind it
+        if (checkboxId != null) {
+            sb.append("   Group { Anchor: (Height: ").append(CHECKBOX_FOOTER_HEIGHT).append("); }");
+        }
 
         sb.append(" }"); // Content
 
@@ -394,6 +435,12 @@ public class HyMLPage extends InteractiveCustomUIPage<HyMLPage.PageEventData> im
                         }
                     }
                     break;
+
+                case "checkbox":
+                    if (checkboxListener != null && data.id != null && data.boolValue != null) {
+                        checkboxListener.onCheckboxChanged(playerUuid, data.id, data.boolValue);
+                    }
+                    break;
             }
         } catch (Exception e) {
             System.err.println("[HyMLPage] Error handling event: " + e.getMessage());
@@ -438,11 +485,22 @@ public class HyMLPage extends InteractiveCustomUIPage<HyMLPage.PageEventData> im
         return s.substring(0, 1).toUpperCase() + s.substring(1).toLowerCase();
     }
 
+    // ========== Inner Types ==========
+
+    /**
+     * Listener interface for checkbox value changes in HyML pages.
+     */
+    public interface CheckboxListener {
+        void onCheckboxChanged(UUID playerUuid, String checkboxId, boolean value);
+    }
+
     // ========== Event Data ==========
 
     public static class PageEventData {
         public String action;
         public String index;
+        public String id;
+        public Boolean boolValue;
 
         public static final BuilderCodec<PageEventData> CODEC =
             BuilderCodec.builder(PageEventData.class, PageEventData::new)
@@ -450,6 +508,10 @@ public class HyMLPage extends InteractiveCustomUIPage<HyMLPage.PageEventData> im
                     (d, v) -> d.action = v, d -> d.action).add()
                 .append(new KeyedCodec<>("Index", Codec.STRING),
                     (d, v) -> d.index = v, d -> d.index).add()
+                .append(new KeyedCodec<>("Id", Codec.STRING),
+                    (d, v) -> d.id = v, d -> d.id).add()
+                .append(new KeyedCodec<>("@BoolValue", Codec.BOOLEAN),
+                    (d, v) -> d.boolValue = v, d -> d.boolValue).add()
                 .build();
     }
 }

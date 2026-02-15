@@ -9,6 +9,7 @@ import de.ragesith.hyarena2.arena.Match;
 import de.ragesith.hyarena2.arena.MatchManager;
 import de.ragesith.hyarena2.economy.EconomyManager;
 import de.ragesith.hyarena2.economy.HonorManager;
+import de.ragesith.hyarena2.participant.ParticipantType;
 import de.ragesith.hyarena2.queue.Matchmaker;
 import de.ragesith.hyarena2.queue.QueueEntry;
 import de.ragesith.hyarena2.queue.QueueManager;
@@ -202,7 +203,9 @@ public class LobbyHud extends CustomUIHud {
         int total = 0;
         for (Match match : matchManager.getActiveMatches()) {
             if (!match.isFinished()) {
-                total += match.getParticipants().size();
+                total += match.getParticipants().stream()
+                        .filter(p -> p.getType() == ParticipantType.PLAYER)
+                        .count();
             }
         }
         return total;

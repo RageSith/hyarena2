@@ -1,14 +1,96 @@
-<page title="Welcome" width="500" height="380">
-  <title>Welcome, {player_name}!</title>
-  <text>Ready to fight? Open the arena menu and jump into a match.</text>
-  <divider/>
-  <stat label="Arena Points" value="{ap}" color="#f1c40f"/>
-  <stat label="Rank" value="{rank}"/>
-  <divider/>
-  <heading>Quick Start</heading>
-  <bullet>Use /arena or interact with the matchmaking statue</bullet>
-  <bullet>Pick an arena, select a kit, and join the queue</bullet>
-  <bullet>Win matches to earn Arena Points and climb the ranks</bullet>
-  <gap/>
-  <text color="#596673" size="11" align="center">Press ESC to close</text>
+<page title="HyArena Info" width="700" height="480">
+  <section name="Getting Started">
+    <title>Getting Started</title>
+    <text>Welcome to HyArena! Jump into action by visiting the Matchmaker Statue in the hub. From there you can browse available arenas and pick the game mode you want to play.</text>
+    <divider/>
+    <heading>How to Play</heading>
+    <bullet>Interact with the Matchmaker Statue to open the arena menu</bullet>
+    <bullet>Choose an arena with the game mode you enjoy</bullet>
+    <bullet>Select your kit and join the queue</bullet>
+    <bullet>Once enough players are ready, the match begins!</bullet>
+    <gap/>
+    <heading>What You Get</heading>
+    <bullet>Earn Arena Points (AP) for every match you play</bullet>
+    <bullet>Climb the Honor ranks by winning fights</bullet>
+    <bullet>Spend your AP in the shop to unlock new kits and gear</bullet>
+    <gap/>
+  </section>
+  <section name="Arena Points">
+    <title>Arena Points</title>
+    <text>Arena Points (AP) are the currency of HyArena. You earn them after every match, win or lose. Spend them in the shop to unlock new kits and gear.</text>
+    <divider/>
+    <stat label="Your currently have: " value="{ap} AP" color="#f1c40f"/>
+    <heading>How to Earn AP</heading>
+    <bullet>Win a match: +15 AP</bullet>
+    <bullet>Lose a match: +10 AP</bullet>
+    <bullet color="#e67e22">Bot matches earn half AP (fight real players for full rewards!)</bullet>
+    <gap/>
+    <heading>What to Spend AP On</heading>
+    <bullet>Unlock new kits with unique weapons and armor</bullet>
+    <bullet>Purchase cosmetics from the shop</bullet>
+    <bullet>More items added to the shop regularly</bullet>
+    <gap/>
+    <stat label="Your AP" value="{ap}" color="#f1c40f"/>
+  </section>
+  <section name="Ranks">
+    <title>Honor Ranks</title>
+    <text>Your rank reflects your skill and dedication. It is based on Honor, a score that goes up when you play and slowly decays over time. Stay active to climb!</text>
+    <divider/>
+    <stat label="Your current Rank" value="{rank}"/>
+    <heading>Rank Ladder</heading>
+    <stat label="Champion" value="1000+ Honor" color="#f1c40f"/>
+    <stat label="Gladiator" value="600+ Honor" color="#9b59b6"/>
+    <stat label="Warrior" value="300+ Honor" color="#3498db"/>
+    <stat label="Apprentice" value="100+ Honor" color="#2ecc71"/>
+    <stat label="Novice" value="0+ Honor" color="#7f8c8d"/>
+    <gap/>
+    <heading>How It Works</heading>
+    <bullet>Win a match to gain Honor</bullet>
+    <bullet>You also earn a smaller amount when losing</bullet>
+    <bullet>Honor decays slowly over time when inactive</bullet>
+    <bullet>Your rank updates instantly when you cross a threshold</bullet>
+    <gap/>
+    <text color="#596673" size="11">Ranks are displayed next to your name in chat.</text>
+  </section>
+  <section name="Patchnotes">
+    <title>Patchnotes</title>
+    <heading>Smarter Bots</heading>
+    <bullet>Bots now block your attacks and fight back much smarter</bullet>
+    <bullet>Bots play the objective in King of the Hill instead of just chasing you</bullet>
+    <bullet>Sneak behind a blocking bot to bypass their shield!</bullet>
+    <bullet>Bots dodge sideways when you shoot at them from range</bullet>
+    <divider/>
+    <heading>Shop and Economy</heading>
+    <bullet>Earn Arena Points from every match you play</bullet>
+    <bullet>Spend AP in the shop to unlock new kits</bullet>
+    <bullet>Climb the ranks from Novice all the way to Champion</bullet>
+    <bullet>Your rank shows next to your name in chat</bullet>
+    <divider/>
+    <heading>Game Modes</heading>
+    <bullet>Kit Roulette — get a random kit every life</bullet>
+    <bullet>King of the Hill — capture and hold the zone to score</bullet>
+    <bullet>Deathmatch and Last Man Standing now available</bullet>
+    <divider/>
+    <heading>Quality of Life</heading>
+    <bullet>New arena menu with live player counts and game status</bullet>
+    <bullet>Match scoreboard showing kills, deaths, and timer</bullet>
+    <bullet>Victory screen with your full match stats</bullet>
+    <bullet>Pick your kit before joining the queue</bullet>
+  </section>
+  <section name="Community">
+    <title>Join the Community</title>
+    <text>Come hang out with other players on our Discord server! Share your best moments, find teammates, or just chat about the game.</text>
+    <divider/>
+    <heading>Discord Server</heading>
+    <stat label="Invite Link" value="discord.gg/BTUBnHhHxA" color="#5865F2"/>
+    <gap/>
+    <bullet>Report bugs and help us fix them faster</bullet>
+    <bullet>Share your suggestions for new features or changes</bullet>
+    <bullet>Find people to play with and form teams</bullet>
+    <bullet>Stay up to date on upcoming updates and events</bullet>
+    <gap/>
+    <text color="#5865F2" bold="true">discord.gg/BTUBnHhHxA</text>
+    <gap/>
+    <text color="#596673" size="11">We read every message — your feedback shapes the game!</text>
+  </section>
 </page>

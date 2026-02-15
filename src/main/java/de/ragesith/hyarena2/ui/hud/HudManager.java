@@ -315,6 +315,22 @@ public class HudManager {
      * @param vars       placeholder variables ({key} → value), may be null
      */
     public void showHyMLPage(UUID playerUuid, String hymlFile, Map<String, String> vars) {
+        showHyMLPage(playerUuid, hymlFile, vars, null, false, null);
+    }
+
+    /**
+     * Opens a HyML-based page for a player with a checkbox overlay.
+     * The checkbox uses a dedicated .ui template (HyMLCheckbox.ui) positioned over the container bottom.
+     *
+     * @param playerUuid the player's UUID
+     * @param hymlFile   the .hyml filename (relative to hymlDir)
+     * @param vars       placeholder variables ({key} → value), may be null
+     * @param checkboxId the logical id for the checkbox (sent in events)
+     * @param listener   callback when the checkbox value changes
+     */
+    public void showHyMLPage(UUID playerUuid, String hymlFile, Map<String, String> vars,
+                             String checkboxId, boolean checkboxInitialValue,
+                             HyMLPage.CheckboxListener listener) {
         if (hymlDir == null) {
             System.err.println("[HudManager] HyML directory not set");
             return;
@@ -327,7 +343,7 @@ public class HudManager {
             return;
         }
 
-        openHyMLDocument(playerUuid, document, hymlFile);
+        openHyMLDocument(playerUuid, document, hymlFile, checkboxId, checkboxInitialValue, listener);
     }
 
     /**
@@ -338,19 +354,36 @@ public class HudManager {
      * @param vars         placeholder variables ({key} → value), may be null
      */
     public void showHyMLResourcePage(UUID playerUuid, String resourcePath, Map<String, String> vars) {
+        showHyMLResourcePage(playerUuid, resourcePath, vars, null, false, null);
+    }
+
+    /**
+     * Opens a HyML-based page from a classpath resource with a checkbox overlay.
+     *
+     * @param playerUuid   the player's UUID
+     * @param resourcePath classpath resource path (e.g. "hyml/rules.hyml")
+     * @param vars         placeholder variables ({key} → value), may be null
+     * @param checkboxId   the logical id for the checkbox (sent in events)
+     * @param listener     callback when the checkbox value changes
+     */
+    public void showHyMLResourcePage(UUID playerUuid, String resourcePath, Map<String, String> vars,
+                                     String checkboxId, boolean checkboxInitialValue,
+                                     HyMLPage.CheckboxListener listener) {
         HyMLDocument document = HyMLParser.parseResource(resourcePath, vars);
         if (document == null) {
             System.err.println("[HudManager] Failed to parse HyML resource: " + resourcePath);
             return;
         }
 
-        openHyMLDocument(playerUuid, document, resourcePath);
+        openHyMLDocument(playerUuid, document, resourcePath, checkboxId, checkboxInitialValue, listener);
     }
 
     /**
      * Opens a pre-parsed HyMLDocument as a page for a player.
      */
-    private void openHyMLDocument(UUID playerUuid, HyMLDocument document, String sourceName) {
+    private void openHyMLDocument(UUID playerUuid, HyMLDocument document, String sourceName,
+                                  String checkboxId, boolean checkboxInitialValue,
+                                  HyMLPage.CheckboxListener listener) {
         PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
         if (playerRef == null) return;
 
@@ -366,6 +399,9 @@ public class HudManager {
         closeActivePage(playerUuid);
 
         HyMLPage page = new HyMLPage(playerRef, playerUuid, document, this);
+        if (checkboxId != null && listener != null) {
+            page.attachCheckbox(checkboxId, checkboxInitialValue, listener);
+        }
 
         try {
             player.getPageManager().openCustomPage(ref, store, page);
