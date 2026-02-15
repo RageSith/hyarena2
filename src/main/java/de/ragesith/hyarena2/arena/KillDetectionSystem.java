@@ -1,5 +1,6 @@
 package de.ragesith.hyarena2.arena;
 
+import fi.sulku.hytale.TinyMsg;
 import com.hypixel.hytale.component.*;
 import com.hypixel.hytale.component.query.Query;
 import com.hypixel.hytale.server.core.entity.UUIDComponent;
@@ -14,6 +15,7 @@ import com.hypixel.hytale.server.core.modules.entitystats.EntityStatsModule;
 import com.hypixel.hytale.server.core.modules.entitystats.asset.EntityStatType;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import de.ragesith.hyarena2.Permissions;
 import de.ragesith.hyarena2.bot.BotManager;
 import de.ragesith.hyarena2.bot.BotParticipant;
 import de.ragesith.hyarena2.bot.ThreatType;
@@ -141,6 +143,12 @@ public class KillDetectionSystem extends DamageEventSystem {
 
         // ONLY allow damage if player is in an IN_PROGRESS match AND alive
         if (match == null || match.getState() != MatchState.IN_PROGRESS) {
+            // Spar mode: allow non-lethal damage outside matches for players with permission
+            Player victimPlayer = store.getComponent(victimRef, Player.getComponentType());
+            if (victimPlayer != null && victimPlayer.hasPermission(Permissions.SPAR)) {
+                handleSparDamage(victimUuid, victimRef, store, damage, victimPlayer);
+                return;
+            }
             damage.setCancelled(true);
             return;
         }
@@ -172,6 +180,14 @@ public class KillDetectionSystem extends DamageEventSystem {
         if (attackerUuid != null) {
             Participant attackerParticipant = match.getParticipant(attackerUuid);
             if (attackerParticipant != null && !match.getGameMode().shouldAllowDamage(attackerParticipant, participant)) {
+                damage.setCancelled(true);
+                return;
+            }
+        } else {
+            // No identifiable attacker (AoE effects, heal rod, etc.) — use self-check.
+            // In cooperative modes (wave_defense) this blocks sourceless damage to players
+            // since shouldAllowDamage(PLAYER, PLAYER) returns false when friendly fire is off.
+            if (!match.getGameMode().shouldAllowDamage(participant, participant)) {
                 damage.setCancelled(true);
                 return;
             }
@@ -235,6 +251,65 @@ public class KillDetectionSystem extends DamageEventSystem {
             // NON-FATAL — let engine handle it (knockback, particles, sound, etc.)
             tickDamageAccumulator.merge(victimUuid, damageAmount, Float::sum);
             match.recordDamage(victimUuid, attackerUuid, damageAmount);
+        }
+    }
+
+    /**
+     * Handles spar damage for players with SPAR permission outside of matches.
+     * Allows all non-lethal damage through normally. On lethal damage, cancels the hit,
+     * heals to full, clears status effects, and notifies the player.
+     */
+    private void handleSparDamage(UUID victimUuid, Ref<EntityStore> victimRef,
+                                   Store<EntityStore> store, Damage damage, Player victimPlayer) {
+        EntityStatMap stats = store.getComponent(victimRef,
+                EntityStatsModule.get().getEntityStatMapComponentType());
+        if (stats == null) {
+            damage.setCancelled(true);
+            return;
+        }
+
+        int healthIndex = EntityStatType.getAssetMap().getIndex("health");
+        EntityStatValue healthStat = stats.get(healthIndex);
+        if (healthStat == null) {
+            damage.setCancelled(true);
+            return;
+        }
+
+        float currentHealth = healthStat.get();
+        float damageAmount = damage.getAmount();
+
+        // Track accumulated damage this tick (multiple hits before health updates)
+        tickBaseHealth.putIfAbsent(victimUuid, currentHealth);
+        tickDamageAccumulator.putIfAbsent(victimUuid, 0f);
+
+        float effectiveHealth = tickBaseHealth.get(victimUuid) - tickDamageAccumulator.get(victimUuid);
+
+        if (effectiveHealth - damageAmount <= 0) {
+            // Lethal hit — cancel damage, heal to full
+            damage.setCancelled(true);
+            stats.setStatValue(healthIndex, healthStat.getMax());
+
+            // Clear status effects (burning, poison, etc.)
+            EffectControllerComponent effectController = store.getComponent(victimRef,
+                    EffectControllerComponent.getComponentType());
+            if (effectController != null) {
+                effectController.clearEffects(victimRef, store);
+            }
+
+            // Reset accumulator since we healed to full
+            tickBaseHealth.put(victimUuid, healthStat.getMax());
+            tickDamageAccumulator.put(victimUuid, 0f);
+
+            // Grant signature energy to attacker since damage was cancelled
+            Ref<EntityStore> attackerEntityRef = getAttackerEntityRef(damage.getSource());
+            if (attackerEntityRef != null) {
+                grantSignatureEnergy(attackerEntityRef, store);
+            }
+
+            victimPlayer.sendMessage(TinyMsg.parse("<color:#2ecc71>Lethal damage prevented, healed to full</color>"));
+        } else {
+            // Non-lethal — let engine handle damage normally
+            tickDamageAccumulator.merge(victimUuid, damageAmount, Float::sum);
         }
     }
 

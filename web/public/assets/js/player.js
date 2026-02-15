@@ -87,8 +87,8 @@ function displayPlayerProfile(data) {
     setStatText('stat-pve-kills', formatNumber(globalStats.pve_kills || 0));
     setStatText('stat-pve-deaths', formatNumber(globalStats.pve_deaths || 0));
     const pveKd = globalStats.pve_deaths > 0
-        ? ((globalStats.pve_kills || 0) / globalStats.pve_deaths).toFixed(2)
-        : (globalStats.pve_kills || 0).toFixed(2);
+        ? (parseFloat(globalStats.pve_kills || 0) / globalStats.pve_deaths).toFixed(2)
+        : parseFloat(globalStats.pve_kills || 0).toFixed(2);
     setStatText('stat-pve-kd', pveKd);
 
     // Kit Stats
@@ -150,8 +150,8 @@ function displayPlayerProfile(data) {
                 const winRate = parseFloat(arena.win_rate || 0).toFixed(1);
                 const hasPveStats = (arena.pve_kills || 0) > 0 || (arena.pve_deaths || 0) > 0;
                 const pveKd = arena.pve_deaths > 0
-                    ? ((arena.pve_kills || 0) / arena.pve_deaths).toFixed(2)
-                    : (arena.pve_kills || 0).toFixed(2);
+                    ? (parseFloat(arena.pve_kills || 0) / arena.pve_deaths).toFixed(2)
+                    : parseFloat(arena.pve_kills || 0).toFixed(2);
                 const isWaveDef = arena.game_mode === 'wave_defense';
 
                 // Wave defense: show Best Wave instead of Wins/Win Rate

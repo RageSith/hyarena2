@@ -95,6 +95,22 @@ public final class Permissions {
     /** Premium membership permission */
     public static final String PREMIUM = "hyarena.classes.premium";
 
+    // ========== Spar Permissions ==========
+
+    /** Receive non-lethal damage outside matches (healed to full on killing blow) */
+    public static final String SPAR = "hyarena.spar";
+
+    // ========== Role Switch Permissions ==========
+
+    /** Can use /hyadminplay to toggle between admin and adminplayer groups */
+    public static final String SWITCH_ROLE = "hyarena.switchrole";
+
+    /** Marker: player is in the admin group */
+    public static final String MODE_ADMIN = "hyarena.mode.admin";
+
+    /** Marker: player is in the adminplayer group */
+    public static final String MODE_ADMINPLAYER = "hyarena.mode.adminplayer";
+
     // ========== Debug Permissions ==========
 
     /** Can see debug information */

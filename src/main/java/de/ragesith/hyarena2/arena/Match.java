@@ -467,6 +467,13 @@ public class Match {
             // Check if match should end
             if (gameMode.shouldMatchEnd(arena.getConfig(), getParticipants())) {
                 end();
+            } else {
+                // If no human players remain, cancel — don't let bots play alone
+                boolean anyHumansLeft = participants.values().stream()
+                        .anyMatch(p -> p instanceof PlayerParticipant);
+                if (!anyHumansLeft) {
+                    cancel("All players left");
+                }
             }
         } else if (state == MatchState.WAITING || state == MatchState.STARTING) {
             // Cancel match if not enough players

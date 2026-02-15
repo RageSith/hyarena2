@@ -7,6 +7,7 @@ use App\Repository\PlayerRepository;
 use App\Repository\MatchRepository;
 use App\Repository\ParticipantRepository;
 use App\Repository\StatsRepository;
+use App\Repository\KitRepository;
 
 class MatchSubmissionService
 {
@@ -14,6 +15,7 @@ class MatchSubmissionService
     private MatchRepository $matchRepo;
     private ParticipantRepository $participantRepo;
     private StatsRepository $statsRepo;
+    private KitRepository $kitRepo;
 
     public function __construct()
     {
@@ -21,6 +23,7 @@ class MatchSubmissionService
         $this->matchRepo = new MatchRepository();
         $this->participantRepo = new ParticipantRepository();
         $this->statsRepo = new StatsRepository();
+        $this->kitRepo = new KitRepository();
     }
 
     public function submit(array $data): array
@@ -89,6 +92,7 @@ class MatchSubmissionService
                     // Update per-kit stats
                     $kitId = $p['kit_id'] ?? null;
                     if ($kitId !== null) {
+                        $this->kitRepo->ensureExists($kitId);
                         $this->statsRepo->updateKitStats($p['uuid'], $kitId, $statsData);
                     }
 

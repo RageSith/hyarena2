@@ -184,11 +184,6 @@ Key reference files in old project:
 - `src/main/java/de/ragesith/hyarena2/ui/page/ArenaMenuPage.java`
 - `src/main/java/de/ragesith/hyarena2/ui/page/ArenaDetailPage.java`
 
-**Deferred to later phases:**
-- Stats page - needs Phase 10 API
-- Shop pages - Phase 7
-- Leaderboard page - Phase 10 API
-
 **Milestone**: Full UI flow working, HUDs show all match info.
 
 ### Game Modes (post-Phase 6)
@@ -217,39 +212,75 @@ Key reference files in old project:
 - `waveSpawnPoints` in ArenaConfig for bot spawn locations (fallback to regular spawnPoints)
 - Per-match state tracked via `Map<UUID, WaveState>` — safe for concurrent matches
 
-**Testing status:** Only `duel` is tested. All other modes (deathmatch, koth, lms, kit_roulette, wave_defense) are **untested** because we lack in-game tools for creating, managing, and editing arenas (no admin commands or arena editor yet).
-
 **Respawn system notes:**
 - Currently forces instant respawn (delay 0). Timer infrastructure exists for future non-zero delay once we have a death/spectate solution.
 - Only handles player participants — bots have their own despawn-on-death logic.
 - `getNextKitId()` is called on both initial spawn and every respawn.
 
-### Remaining Phases
-- **Phase 7: Economy & Shop** — Currency, shop pages, purchases, unlock checking
-- **Phase 8: Achievements & Challenges** — Achievement tracking, daily/weekly challenges, progression UI
-- **Phase 9: Polish & Extras** — Sound effects, anti-cheat, seasonal events, logging, performance
-- **Phase 10: External API & Website Overhaul** — Stats persistence, leaderboards, website redesign
+### Phase 7: Economy & Shop - COMPLETE
+- [x] EconomyManager - AP (Arena Points) and currency tracking
+- [x] HonorManager - honor decay/rank system with HonorRankConfig
+- [x] PlayerDataManager - persistent player economy data
+- [x] ShopManager - item purchases and unlocks
+- [x] ShopConfig, ShopItem, ShopCategory - shop structure
+- [x] ShopPage UI - item browsing with categories
+- [x] Match rewards system with MatchRewardResult and PlayerMatchRewardEvent
+- [x] Admin editor pages: ShopListPage, ShopCategoryListPage, ShopCategoryEditorPage, ShopItemEditorPage
 
-See `plan/03_implementation_plan.md` for full roadmap.
+### Phase 9: Polish & Extras - COMPLETE
+- [x] BoundaryManager - state-driven arena/hub boundary enforcement
+- [x] BlockBreakProtectionSystem & BlockPlaceProtectionSystem
+- [x] ChatManager - match-specific chat channels
+- [x] NPC Interactions: OpenLeaderboardInteraction, OpenMatchmakingInteraction, OpenShopInteraction
+- [x] HyML system (HyMLParser, HyMLDocument, HyMLPage) - markup-based UI generation
+- [x] Admin panel: ArenaListPage, ArenaEditorPage, KitListPage, KitEditorPage, HubSettingsPage
+- [x] HologramListPage, HologramEditorPage
+- [x] `/hadmin` command
+
+### Phase 10: External API & Website - COMPLETE
+- [x] ApiClient - HTTP client for website communication
+- [x] StatsManager - match stats aggregation (MatchRecord, ParticipantRecord)
+- [x] Leaderboard system (LeaderboardEntry, LeaderboardResult)
+- [x] Full Slim 4 PHP website with Twig templates
+- [x] Plugin endpoints: match/submit, sync, link/generate
+- [x] Website pages: Home, Leaderboard, Player profiles, Arenas, Kits, Live matches
+- [x] Admin panel (AdminController, notifications, webhooks)
+- [x] Discord webhook integration
+- [x] Account linking system (LinkService, LinkCommand)
+- [x] Database: 12 tables with per-arena stats, global aggregates, K/D ratios
+
+### Phase 8: Achievements & Challenges - SKIPPED
+Intentionally not implemented.
+
+**All planned features are complete.** See `plan/03_implementation_plan.md` for original roadmap.
 
 ## Package Structure
 
 ```
 de.ragesith.hyarena2/
-  arena/          # Arena, Match, Spawn points
-  bot/            # Bot AI, BotParticipant, BotManager
-  gamemode/       # GameMode interface + implementations
-  queue/          # Queue, Matchmaker
-  hub/            # Hub management, boundaries
-  participant/    # Player/Bot abstraction
-  kit/            # Kit definitions, application
-  shop/           # Currency, purchases, unlocks
-  chat/           # Chat channels, messaging
-  api/            # External API client
-  ui/             # All UI pages and HUDs
-  config/         # Configuration classes
-  event/          # Event bus and event definitions
-  util/           # Shared utilities
+  api/            # ApiClient (website communication)
+  arena/          # Arena, Match, MatchManager, KillDetectionSystem
+  bot/            # BotAI, BotBrain, BotParticipant, BotManager
+  boundary/       # BoundaryManager
+  chat/           # ChatManager
+  command/        # ArenaCommand, AdminCommand, LinkCommand, test commands
+  config/         # ConfigManager, GlobalConfig, HubConfig, Position, BoundingBox
+  economy/        # EconomyManager, HonorManager, PlayerDataManager, ShopManager
+  event/          # EventBus and event definitions
+  gamemode/       # GameMode interface + 6 implementations
+  hub/            # HubManager
+  interaction/    # NPC interactions (leaderboard, matchmaking, shop)
+  kit/            # KitManager, KitConfig, KitAccessInfo
+  participant/    # Participant interface, PlayerParticipant, BotParticipant
+  protection/     # Block break/place protection systems
+  queue/          # QueueManager, Matchmaker, QueueEntry
+  shop/           # ShopConfig, ShopItem, ShopCategory
+  stats/          # StatsManager, LeaderboardEntry, MatchRecord
+  ui/
+    hud/          # HudManager, MatchHud, VictoryHud, LobbyHud
+    hyml/         # HyMLParser, HyMLDocument, HyMLPage
+    page/         # All UI pages and admin editors
+  utils/          # Shared utilities
 ```
 
 ## Key Design Rules
