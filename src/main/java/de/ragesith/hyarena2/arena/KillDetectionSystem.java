@@ -223,7 +223,8 @@ public class KillDetectionSystem extends DamageEventSystem {
             damage.setCancelled(true);
 
             // Grant signature energy to attacker since damage was cancelled
-            if (attackerEntityRef != null) {
+            // Skip when interaction is null (signature spells / AoE abilities)
+            if (attackerEntityRef != null && hasActiveInteraction(attackerEntityRef, store)) {
                 grantSignatureEnergy(attackerEntityRef, store);
             }
 
@@ -301,8 +302,9 @@ public class KillDetectionSystem extends DamageEventSystem {
             tickDamageAccumulator.put(victimUuid, 0f);
 
             // Grant signature energy to attacker since damage was cancelled
+            // Skip when interaction is null (signature spells / AoE abilities)
             Ref<EntityStore> attackerEntityRef = getAttackerEntityRef(damage.getSource());
-            if (attackerEntityRef != null) {
+            if (attackerEntityRef != null && hasActiveInteraction(attackerEntityRef, store)) {
                 grantSignatureEnergy(attackerEntityRef, store);
             }
 
@@ -389,7 +391,10 @@ public class KillDetectionSystem extends DamageEventSystem {
         damage.setCancelled(true);
 
         // Grant signature energy to player attacker since damage was cancelled
-        grantSignatureEnergy(attackerEntityRef, store);
+        // Skip when interaction is null (signature spells / AoE abilities)
+        if (hasActiveInteraction(attackerEntityRef, store)) {
+            grantSignatureEnergy(attackerEntityRef, store);
+        }
 
         // Record damage - use actual HP removed for fatal hits (not overkill damage)
         double actualDamage = died ? healthBeforeDamage : damageAmount;
@@ -456,6 +461,21 @@ public class KillDetectionSystem extends DamageEventSystem {
         }
 
         return attackerRef;
+    }
+
+    /**
+     * Checks if the attacker has an active interaction (weapon swing, etc.).
+     * Returns false for null interactions — signature spells and AoE abilities
+     * don't set an interaction, so this filters them out.
+     */
+    private boolean hasActiveInteraction(Ref<EntityStore> attackerRef, Store<EntityStore> store) {
+        if (attackerRef == null || !attackerRef.isValid()) return false;
+        try {
+            String interaction = EntityInteractionHelper.getPrimaryInteraction(attackerRef, store);
+            return interaction != null;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /**

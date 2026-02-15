@@ -67,6 +67,27 @@ public enum BotDifficulty {
         0.03,   // decisionMomentum
         200,    // threatMemoryTicks (10s at 20 TPS)
         60.0    // threatDistanceMax
+    ),
+    EXTREME(
+        150,    // reactionTimeMs
+        0.98,   // aimAccuracy (98%)
+        6.0,    // attackRange
+        50.0,   // chaseRange
+        1.4,    // movementSpeedMultiplier
+        1.8,    // healthMultiplier
+        400,    // attackCooldownMs
+        0.10,   // retreatThreshold (10% health)
+        35.0,   // baseDamage
+        0.85,   // blockProbability (85%) — legacy path
+        120.0,  // blockMaxEnergy — brain path
+        5.0,    // blockMinEnergy — brain path
+        // Utility AI weights
+        0.95,   // combatWeight
+        0.9,    // objectiveWeight
+        0.8,    // selfPreservationWeight
+        0.02,   // decisionMomentum
+        300,    // threatMemoryTicks (15s at 20 TPS)
+        80.0    // threatDistanceMax
     );
 
     private final int reactionTimeMs;

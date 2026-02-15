@@ -92,6 +92,7 @@ public class WaveDefenseGameMode implements GameMode {
     public void onTick(Match match, ArenaConfig config, List<Participant> participants, int tickCount) {
         UUID matchId = match.getMatchId();
         WaveState state = matchStates.computeIfAbsent(matchId, k -> new WaveState());
+        state.match = match;
 
         if (state.waveInProgress) {
             // Count alive wave bots
@@ -107,6 +108,13 @@ public class WaveDefenseGameMode implements GameMode {
                 state.waveInProgress = false;
                 state.waveBreakTicks = WAVE_BREAK_TICKS;
 
+                // Add bonus time on wave clear (only for timed matches)
+                int matchDuration = config.getMatchDurationSeconds();
+                int waveClearBonus = config.getWaveBonusSecondsPerWaveClear();
+                if (matchDuration > 0 && waveClearBonus > 0) {
+                    match.addBonusTime(waveClearBonus * TICKS_PER_SECOND);
+                }
+
                 // Award AP to surviving players
                 int apReward = 1 + state.currentWave / 3;
                 for (Participant p : participants) {
@@ -116,7 +124,8 @@ public class WaveDefenseGameMode implements GameMode {
                             economyManager.addArenaPoints(p.getUniqueId(), apReward,
                                 "wave_defense_wave_" + state.currentWave);
                         }
-                        p.sendMessage("<color:#f1c40f>Wave " + state.currentWave + " cleared! +" + apReward + " AP</color>");
+                        String bonusText = (matchDuration > 0 && waveClearBonus > 0) ? " +" + waveClearBonus + "s" : "";
+                        p.sendMessage("<color:#f1c40f>Wave " + state.currentWave + " cleared! +" + apReward + " AP" + bonusText + "</color>");
                     }
                 }
             }
@@ -224,6 +233,20 @@ public class WaveDefenseGameMode implements GameMode {
 
         if (killer != null) {
             killer.addKill();
+        }
+
+        // Add bonus time per wave mob killed (only for timed matches)
+        if (victim.getType() == ParticipantType.BOT && victim instanceof BotParticipant bp && bp.isWaveEnemy()) {
+            int matchDuration = config.getMatchDurationSeconds();
+            int killBonus = config.getWaveBonusSecondsPerKill();
+            if (matchDuration > 0 && killBonus > 0) {
+                for (WaveState state : matchStates.values()) {
+                    if (state.match != null && state.match.hasParticipant(victim.getUniqueId())) {
+                        state.match.addBonusTime(killBonus * TICKS_PER_SECOND);
+                        break;
+                    }
+                }
+            }
         }
 
         // Record the last fully cleared wave for this player
@@ -380,6 +403,7 @@ public class WaveDefenseGameMode implements GameMode {
         int currentWave = 0;
         int waveBreakTicks = 3 * TICKS_PER_SECOND; // Short initial delay before wave 1
         boolean waveInProgress = false;
+        Match match; // Stored from onTick for use in onParticipantKilled
         final Map<UUID, Integer> apEarnedPerPlayer = new HashMap<>();
         final Map<UUID, Integer> wavesSurvivedPerPlayer = new HashMap<>();
     }

@@ -316,6 +316,23 @@ Group #ArenaEditorPage {
                         Style: (FontSize: 11, TextColor: #6b7d8e);
                     }
 
+                    // Wave Bonus Time Settings
+                    Group #WaveBonusPerKillRow {
+                        Anchor: (Height: 38, Top: 10);
+                        LayoutMode: Left;
+                        Label { Text: "Bonus/Kill (s)"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        $C.@NumberField #WaveBonusPerKillField { @Anchor = (Width: 90); }
+                        Group { FlexWeight: 1; }
+                    }
+
+                    Group #WaveBonusPerWaveRow {
+                        Anchor: (Height: 38, Top: 10);
+                        LayoutMode: Left;
+                        Label { Text: "Bonus/Wave (s)"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        $C.@NumberField #WaveBonusPerWaveField { @Anchor = (Width: 90); }
+                        Group { FlexWeight: 1; }
+                    }
+
                     Group #WaveSpawnPointsList {
                         Anchor: (Top: 6);
                         LayoutMode: Top;

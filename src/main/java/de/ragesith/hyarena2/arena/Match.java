@@ -71,6 +71,7 @@ public class Match {
     private int countdownTicks;
     private int victoryDelayTicks;
     private List<UUID> winners;
+    private int bonusTicks; // Extra ticks added by wave defense bonus time
     private final Set<Integer> sentTimeWarnings = new HashSet<>(); // Track which warnings have been sent
     private int nextSpawnIndex = 0; // Dedicated counter for spawn point assignment
 
@@ -105,6 +106,7 @@ public class Match {
         this.waitingTicks = 0;
         this.countdownTicks = 0;
         this.victoryDelayTicks = 0;
+        this.bonusTicks = 0;
         this.winners = new ArrayList<>();
 
         // Fire creation event
@@ -1075,7 +1077,7 @@ public class Match {
         int matchDurationSeconds = arena.getConfig().getMatchDurationSeconds();
         if (matchDurationSeconds > 0) {
             int matchDurationTicks = matchDurationSeconds * TICKS_PER_SECOND;
-            int remainingTicks = matchDurationTicks - tickCount;
+            int remainingTicks = matchDurationTicks - tickCount + bonusTicks;
             int remainingSeconds = remainingTicks / TICKS_PER_SECOND;
 
             // Send time warnings
@@ -1495,7 +1497,7 @@ public class Match {
             return -1; // Endless match (e.g., wave defense)
         }
         int matchDurationTicks = matchDurationSeconds * TICKS_PER_SECOND;
-        int remainingTicks = Math.max(0, matchDurationTicks - tickCount);
+        int remainingTicks = Math.max(0, matchDurationTicks - tickCount + bonusTicks);
         return remainingTicks / TICKS_PER_SECOND;
     }
 
@@ -1504,6 +1506,15 @@ public class Match {
      */
     public int getMatchDurationSeconds() {
         return arena.getConfig().getMatchDurationSeconds();
+    }
+
+    /**
+     * Adds bonus time to the match timer.
+     * Only effective when matchDurationSeconds > 0 (timed matches).
+     * @param ticks the number of ticks to add
+     */
+    public void addBonusTime(int ticks) {
+        bonusTicks += ticks;
     }
 
     /**

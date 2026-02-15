@@ -29,6 +29,8 @@ public class ArenaConfig {
     private int zoneRotationSeconds = 60; // Rotation interval for multiple zones
     private List<String> randomKitPool; // Kit IDs for random assignment (Kit Roulette)
     private List<SpawnPoint> waveSpawnPoints; // Spawn points for wave defense enemy bots
+    private int waveBonusSecondsPerKill = 2; // Bonus seconds added per wave mob killed
+    private int waveBonusSecondsPerWaveClear = 60; // Bonus seconds added per wave cleared
 
     // Getters
     public String getId() { return id; }
@@ -54,6 +56,8 @@ public class ArenaConfig {
     public int getZoneRotationSeconds() { return zoneRotationSeconds; }
     public List<String> getRandomKitPool() { return randomKitPool; }
     public List<SpawnPoint> getWaveSpawnPoints() { return waveSpawnPoints; }
+    public int getWaveBonusSecondsPerKill() { return waveBonusSecondsPerKill; }
+    public int getWaveBonusSecondsPerWaveClear() { return waveBonusSecondsPerWaveClear; }
 
     // Setters
     public void setId(String id) { this.id = id; }
@@ -79,6 +83,8 @@ public class ArenaConfig {
     public void setZoneRotationSeconds(int zoneRotationSeconds) { this.zoneRotationSeconds = zoneRotationSeconds; }
     public void setRandomKitPool(List<String> randomKitPool) { this.randomKitPool = randomKitPool; }
     public void setWaveSpawnPoints(List<SpawnPoint> waveSpawnPoints) { this.waveSpawnPoints = waveSpawnPoints; }
+    public void setWaveBonusSecondsPerKill(int waveBonusSecondsPerKill) { this.waveBonusSecondsPerKill = waveBonusSecondsPerKill; }
+    public void setWaveBonusSecondsPerWaveClear(int waveBonusSecondsPerWaveClear) { this.waveBonusSecondsPerWaveClear = waveBonusSecondsPerWaveClear; }
 
     /**
      * Validates the arena configuration

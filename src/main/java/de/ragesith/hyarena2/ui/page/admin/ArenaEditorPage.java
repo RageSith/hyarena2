@@ -73,6 +73,8 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
     private boolean formAutoFill;
     private int formAutoFillDelay;
     private int formMinRealPlayers;
+    private int formWaveBonusPerKill;
+    private int formWaveBonusPerWave;
 
     private List<String> formAllowedKits;
     private List<String> formRandomKitPool;
@@ -83,7 +85,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
     private List<ArenaConfig.SpawnPoint> formWaveSpawnPoints;
 
     private List<String> gameModeIds;
-    private static final String[] BOT_DIFFICULTIES = {"EASY", "MEDIUM", "HARD"};
+    private static final String[] BOT_DIFFICULTIES = {"EASY", "MEDIUM", "HARD", "EXTREME"};
 
     public ArenaEditorPage(PlayerRef playerRef, UUID playerUuid,
                            ArenaConfig existingConfig,
@@ -128,6 +130,8 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             formAutoFill = existingConfig.isAutoFillEnabled();
             formAutoFillDelay = existingConfig.getAutoFillDelaySeconds();
             formMinRealPlayers = existingConfig.getMinRealPlayers();
+            formWaveBonusPerKill = existingConfig.getWaveBonusSecondsPerKill();
+            formWaveBonusPerWave = existingConfig.getWaveBonusSecondsPerWaveClear();
             formAllowedKits = existingConfig.getAllowedKits() != null ? new ArrayList<>(existingConfig.getAllowedKits()) : new ArrayList<>();
             formRandomKitPool = existingConfig.getRandomKitPool() != null ? new ArrayList<>(existingConfig.getRandomKitPool()) : new ArrayList<>();
             formSpawnPoints = existingConfig.getSpawnPoints() != null ? new ArrayList<>(existingConfig.getSpawnPoints()) : new ArrayList<>();
@@ -161,6 +165,8 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             formAutoFill = false;
             formAutoFillDelay = 30;
             formMinRealPlayers = 1;
+            formWaveBonusPerKill = 2;
+            formWaveBonusPerWave = 60;
             formAllowedKits = new ArrayList<>();
             formRandomKitPool = new ArrayList<>();
             formSpawnPoints = new ArrayList<>();
@@ -326,6 +332,12 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             }
         }
 
+        // Wave bonus time fields
+        if (showWaveSpawnPoints) {
+            cmd.set("#WaveBonusPerKillField.Value", formWaveBonusPerKill);
+            cmd.set("#WaveBonusPerWaveField.Value", formWaveBonusPerWave);
+        }
+
         // Wave spawn points
         if (showWaveSpawnPoints) {
             for (int i = 0; i < formWaveSpawnPoints.size(); i++) {
@@ -370,6 +382,8 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
         bindNumberField(events, "#ZoneRotationField", "zoneRotation");
         bindNumberField(events, "#AutoFillDelayField", "autoFillDelay");
         bindNumberField(events, "#MinRealPlayersField", "minRealPlayers");
+        bindNumberField(events, "#WaveBonusPerKillField", "waveBonusPerKill");
+        bindNumberField(events, "#WaveBonusPerWaveField", "waveBonusPerWave");
 
         // Bind bounds text fields
         bindTextField(events, "#BoundsMinXField", "boundsMinX", null);
@@ -590,6 +604,8 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
                 break;
             case "autoFillDelay": formAutoFillDelay = data.intValue != null ? data.intValue : formAutoFillDelay; break;
             case "minRealPlayers": formMinRealPlayers = data.intValue != null ? data.intValue : formMinRealPlayers; break;
+            case "waveBonusPerKill": formWaveBonusPerKill = data.intValue != null ? data.intValue : formWaveBonusPerKill; break;
+            case "waveBonusPerWave": formWaveBonusPerWave = data.intValue != null ? data.intValue : formWaveBonusPerWave; break;
 
             // Kit lists
             case "kitValue":
@@ -736,6 +752,8 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
         ));
         config.setCaptureZones(new ArrayList<>(formCaptureZones));
         config.setWaveSpawnPoints(formWaveSpawnPoints.isEmpty() ? null : new ArrayList<>(formWaveSpawnPoints));
+        config.setWaveBonusSecondsPerKill(formWaveBonusPerKill);
+        config.setWaveBonusSecondsPerWaveClear(formWaveBonusPerWave);
 
         if (matchManager.saveArena(config)) {
             HyArena2.getInstance().triggerWebSync();
@@ -753,6 +771,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
         switch (difficulty) {
             case "EASY": return "Easy";
             case "HARD": return "Hard";
+            case "EXTREME": return "Extreme";
             default: return "Medium";
         }
     }

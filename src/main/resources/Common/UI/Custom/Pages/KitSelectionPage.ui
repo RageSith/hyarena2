@@ -88,27 +88,27 @@ Group #KitSelectionPage {
                         Style: (FontSize: 13, TextColor: #e74c3c, VerticalAlignment: Center);
                     }
                 }
-            }
-        }
 
-        // Bottom Button Row
-        Group #ButtonRow {
-            Anchor: (Bottom: 16, Height: 44, Left: 20, Right: 20);
-            LayoutMode: Left;
+                // Button Row (bottom of right column)
+                Group #ButtonRow {
+                    Anchor: (Top: 12, Height: 44);
+                    LayoutMode: Left;
 
-            $C.@SecondaryTextButton #BackButton {
-                @Text = "Back";
-                @Anchor = (Width: 120);
-            }
+                    $C.@SecondaryTextButton #BackButton {
+                        @Text = "Back";
+                        @Anchor = (Width: 120);
+                    }
 
-            // Spacer
-            Group {
-                FlexWeight: 1;
-            }
+                    // Spacer
+                    Group {
+                        FlexWeight: 1;
+                    }
 
-            $C.@TextButton #SelectButton {
-                @Text = "Select";
-                @Anchor = (Width: 140);
+                    $C.@TextButton #SelectButton {
+                        @Text = "Select";
+                        @Anchor = (Width: 140);
+                    }
+                }
             }
         }
     }

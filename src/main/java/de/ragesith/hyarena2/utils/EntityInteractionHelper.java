@@ -82,8 +82,10 @@ public class EntityInteractionHelper {
      */
     public static InteractionKind classifyInteraction(String interactionId) {
         if (interactionId == null) return InteractionKind.UNKNOWN;
+
         if (interactionId.contains("_Shoot")) return InteractionKind.RANGED_ATTACK;
         if (interactionId.contains("_Attack")) return InteractionKind.ATTACK;
+        if (interactionId.contains("_Primary")) return InteractionKind.ATTACK;
         if (interactionId.contains("_Secondary_Guard") || interactionId.contains("Shield_Block")) return InteractionKind.BLOCK;
         if (interactionId.contains("Item_Throw")) return InteractionKind.ITEM_THROW;
         if (interactionId.contains("Consume_Potion")) return InteractionKind.POTION_CONSUME;
