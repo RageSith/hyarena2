@@ -85,12 +85,21 @@ function translateGameMode(mode) {
     return fallback[mode] || mode;
 }
 
+// Placeholder SVG for arenas without a map image
+const arenaPlaceholderSvg = `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" width="64" height="64">
+    <polygon points="32 4 58 18 58 46 32 60 6 46 6 18 32 4" opacity="0.3"/>
+    <polygon points="32 12 50 22 50 42 32 52 14 42 14 22 32 12" opacity="0.5"/>
+    <line x1="32" y1="52" x2="32" y2="60" opacity="0.3"/>
+    <polyline points="50 22 32 32 14 22" opacity="0.3"/>
+    <line x1="32" y1="32" x2="32" y2="52" opacity="0.3"/>
+</svg>`;
+
 /**
- * Load arenas table
+ * Load arenas and render card grid
  */
 async function loadArenas() {
-    const tbody = document.getElementById('arenas-tbody');
-    if (!tbody) return;
+    const container = document.getElementById('arena-cards');
+    if (!container) return;
 
     try {
         const response = await fetch('/api/arenas');
@@ -98,37 +107,36 @@ async function loadArenas() {
 
         if (data.success && data.data.arenas && data.data.arenas.length > 0) {
             const arenas = data.data.arenas;
-            tbody.innerHTML = arenas.map(arena => {
+            container.innerHTML = arenas.map(arena => {
                 const playerRange = arena.min_players === arena.max_players
                     ? arena.min_players
                     : `${arena.min_players}-${arena.max_players}`;
 
                 const gameMode = translateGameMode(arena.game_mode);
 
+                const imageHtml = arena.icon
+                    ? `<div class="arena-card-image" style="background-image: url('/assets/images/maps/${encodeURIComponent(arena.icon)}')"></div>`
+                    : `<div class="arena-card-image" style="background-image: url('/assets/images/maps/noimage.png')"></div>`;
+
                 return `
-                    <tr>
-                        <td>
-                            <div class="arena-name">${escapeHtml(arena.display_name)}</div>
-                            ${arena.description ? `<div class="arena-desc">${escapeHtml(arena.description)}</div>` : ''}
-                        </td>
-                        <td>${playerRange}</td>
-                        <td><span class="badge badge-mode">${escapeHtml(gameMode)}</span></td>
-                    </tr>
+                    <div class="arena-card">
+                        ${imageHtml}
+                        <div class="arena-card-body">
+                            <h3 class="arena-card-name">${escapeHtml(arena.display_name)}</h3>
+                            ${arena.description ? `<p class="arena-card-desc">${escapeHtml(arena.description)}</p>` : ''}
+                            <div class="arena-card-meta">
+                                <span class="arena-card-players">\u{1F465} ${playerRange}</span>
+                                <span class="badge badge-mode">${escapeHtml(gameMode)}</span>
+                            </div>
+                        </div>
+                    </div>
                 `;
             }).join('');
         } else {
-            tbody.innerHTML = `
-                <tr class="arenas-empty">
-                    <td colspan="3">No arenas available.</td>
-                </tr>
-            `;
+            container.innerHTML = '<div class="arena-cards-empty">No arenas available.</div>';
         }
     } catch (e) {
         console.log('Failed to load arenas:', e.message);
-        tbody.innerHTML = `
-            <tr class="arenas-error">
-                <td colspan="3">Failed to load arenas.</td>
-            </tr>
-        `;
+        container.innerHTML = '<div class="arena-cards-error">Failed to load arenas.</div>';
     }
 }
