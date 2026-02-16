@@ -2,6 +2,7 @@
 
 namespace App;
 
+use App\Repository\SeasonRepository;
 use DI\Bridge\Slim\Bridge;
 use DI\ContainerBuilder;
 use Slim\Views\Twig;
@@ -37,6 +38,15 @@ class App
                     session_start();
                 }
                 $twig->getEnvironment()->addGlobal('player_session', !empty($_SESSION['player_account_id'] ?? null));
+
+                // Load active seasons for nav dropdown
+                try {
+                    $seasonRepo = new SeasonRepository();
+                    $playerUuid = $_SESSION['player_uuid'] ?? null;
+                    $twig->getEnvironment()->addGlobal('nav_seasons', $seasonRepo->getNavSeasons($playerUuid));
+                } catch (\Throwable $e) {
+                    $twig->getEnvironment()->addGlobal('nav_seasons', []);
+                }
 
                 return $twig;
             },

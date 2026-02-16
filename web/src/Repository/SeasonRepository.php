@@ -180,6 +180,40 @@ class SeasonRepository
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Get seasons for the nav dropdown: all public active + player's enrolled non-public active.
+     */
+    public function getNavSeasons(?string $playerUuid = null): array
+    {
+        $db = Database::getConnection();
+
+        // All public active seasons
+        $stmt = $db->prepare('
+            SELECT s.id, s.name, s.slug, s.visibility
+            FROM seasons s
+            WHERE s.status = :status AND s.visibility = :visibility
+            ORDER BY s.ends_at ASC
+        ');
+        $stmt->execute(['status' => 'active', 'visibility' => 'public']);
+        $seasons = $stmt->fetchAll();
+
+        // If logged in, add non-public active seasons the player is enrolled in
+        if ($playerUuid) {
+            $stmt2 = $db->prepare('
+                SELECT s.id, s.name, s.slug, s.visibility
+                FROM seasons s
+                JOIN season_participants sp ON sp.season_id = s.id AND sp.player_uuid = :uuid
+                WHERE s.status = :status AND s.visibility != :pub
+                ORDER BY s.ends_at ASC
+            ');
+            $stmt2->execute(['uuid' => $playerUuid, 'status' => 'active', 'pub' => 'public']);
+            $private = $stmt2->fetchAll();
+            $seasons = array_merge($seasons, $private);
+        }
+
+        return $seasons;
+    }
+
     // ==========================================
     // Match Integration
     // ==========================================

@@ -21,27 +21,55 @@ function initNavigation() {
     const navbar = document.getElementById('navbar');
     const navToggle = document.getElementById('nav-toggle');
     const navMenu = document.getElementById('nav-menu');
-    const navLinks = document.querySelectorAll('.nav-link');
+    const dropdowns = document.querySelectorAll('.nav-dropdown');
+    const dropdownToggles = document.querySelectorAll('.nav-dropdown-toggle');
+
+    function closeAllDropdowns(except) {
+        dropdowns.forEach(dd => {
+            if (dd !== except) {
+                dd.classList.remove('open');
+                const toggle = dd.querySelector('.nav-dropdown-toggle');
+                if (toggle) toggle.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+
+    function closeMobileMenu() {
+        navMenu.classList.remove('active');
+        navToggle.classList.remove('active');
+        closeAllDropdowns();
+    }
 
     // Mobile menu toggle
     navToggle?.addEventListener('click', () => {
+        const opening = !navMenu.classList.contains('active');
         navMenu.classList.toggle('active');
         navToggle.classList.toggle('active');
+        if (!opening) closeAllDropdowns();
     });
 
-    // Close menu on link click
-    navLinks.forEach(link => {
-        link.addEventListener('click', () => {
-            navMenu.classList.remove('active');
-            navToggle.classList.remove('active');
+    // Dropdown toggle click
+    dropdownToggles.forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const dropdown = toggle.closest('.nav-dropdown');
+            const isOpen = dropdown.classList.contains('open');
+            closeAllDropdowns(dropdown);
+            dropdown.classList.toggle('open', !isOpen);
+            toggle.setAttribute('aria-expanded', !isOpen);
         });
     });
 
-    // Close menu on outside click
+    // Close menu + dropdowns on nav link click (actual links, not toggles)
+    navMenu.querySelectorAll('.nav-link:not(.nav-dropdown-toggle)').forEach(link => {
+        link.addEventListener('click', () => closeMobileMenu());
+    });
+
+    // Close on outside click
     document.addEventListener('click', (e) => {
         if (!navMenu.contains(e.target) && !navToggle.contains(e.target)) {
-            navMenu.classList.remove('active');
-            navToggle.classList.remove('active');
+            closeMobileMenu();
         }
     });
 
