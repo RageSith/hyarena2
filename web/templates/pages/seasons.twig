@@ -1,0 +1,39 @@
+{% extends "base.twig" %}
+
+{% block title %}Seasons - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="seasons-hero">
+    <div class="container">
+        <h1 class="seasons-title">Seasons</h1>
+        <p class="seasons-subtitle">Compete in time-limited leagues and climb the seasonal rankings</p>
+    </div>
+</div>
+
+<section class="seasons-section">
+    <div class="container">
+        <!-- Active Seasons -->
+        <div id="seasons-loading" class="seasons-loading">
+            <div class="spinner"></div>
+            <span>Loading seasons...</span>
+        </div>
+
+        <div id="seasons-active" style="display: none;">
+            <h2 class="section-heading">Active Seasons</h2>
+            <div class="seasons-grid" id="active-seasons-grid">
+                <div class="no-data-message"><p>No active seasons right now.</p></div>
+            </div>
+        </div>
+
+        <!-- Archive Link -->
+        <div class="seasons-archive-link" id="seasons-archive-link" style="display: none;">
+            <a href="/seasons/archive" class="btn btn-secondary">View Past Seasons</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/assets/js/main.js"></script>
+<script src="/assets/js/seasons.js"></script>
+{% endblock %}

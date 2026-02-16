@@ -4272,3 +4272,349 @@ ul {
     align-items: center;
     gap: var(--space-sm);
 }
+
+/* ==========================================
+   Seasons Pages
+   ========================================== */
+
+/* Hero */
+.seasons-hero {
+    padding: 140px 0 var(--space-3xl);
+    text-align: center;
+    background: linear-gradient(180deg, rgba(224, 122, 47, 0.08) 0%, transparent 100%);
+}
+
+.seasons-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-bottom: var(--space-sm);
+}
+
+.seasons-subtitle {
+    font-size: 1.1rem;
+    color: var(--color-text-muted);
+}
+
+.seasons-section {
+    padding: var(--space-2xl) 0 var(--space-4xl);
+}
+
+.seasons-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    padding: var(--space-3xl);
+    color: var(--color-text-muted);
+}
+
+/* Season Cards Grid */
+.seasons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: var(--space-lg);
+}
+
+.season-card {
+    display: block;
+    padding: var(--space-xl);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    text-decoration: none;
+    color: var(--color-text);
+    transition: all var(--transition-base);
+}
+
+.season-card:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.season-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-sm);
+}
+
+.season-card-name {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.season-card-status {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.6rem;
+    border-radius: var(--radius-sm);
+}
+
+.season-card-status.active {
+    background: rgba(74, 222, 128, 0.15);
+    color: var(--color-success);
+}
+
+.season-card-status.ended {
+    background: rgba(152, 152, 176, 0.15);
+    color: var(--color-text-muted);
+}
+
+.season-card-status.archived {
+    background: rgba(152, 152, 176, 0.1);
+    color: var(--color-text-dark);
+}
+
+.season-card-desc {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-md);
+    line-height: 1.4;
+}
+
+.season-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    font-size: 0.8rem;
+    color: var(--color-text-dark);
+}
+
+.season-card-countdown {
+    display: block;
+    margin-top: var(--space-md);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.seasons-archive-link {
+    text-align: center;
+    margin-top: var(--space-2xl);
+}
+
+.seasons-back-link {
+    margin-top: var(--space-2xl);
+}
+
+.seasons-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-lg);
+    margin-top: var(--space-xl);
+}
+
+/* Season Detail Page */
+.season-detail {
+    padding: 140px 0 var(--space-4xl);
+}
+
+.season-header-card {
+    padding: var(--space-2xl);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    margin-bottom: var(--space-2xl);
+}
+
+.season-header-top {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-sm);
+}
+
+.season-name {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.season-status-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.75rem;
+    border-radius: var(--radius-sm);
+}
+
+.season-status-badge.active {
+    background: rgba(74, 222, 128, 0.15);
+    color: var(--color-success);
+}
+
+.season-status-badge.ended,
+.season-status-badge.archived {
+    background: rgba(152, 152, 176, 0.15);
+    color: var(--color-text-muted);
+}
+
+.season-status-badge.draft {
+    background: rgba(251, 191, 36, 0.15);
+    color: var(--color-warning);
+}
+
+.season-description {
+    font-size: 1rem;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-lg);
+    line-height: 1.5;
+}
+
+.season-header-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-lg);
+    font-size: 0.85rem;
+    color: var(--color-text-dark);
+}
+
+.season-countdown {
+    margin-top: var(--space-md);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.season-leaderboard {
+    margin-bottom: var(--space-2xl);
+}
+
+.season-leaderboard-table-wrapper {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.season-table .season-points {
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+/* Season History on Player Profile */
+.player-season-history {
+    margin-bottom: var(--space-2xl);
+}
+
+.season-history-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-md);
+}
+
+.season-history-card {
+    display: block;
+    padding: var(--space-lg);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    color: var(--color-text);
+    transition: all var(--transition-fast);
+}
+
+.season-history-card:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-1px);
+}
+
+.season-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+}
+
+.season-history-name {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.season-history-status {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--radius-sm);
+}
+
+.season-history-status.active {
+    background: rgba(74, 222, 128, 0.15);
+    color: var(--color-success);
+}
+
+.season-history-status.ended {
+    background: rgba(152, 152, 176, 0.15);
+    color: var(--color-text-muted);
+}
+
+.season-history-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.season-history-rank,
+.season-history-stat {
+    text-align: center;
+}
+
+.season-history-rank .value,
+.season-history-stat .value {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.season-history-rank .label,
+.season-history-stat .label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--color-text-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.season-history-rank.rank-1 .value { color: #ffd700; }
+.season-history-rank.rank-2 .value { color: #c0c0c0; }
+.season-history-rank.rank-3 .value { color: #cd7f32; }
+
+.season-history-dates {
+    font-size: 0.75rem;
+    color: var(--color-text-dark);
+}
+
+@media (max-width: 768px) {
+    .seasons-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .season-header-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .season-header-meta {
+        flex-direction: column;
+        gap: var(--space-sm);
+    }
+
+    .season-history-list {
+        grid-template-columns: 1fr;
+    }
+}

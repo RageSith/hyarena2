@@ -1,0 +1,180 @@
+{% extends "admin/layout.twig" %}
+
+{% block title %}{{ season ? 'Edit' : 'Create' }} Season{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <h1>{{ season ? 'Edit' : 'Create' }} Season</h1>
+
+    <form class="admin-form" method="post" action="/admin/seasons/{{ season ? season.id ~ '/edit' : 'create' }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" value="{{ season ? season.name : '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="slug">Slug (URL-friendly)</label>
+            <input type="text" id="slug" name="slug" value="{{ season ? season.slug : '' }}" required placeholder="e.g. season-1-2026">
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="3">{{ season ? season.description : '' }}</textarea>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="type">Type</label>
+                <select id="type" name="type">
+                    <option value="system" {{ season and season.type == 'system' ? 'selected' : '' }}>System (auto-enroll)</option>
+                    <option value="private" {{ season and season.type == 'private' ? 'selected' : '' }}>Private (join code)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="visibility">Visibility</label>
+                <select id="visibility" name="visibility">
+                    <option value="public" {{ season and season.visibility == 'public' ? 'selected' : '' }}>Public</option>
+                    <option value="unlisted" {{ season and season.visibility == 'unlisted' ? 'selected' : '' }}>Unlisted</option>
+                    <option value="private" {{ season and season.visibility == 'private' ? 'selected' : '' }}>Private</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group" id="join-code-group" style="display: none;">
+            <label for="join_code">Join Code</label>
+            <input type="text" id="join_code" name="join_code" value="{{ season ? season.join_code : '' }}" maxlength="8" placeholder="e.g. ABC123">
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="starts_at">Start Date</label>
+                <input type="datetime-local" id="starts_at" name="starts_at" value="{{ season ? season.starts_at|date('Y-m-d\\TH:i') : '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="ends_at">End Date</label>
+                <input type="datetime-local" id="ends_at" name="ends_at" value="{{ season ? season.ends_at|date('Y-m-d\\TH:i') : '' }}" required>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="ranking_mode">Ranking Mode</label>
+                <select id="ranking_mode" name="ranking_mode">
+                    <option value="wins" {{ season and season.ranking_mode == 'wins' ? 'selected' : '' }}>Wins</option>
+                    <option value="win_rate" {{ season and season.ranking_mode == 'win_rate' ? 'selected' : '' }}>Win Rate</option>
+                    <option value="pvp_kills" {{ season and season.ranking_mode == 'pvp_kills' ? 'selected' : '' }}>PvP Kills</option>
+                    <option value="pvp_kd_ratio" {{ season and season.ranking_mode == 'pvp_kd_ratio' ? 'selected' : '' }}>PvP K/D Ratio</option>
+                    <option value="points" {{ season and season.ranking_mode == 'points' ? 'selected' : '' }}>Points (Custom)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="min_matches">Min Matches (for ranking)</label>
+                <input type="text" id="min_matches" name="min_matches" value="{{ season ? season.min_matches : '5' }}">
+            </div>
+        </div>
+
+        <!-- Points Config (shown when ranking_mode = points) -->
+        {% set config = season and season.ranking_config ? season.ranking_config : '{}' %}
+        {% set rc = config is iterable ? config : {} %}
+        <div id="points-config" style="display: none;">
+            <h3 style="margin: 1.5rem 0 0.75rem; font-size: 1rem; color: var(--admin-primary);">Points Configuration</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="points_per_win">Points per Win</label>
+                    <input type="text" id="points_per_win" name="points_per_win" value="{{ rc.points_per_win ?? '3' }}">
+                </div>
+                <div class="form-group">
+                    <label for="points_per_loss">Points per Loss</label>
+                    <input type="text" id="points_per_loss" name="points_per_loss" value="{{ rc.points_per_loss ?? '1' }}">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="points_per_kill">Points per Kill</label>
+                    <input type="text" id="points_per_kill" name="points_per_kill" value="{{ rc.points_per_kill ?? '0' }}">
+                </div>
+                <div class="form-group">
+                    <label for="points_per_death">Points per Death</label>
+                    <input type="text" id="points_per_death" name="points_per_death" value="{{ rc.points_per_death ?? '0' }}">
+                </div>
+            </div>
+        </div>
+
+        <!-- Scope Filters -->
+        <h3 style="margin: 1.5rem 0 0.75rem; font-size: 1rem; color: var(--admin-primary);">Scope Filters (leave empty for all)</h3>
+
+        {% set selected_arenas = season and season.arena_ids ? season.arena_ids : '[]' %}
+        {% set sa = selected_arenas is iterable ? selected_arenas : [] %}
+        <div class="form-group">
+            <label>Arenas</label>
+            <div class="checkbox-group">
+                {% for arena in arenas %}
+                <label class="checkbox-label">
+                    <input type="checkbox" name="arena_ids[]" value="{{ arena.id }}"
+                           {{ arena.id in sa ? 'checked' : '' }}>
+                    {{ arena.display_name }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% set selected_modes = season and season.game_mode_ids ? season.game_mode_ids : '[]' %}
+        {% set sm = selected_modes is iterable ? selected_modes : [] %}
+        <div class="form-group">
+            <label>Game Modes</label>
+            <div class="checkbox-group">
+                {% for mode in game_modes %}
+                <label class="checkbox-label">
+                    <input type="checkbox" name="game_mode_ids[]" value="{{ mode.id }}"
+                           {{ mode.id in sm ? 'checked' : '' }}>
+                    {{ mode.display_name }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{{ season ? 'Update' : 'Create' }} Season</button>
+            <a href="/admin/seasons" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Toggle points config visibility
+    const rankingMode = document.getElementById('ranking_mode');
+    const pointsConfig = document.getElementById('points-config');
+    function togglePoints() {
+        pointsConfig.style.display = rankingMode.value === 'points' ? '' : 'none';
+    }
+    rankingMode.addEventListener('change', togglePoints);
+    togglePoints();
+
+    // Toggle join code visibility
+    const typeSelect = document.getElementById('type');
+    const joinCodeGroup = document.getElementById('join-code-group');
+    function toggleJoinCode() {
+        joinCodeGroup.style.display = typeSelect.value === 'private' ? '' : 'none';
+    }
+    typeSelect.addEventListener('change', toggleJoinCode);
+    toggleJoinCode();
+
+    // Auto-generate slug from name
+    const nameInput = document.getElementById('name');
+    const slugInput = document.getElementById('slug');
+    {% if not season %}
+    nameInput.addEventListener('input', () => {
+        slugInput.value = nameInput.value.toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .trim();
+    });
+    {% endif %}
+</script>
+{% endblock %}

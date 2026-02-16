@@ -8,6 +8,7 @@ use App\Repository\MatchRepository;
 use App\Repository\ParticipantRepository;
 use App\Repository\StatsRepository;
 use App\Repository\KitRepository;
+use App\Service\SeasonService;
 
 class MatchSubmissionService
 {
@@ -16,6 +17,7 @@ class MatchSubmissionService
     private ParticipantRepository $participantRepo;
     private StatsRepository $statsRepo;
     private KitRepository $kitRepo;
+    private SeasonService $seasonService;
 
     public function __construct()
     {
@@ -24,6 +26,7 @@ class MatchSubmissionService
         $this->participantRepo = new ParticipantRepository();
         $this->statsRepo = new StatsRepository();
         $this->kitRepo = new KitRepository();
+        $this->seasonService = new SeasonService();
     }
 
     public function submit(array $data): array
@@ -106,6 +109,22 @@ class MatchSubmissionService
                         );
                     }
                 }
+            }
+
+            // Process season stats (fail-safe: log but don't rollback)
+            try {
+                $this->seasonService->processMatch(
+                    $matchId,
+                    $data['arena_id'],
+                    $data['game_mode'],
+                    $data['participants'],
+                    $data['winner_uuid'] ?? null,
+                    $data['duration_seconds'] ?? 0
+                );
+            } catch (\Exception $seasonEx) {
+                $logFile = __DIR__ . '/../../logs/season_debug.log';
+                @mkdir(dirname($logFile), 0775, true);
+                file_put_contents($logFile, date('[Y-m-d H:i:s] ') . 'ERROR match=' . $matchId . ': ' . $seasonEx->getMessage() . "\n" . $seasonEx->getTraceAsString() . "\n\n", FILE_APPEND);
             }
 
             $db->commit();

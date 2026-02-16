@@ -52,6 +52,29 @@ class PageController
         ]);
     }
 
+    public function seasons(Request $request, Response $response): Response
+    {
+        return $this->twig->render($response, 'pages/seasons.twig', [
+            'active_page' => 'seasons',
+        ]);
+    }
+
+    public function seasonsArchive(Request $request, Response $response): Response
+    {
+        return $this->twig->render($response, 'pages/seasons-archive.twig', [
+            'active_page' => 'seasons',
+        ]);
+    }
+
+    public function seasonDetail(Request $request, Response $response): Response
+    {
+        $route = \Slim\Routing\RouteContext::fromRequest($request)->getRoute();
+        return $this->twig->render($response, 'pages/season-detail.twig', [
+            'active_page' => 'seasons',
+            'season_slug' => $route->getArgument('slug'),
+        ]);
+    }
+
     public function player(Request $request, Response $response): Response
     {
         $route = \Slim\Routing\RouteContext::fromRequest($request)->getRoute();

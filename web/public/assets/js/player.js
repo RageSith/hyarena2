@@ -238,6 +238,9 @@ function displayPlayerProfile(data) {
         }
     }
 
+    // Season History
+    loadPlayerSeasonHistory(player.uuid);
+
     // Recent Matches
     const matchesContainer = document.getElementById('recent-matches-list');
     if (matchesContainer) {
@@ -274,6 +277,62 @@ function displayPlayerProfile(data) {
         } else {
             matchesContainer.innerHTML = '<div class="no-data-message"><p>No matches played yet.</p></div>';
         }
+    }
+}
+
+async function loadPlayerSeasonHistory(playerUuid) {
+    const container = document.getElementById('season-history-list');
+    if (!container) return;
+
+    try {
+        const response = await fetch(`/api/player/${encodeURIComponent(playerUuid)}/seasons`);
+        const data = await response.json();
+
+        if (data.success && data.data.seasons && data.data.seasons.length > 0) {
+            container.innerHTML = data.data.seasons.map(season => {
+                const isActive = season.status === 'active';
+                const statusClass = isActive ? 'active' : 'ended';
+                const statusText = isActive ? 'Active' : 'Ended';
+
+                const startDate = new Date(season.starts_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                const endDate = new Date(season.ends_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+                const rank = season.rank_position
+                    ? `#${season.rank_position}${season.total_participants ? ` / ${season.total_participants}` : ''}`
+                    : '-';
+                const rankClass = season.rank_position && season.rank_position <= 3 ? `rank-${season.rank_position}` : '';
+
+                return `
+                    <a href="/seasons/${encodeURIComponent(season.slug)}" class="season-history-card ${statusClass}">
+                        <div class="season-history-header">
+                            <span class="season-history-name">${escapeHtml(season.name)}</span>
+                            <span class="season-history-status ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="season-history-stats">
+                            <div class="season-history-rank ${rankClass}">
+                                <span class="value">${rank}</span>
+                                <span class="label">Rank</span>
+                            </div>
+                            <div class="season-history-stat">
+                                <span class="value">${season.matches_played || 0}</span>
+                                <span class="label">Games</span>
+                            </div>
+                            <div class="season-history-stat">
+                                <span class="value">${season.matches_won || 0}</span>
+                                <span class="label">Wins</span>
+                            </div>
+                            <div class="season-history-stat">
+                                <span class="value">${season.pvp_kills || 0}</span>
+                                <span class="label">Kills</span>
+                            </div>
+                        </div>
+                        <div class="season-history-dates">${startDate} - ${endDate}</div>
+                    </a>
+                `;
+            }).join('');
+        }
+    } catch (e) {
+        console.error('Failed to load season history:', e);
     }
 }
 

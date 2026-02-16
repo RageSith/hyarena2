@@ -398,6 +398,12 @@ a:hover { text-decoration: underline; }
 
 .text-muted { color: var(--admin-text-muted); }
 
+/* Season Status Badges */
+.badge-season-draft { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.badge-season-active { background: rgba(74, 222, 128, 0.15); color: var(--admin-success); }
+.badge-season-ended { background: rgba(152, 152, 176, 0.15); color: var(--admin-text-muted); }
+.badge-season-archived { background: rgba(152, 152, 176, 0.1); color: var(--admin-text-muted); }
+
 /* Responsive */
 @media (max-width: 768px) {
     .admin-sidebar {

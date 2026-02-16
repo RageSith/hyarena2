@@ -1,0 +1,89 @@
+{% extends "admin/layout.twig" %}
+
+{% block title %}Seasons{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-page-header">
+        <h1>Seasons</h1>
+        <a href="/admin/seasons/create" class="btn btn-primary">Create Season</a>
+    </div>
+
+    <div class="admin-table-wrapper">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Dates</th>
+                    <th>Ranking</th>
+                    <th>Players</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if seasons is empty %}
+                    <tr>
+                        <td colspan="7" class="empty">No seasons created yet.</td>
+                    </tr>
+                {% else %}
+                    {% for season in seasons %}
+                    <tr>
+                        <td>
+                            <strong>{{ season.name }}</strong>
+                            <br><span class="text-muted">{{ season.slug }}</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ season.type == 'system' ? 'info' : 'warning' }}">
+                                {{ season.type }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if season.status == 'draft' %}
+                                <span class="badge badge-season-draft">Draft</span>
+                            {% elseif season.status == 'active' %}
+                                <span class="badge badge-season-active">Active</span>
+                            {% elseif season.status == 'ended' %}
+                                <span class="badge badge-season-ended">Ended</span>
+                            {% else %}
+                                <span class="badge badge-season-archived">Archived</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted">
+                            {{ season.starts_at|date('M j, Y') }}<br>
+                            {{ season.ends_at|date('M j, Y') }}
+                        </td>
+                        <td>{{ season.ranking_mode }}</td>
+                        <td>{{ season.participant_count }}</td>
+                        <td class="actions">
+                            <a href="/admin/seasons/{{ season.id }}/edit" class="btn btn-secondary btn-sm">Edit</a>
+                            {% if season.status == 'draft' %}
+                                <form method="post" action="/admin/seasons/{{ season.id }}/activate" style="display:inline;">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-primary btn-sm">Activate</button>
+                                </form>
+                                <form method="post" action="/admin/seasons/{{ season.id }}/delete" style="display:inline;">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this season?')">Delete</button>
+                                </form>
+                            {% elseif season.status == 'active' %}
+                                <form method="post" action="/admin/seasons/{{ season.id }}/end" style="display:inline;">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('End this season and freeze rankings?')">End</button>
+                                </form>
+                            {% elseif season.status == 'ended' %}
+                                <form method="post" action="/admin/seasons/{{ season.id }}/archive" style="display:inline;">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-secondary btn-sm">Archive</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

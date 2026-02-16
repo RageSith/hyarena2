@@ -1,0 +1,104 @@
+{% extends "base.twig" %}
+
+{% block title %}Season - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="season-detail">
+    <div class="container">
+        <div id="season-slug" data-slug="{{ season_slug }}"></div>
+
+        <!-- Loading -->
+        <div id="season-loading" class="seasons-loading">
+            <div class="spinner"></div>
+            <span>Loading season...</span>
+        </div>
+
+        <!-- Error -->
+        <div id="season-error" class="player-error" style="display: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M15 9l-6 6M9 9l6 6"/>
+            </svg>
+            <h2>Season Not Found</h2>
+            <p>Could not find this season.</p>
+            <a href="/seasons" class="btn btn-primary" style="margin-top: var(--space-lg);">Back to Seasons</a>
+        </div>
+
+        <!-- Content -->
+        <div id="season-content" style="display: none;">
+            <!-- Header -->
+            <div class="season-header-card">
+                <div class="season-header-info">
+                    <div class="season-header-top">
+                        <h1 class="season-name" id="season-name"></h1>
+                        <span class="season-status-badge" id="season-status"></span>
+                    </div>
+                    <p class="season-description" id="season-description"></p>
+                    <div class="season-header-meta">
+                        <span id="season-dates"></span>
+                        <span id="season-participants"></span>
+                        <span id="season-ranking-mode"></span>
+                    </div>
+                    <div class="season-countdown" id="season-countdown"></div>
+                </div>
+            </div>
+
+            <!-- Leaderboard -->
+            <div class="season-leaderboard">
+                <h2 class="section-heading">Rankings</h2>
+                <div class="season-leaderboard-table-wrapper">
+                    <table class="leaderboard-table season-table">
+                        <thead>
+                            <tr id="season-table-header">
+                                <th class="col-rank">Rank</th>
+                                <th class="col-player">Player</th>
+                                <th class="col-stat">Wins</th>
+                                <th class="col-stat">PvP Kills</th>
+                                <th class="col-stat">PvP K/D</th>
+                                <th class="col-stat">Win Rate</th>
+                                <th class="col-stat">Games</th>
+                            </tr>
+                        </thead>
+                        <tbody id="season-leaderboard-body">
+                            <tr>
+                                <td colspan="7">
+                                    <div class="table-loading">
+                                        <div class="spinner"></div>
+                                        <span>Loading rankings...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="leaderboard-pagination" id="season-pagination" style="display: none;">
+                    <button class="pagination-btn" id="season-prev" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                        <span>Previous</span>
+                    </button>
+                    <span class="pagination-info" id="season-pagination-info">Page 1 of 1</span>
+                    <button class="pagination-btn" id="season-next" disabled>
+                        <span>Next</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Back -->
+            <div class="player-back">
+                <a href="/seasons" class="back-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Back to Seasons
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/assets/js/main.js"></script>
+<script src="/assets/js/season-detail.js"></script>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.twig" %}
+
+{% block title %}Past Seasons - {{ site_name }}{% endblock %}
+
+{% block content %}
+<div class="seasons-hero">
+    <div class="container">
+        <h1 class="seasons-title">Past Seasons</h1>
+        <p class="seasons-subtitle">Browse completed seasons and their final standings</p>
+    </div>
+</div>
+
+<section class="seasons-section">
+    <div class="container">
+        <div id="archive-loading" class="seasons-loading">
+            <div class="spinner"></div>
+            <span>Loading past seasons...</span>
+        </div>
+
+        <div id="archive-content" style="display: none;">
+            <div class="seasons-grid" id="archive-seasons-grid">
+                <div class="no-data-message"><p>No past seasons yet.</p></div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="seasons-pagination" id="archive-pagination" style="display: none;">
+                <button class="pagination-btn" id="archive-prev" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                    <span>Previous</span>
+                </button>
+                <span class="pagination-info" id="archive-pagination-info">Page 1 of 1</span>
+                <button class="pagination-btn" id="archive-next" disabled>
+                    <span>Next</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="seasons-back-link">
+            <a href="/seasons" class="back-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Back to Active Seasons
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/assets/js/main.js"></script>
+<script src="/assets/js/seasons.js"></script>
+{% endblock %}
