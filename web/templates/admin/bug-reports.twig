@@ -1,0 +1,78 @@
+{% extends "admin/layout.twig" %}
+
+{% block title %}Bug Reports{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-page-header">
+        <h1>Bug Reports</h1>
+    </div>
+
+    <div class="status-tabs">
+        <a href="/admin/bug-reports" class="status-tab {% if not status_filter %}active{% endif %}">
+            All <span class="tab-count">{{ status_counts.open + status_counts.acknowledged + status_counts.resolved + status_counts.closed }}</span>
+        </a>
+        <a href="/admin/bug-reports?status=open" class="status-tab {% if status_filter == 'open' %}active{% endif %}">
+            Open <span class="tab-count">{{ status_counts.open }}</span>
+        </a>
+        <a href="/admin/bug-reports?status=acknowledged" class="status-tab {% if status_filter == 'acknowledged' %}active{% endif %}">
+            Acknowledged <span class="tab-count">{{ status_counts.acknowledged }}</span>
+        </a>
+        <a href="/admin/bug-reports?status=resolved" class="status-tab {% if status_filter == 'resolved' %}active{% endif %}">
+            Resolved <span class="tab-count">{{ status_counts.resolved }}</span>
+        </a>
+        <a href="/admin/bug-reports?status=closed" class="status-tab {% if status_filter == 'closed' %}active{% endif %}">
+            Closed <span class="tab-count">{{ status_counts.closed }}</span>
+        </a>
+    </div>
+
+    <div class="admin-table-wrapper">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Player</th>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in reports %}
+                <tr>
+                    <td>#{{ report.id }}</td>
+                    <td>{{ report.player_name }}</td>
+                    <td>{{ report.title }}</td>
+                    <td><span class="badge badge-category-{{ report.category }}">{{ report.category|replace({'_': '/'})|upper }}</span></td>
+                    <td>
+                        <span class="badge badge-bug-{{ report.status }}">{{ report.status }}</span>
+                    </td>
+                    <td>{{ report.created_at|date('M j, Y') }}</td>
+                    <td class="actions">
+                        <a href="/admin/bug-reports/{{ report.id }}" class="btn btn-sm btn-secondary">View</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="empty">No bug reports found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        {% if page > 1 %}
+            <a href="/admin/bug-reports?{% if status_filter %}status={{ status_filter }}&{% endif %}page={{ page - 1 }}" class="btn btn-sm btn-secondary">&laquo; Prev</a>
+        {% endif %}
+        <span class="pagination-info">Page {{ page }} of {{ total_pages }}</span>
+        {% if page < total_pages %}
+            <a href="/admin/bug-reports?{% if status_filter %}status={{ status_filter }}&{% endif %}page={{ page + 1 }}" class="btn btn-sm btn-secondary">Next &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -3,13 +3,17 @@
 use App\Controller\PageController;
 use App\Controller\ApiController;
 use App\Controller\AdminController;
+use App\Controller\AdminUserController;
+use App\Controller\BugReportAdminController;
 use App\Controller\LinkController;
+use App\Controller\PlayerManagementController;
 use App\Controller\SeasonApiController;
 use App\Controller\SeasonAdminController;
 use App\Middleware\ApiKeyMiddleware;
 use App\Middleware\RateLimitMiddleware;
 use App\Middleware\CorsMiddleware;
 use App\Middleware\AdminAuthMiddleware;
+use App\Middleware\AdminRoleMiddleware;
 use App\Middleware\PlayerAuthMiddleware;
 use App\Middleware\CsrfMiddleware;
 use Slim\App;
@@ -80,31 +84,59 @@ return function (App $app) {
         $group->get('', [AdminController::class, 'dashboard']);
         $group->get('/logout', [AdminController::class, 'logout']);
 
-        // Notifications
-        $group->get('/notifications', [AdminController::class, 'notifications']);
-        $group->get('/notifications/create', [AdminController::class, 'notificationForm']);
-        $group->post('/notifications/create', [AdminController::class, 'createNotification']);
-        $group->get('/notifications/{id}/edit', [AdminController::class, 'notificationForm']);
-        $group->post('/notifications/{id}/edit', [AdminController::class, 'updateNotification']);
-        $group->post('/notifications/{id}/delete', [AdminController::class, 'deleteNotification']);
+        // Bug Reports
+        $group->get('/bug-reports', [BugReportAdminController::class, 'list']);
+        $group->get('/bug-reports/{id}', [BugReportAdminController::class, 'detail']);
+        $group->post('/bug-reports/{id}/status', [BugReportAdminController::class, 'updateStatus']);
+        $group->post('/bug-reports/{id}/delete', [BugReportAdminController::class, 'delete']);
 
-        // Webhooks
-        $group->get('/webhooks', [AdminController::class, 'webhooks']);
-        $group->get('/webhooks/create', [AdminController::class, 'webhookForm']);
-        $group->post('/webhooks/create', [AdminController::class, 'createWebhook']);
-        $group->get('/webhooks/{id}/edit', [AdminController::class, 'webhookForm']);
-        $group->post('/webhooks/{id}/edit', [AdminController::class, 'updateWebhook']);
-        $group->post('/webhooks/{id}/delete', [AdminController::class, 'deleteWebhook']);
+        // Players
+        $group->get('/players', [PlayerManagementController::class, 'list']);
+        $group->get('/players/{uuid}', [PlayerManagementController::class, 'detail']);
+        $group->post('/players/{uuid}/ban', [PlayerManagementController::class, 'ban']);
+        $group->post('/players/{uuid}/unban', [PlayerManagementController::class, 'unban']);
 
-        // Seasons
-        $group->get('/seasons', [SeasonAdminController::class, 'list']);
-        $group->get('/seasons/create', [SeasonAdminController::class, 'createForm']);
-        $group->post('/seasons/create', [SeasonAdminController::class, 'create']);
-        $group->get('/seasons/{id}/edit', [SeasonAdminController::class, 'editForm']);
-        $group->post('/seasons/{id}/edit', [SeasonAdminController::class, 'edit']);
-        $group->post('/seasons/{id}/activate', [SeasonAdminController::class, 'activate']);
-        $group->post('/seasons/{id}/end', [SeasonAdminController::class, 'end']);
-        $group->post('/seasons/{id}/archive', [SeasonAdminController::class, 'archive']);
-        $group->post('/seasons/{id}/delete', [SeasonAdminController::class, 'delete']);
+        // Notifications (admin+ only)
+        $group->group('', function (RouteCollectorProxy $inner) {
+            $inner->get('/notifications', [AdminController::class, 'notifications']);
+            $inner->get('/notifications/create', [AdminController::class, 'notificationForm']);
+            $inner->post('/notifications/create', [AdminController::class, 'createNotification']);
+            $inner->get('/notifications/{id}/edit', [AdminController::class, 'notificationForm']);
+            $inner->post('/notifications/{id}/edit', [AdminController::class, 'updateNotification']);
+            $inner->post('/notifications/{id}/delete', [AdminController::class, 'deleteNotification']);
+        })->add(new AdminRoleMiddleware('notifications'));
+
+        // Webhooks (super_admin only)
+        $group->group('', function (RouteCollectorProxy $inner) {
+            $inner->get('/webhooks', [AdminController::class, 'webhooks']);
+            $inner->get('/webhooks/create', [AdminController::class, 'webhookForm']);
+            $inner->post('/webhooks/create', [AdminController::class, 'createWebhook']);
+            $inner->get('/webhooks/{id}/edit', [AdminController::class, 'webhookForm']);
+            $inner->post('/webhooks/{id}/edit', [AdminController::class, 'updateWebhook']);
+            $inner->post('/webhooks/{id}/delete', [AdminController::class, 'deleteWebhook']);
+        })->add(new AdminRoleMiddleware('webhooks'));
+
+        // Seasons (admin+ only)
+        $group->group('', function (RouteCollectorProxy $inner) {
+            $inner->get('/seasons', [SeasonAdminController::class, 'list']);
+            $inner->get('/seasons/create', [SeasonAdminController::class, 'createForm']);
+            $inner->post('/seasons/create', [SeasonAdminController::class, 'create']);
+            $inner->get('/seasons/{id}/edit', [SeasonAdminController::class, 'editForm']);
+            $inner->post('/seasons/{id}/edit', [SeasonAdminController::class, 'edit']);
+            $inner->post('/seasons/{id}/activate', [SeasonAdminController::class, 'activate']);
+            $inner->post('/seasons/{id}/end', [SeasonAdminController::class, 'end']);
+            $inner->post('/seasons/{id}/archive', [SeasonAdminController::class, 'archive']);
+            $inner->post('/seasons/{id}/delete', [SeasonAdminController::class, 'delete']);
+        })->add(new AdminRoleMiddleware('seasons'));
+
+        // Admin Users (super_admin only)
+        $group->group('', function (RouteCollectorProxy $inner) {
+            $inner->get('/users', [AdminUserController::class, 'list']);
+            $inner->get('/users/create', [AdminUserController::class, 'createForm']);
+            $inner->post('/users/create', [AdminUserController::class, 'create']);
+            $inner->get('/users/{id}/edit', [AdminUserController::class, 'editForm']);
+            $inner->post('/users/{id}/edit', [AdminUserController::class, 'edit']);
+            $inner->post('/users/{id}/delete', [AdminUserController::class, 'delete']);
+        })->add(new AdminRoleMiddleware('admin_users'));
     })->add(new CsrfMiddleware())->add(new AdminAuthMiddleware());
 };

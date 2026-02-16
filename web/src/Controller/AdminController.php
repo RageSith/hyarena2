@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Auth\AdminAuth;
 use App\Repository\AdminRepository;
+use App\Repository\BugReportRepository;
 use App\Service\NotificationService;
 use App\Service\WebhookService;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -61,10 +62,16 @@ class AdminController
         $repo = new AdminRepository();
         $stats = $repo->getDashboardStats();
 
+        $bugRepo = new BugReportRepository();
+        $bugCounts = $bugRepo->getCountByStatus();
+        $stats['open_bugs'] = $bugCounts['open'];
+
         return $this->twig->render($response, 'admin/dashboard.twig', [
             'admin' => AdminAuth::getAdmin(),
             'stats' => $stats,
+            'open_bug_count' => $bugCounts['open'],
             'csrf_token' => AdminAuth::generateCsrfToken(),
+            'active_page' => 'dashboard',
         ]);
     }
 
@@ -79,6 +86,7 @@ class AdminController
             'admin' => AdminAuth::getAdmin(),
             'notifications' => $service->getAll(),
             'csrf_token' => AdminAuth::generateCsrfToken(),
+            'active_page' => 'notifications',
         ]);
     }
 
@@ -96,6 +104,7 @@ class AdminController
             'admin' => AdminAuth::getAdmin(),
             'notification' => $notification,
             'csrf_token' => AdminAuth::generateCsrfToken(),
+            'active_page' => 'notifications',
         ]);
     }
 
@@ -155,6 +164,7 @@ class AdminController
             'admin' => AdminAuth::getAdmin(),
             'webhooks' => $service->getAll(),
             'csrf_token' => AdminAuth::generateCsrfToken(),
+            'active_page' => 'webhooks',
         ]);
     }
 
@@ -172,6 +182,7 @@ class AdminController
             'admin' => AdminAuth::getAdmin(),
             'webhook' => $webhook,
             'csrf_token' => AdminAuth::generateCsrfToken(),
+            'active_page' => 'webhooks',
         ]);
     }
 

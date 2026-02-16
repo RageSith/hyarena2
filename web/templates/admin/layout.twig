@@ -14,12 +14,19 @@
             </div>
             <ul class="admin-nav">
                 <li><a href="/admin" class="{% if active_page is defined and active_page == 'dashboard' %}active{% endif %}">Dashboard</a></li>
+                <li><a href="/admin/bug-reports" class="{% if active_page is defined and active_page == 'bug_reports' %}active{% endif %}">Bug Reports{% if open_bug_count is defined and open_bug_count > 0 %} <span class="nav-badge">{{ open_bug_count }}</span>{% endif %}</a></li>
+                <li><a href="/admin/players" class="{% if active_page is defined and active_page == 'players' %}active{% endif %}">Players</a></li>
+                {% if admin.role in ['super_admin', 'admin'] %}
                 <li><a href="/admin/notifications" class="{% if active_page is defined and active_page == 'notifications' %}active{% endif %}">Notifications</a></li>
-                <li><a href="/admin/webhooks" class="{% if active_page is defined and active_page == 'webhooks' %}active{% endif %}">Webhooks</a></li>
                 <li><a href="/admin/seasons" class="{% if active_page is defined and active_page == 'seasons' %}active{% endif %}">Seasons</a></li>
+                {% endif %}
+                {% if admin.role == 'super_admin' %}
+                <li><a href="/admin/webhooks" class="{% if active_page is defined and active_page == 'webhooks' %}active{% endif %}">Webhooks</a></li>
+                <li><a href="/admin/users" class="{% if active_page is defined and active_page == 'admin_users' %}active{% endif %}">Admin Users</a></li>
+                {% endif %}
             </ul>
             <div class="admin-user">
-                <span>{{ admin.username }}</span>
+                <span>{{ admin.username }} <span class="badge badge-role-{{ admin.role }}">{{ admin.role|replace({'_': ' '}) }}</span></span>
                 <a href="/admin/logout">Logout</a>
             </div>
         </nav>

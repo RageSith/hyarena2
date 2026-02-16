@@ -1,0 +1,55 @@
+{% extends "admin/layout.twig" %}
+
+{% block title %}{{ user ? 'Edit' : 'Create' }} Admin User{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-page-header">
+        <h1>{{ user ? 'Edit' : 'Create' }} Admin User</h1>
+        <a href="/admin/users" class="btn btn-secondary">&larr; Back</a>
+    </div>
+
+    {% if error is defined and error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="{{ user ? '/admin/users/' ~ user.id ~ '/edit' : '/admin/users/create' }}" class="admin-form">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+
+        <div class="form-group">
+            <label>Username</label>
+            {% if user %}
+                <input type="text" value="{{ user.username }}" disabled>
+                <input type="hidden" name="username" value="{{ user.username }}">
+            {% else %}
+                <input type="text" name="username" value="" required>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label>Password{% if user %} (leave empty to keep current){% endif %}</label>
+            <input type="password" name="password" {% if not user %}required{% endif %} minlength="8">
+        </div>
+
+        <div class="form-group">
+            <label>Role</label>
+            {% if user and user.id == admin.id %}
+                <input type="text" value="{{ user.role|replace({'_': ' '}) }}" disabled>
+                <input type="hidden" name="role" value="{{ user.role }}">
+                <small class="text-muted">You cannot change your own role.</small>
+            {% else %}
+                <select name="role">
+                    <option value="moderator" {% if user and user.role == 'moderator' %}selected{% endif %}>Moderator</option>
+                    <option value="admin" {% if user and user.role == 'admin' %}selected{% endif %}>Admin</option>
+                    <option value="super_admin" {% if (user and user.role == 'super_admin') or not user %}selected{% endif %}>Super Admin</option>
+                </select>
+            {% endif %}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{{ user ? 'Save Changes' : 'Create Admin' }}</button>
+            <a href="/admin/users" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

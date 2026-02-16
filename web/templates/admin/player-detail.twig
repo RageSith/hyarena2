@@ -1,0 +1,184 @@
+{% extends "admin/layout.twig" %}
+
+{% block title %}Player: {{ player.username }}{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-page-header">
+        <h1>{{ player.username }}</h1>
+        <a href="/admin/players" class="btn btn-secondary">&larr; Back to Players</a>
+    </div>
+
+    {% if player.is_banned %}
+    <div class="alert alert-error">
+        This player is banned. Reason: {{ player.ban_reason ?? 'No reason' }}
+        {% if player.banned_at %} &mdash; {{ player.banned_at|date('M j, Y g:i A') }}{% endif %}
+    </div>
+    {% endif %}
+
+    <div class="player-detail-grid">
+        <div class="detail-card">
+            <h3>Player Info</h3>
+            <div class="detail-rows">
+                <div class="detail-row">
+                    <span class="detail-label">Username</span>
+                    <span class="detail-value">{{ player.username }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">UUID</span>
+                    <span class="detail-value text-muted">{{ player.uuid }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">First Seen</span>
+                    <span class="detail-value">{{ player.first_seen|date('M j, Y g:i A') }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Last Seen</span>
+                    <span class="detail-value">{{ player.last_seen|date('M j, Y g:i A') }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status</span>
+                    <span class="detail-value">
+                        {% if player.is_banned %}
+                            <span class="badge badge-banned">Banned</span>
+                        {% else %}
+                            <span class="badge badge-active">Active</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <h3>Economy</h3>
+            <div class="detail-rows">
+                <div class="detail-row">
+                    <span class="detail-label">Arena Points</span>
+                    <span class="detail-value">{{ player.arena_points }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Honor</span>
+                    <span class="detail-value">{{ player.honor }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Honor Rank</span>
+                    <span class="detail-value">{{ player.honor_rank }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Currency</span>
+                    <span class="detail-value">{{ player.currency }}</span>
+                </div>
+            </div>
+        </div>
+
+        {% if player.global_stats %}
+        <div class="detail-card">
+            <h3>Stats</h3>
+            <div class="detail-rows">
+                <div class="detail-row">
+                    <span class="detail-label">Matches</span>
+                    <span class="detail-value">{{ player.global_stats.matches_played }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Wins</span>
+                    <span class="detail-value">{{ player.global_stats.matches_won }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">PvP K/D</span>
+                    <span class="detail-value">{{ player.global_stats.pvp_kills }} / {{ player.global_stats.pvp_deaths }} ({{ player.global_stats.pvp_kd_ratio|number_format(2) }})</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">PvE K/D</span>
+                    <span class="detail-value">{{ player.global_stats.pve_kills }} / {{ player.global_stats.pve_deaths }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Win Rate</span>
+                    <span class="detail-value">{{ (player.global_stats.win_rate * 100)|number_format(1) }}%</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="detail-card">
+            <h3>Linked Account</h3>
+            <div class="detail-rows">
+                {% if player.linked_account %}
+                <div class="detail-row">
+                    <span class="detail-label">Email</span>
+                    <span class="detail-value">{{ player.linked_account.email }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Created</span>
+                    <span class="detail-value">{{ player.linked_account.created_at|date('M j, Y') }}</span>
+                </div>
+                {% else %}
+                <div class="detail-row">
+                    <span class="detail-value text-muted">No linked account</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if player.recent_matches %}
+    <div style="margin-top: 2rem;">
+        <h3>Recent Matches</h3>
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Arena</th>
+                        <th>Mode</th>
+                        <th>K/D</th>
+                        <th>Damage</th>
+                        <th>Result</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in player.recent_matches %}
+                    <tr>
+                        <td>{{ match.arena_id }}</td>
+                        <td>{{ match.game_mode }}</td>
+                        <td>{{ match.pvp_kills }} / {{ match.pvp_deaths }}</td>
+                        <td>{{ match.damage_dealt|number_format(0) }}</td>
+                        <td>
+                            {% if match.is_winner %}
+                                <span class="badge badge-active">Win</span>
+                            {% else %}
+                                <span class="badge badge-bug-closed">Loss</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ match.ended_at ? match.ended_at|date('M j, Y') : '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="ban-section">
+        <h3>Ban Management</h3>
+        {% if player.is_banned %}
+            <div class="ban-info">
+                <p><strong>Reason:</strong> {{ player.ban_reason ?? 'No reason' }}</p>
+                <p><strong>Banned:</strong> {{ player.banned_at ? player.banned_at|date('M j, Y g:i A') : 'Unknown' }}</p>
+            </div>
+            <form method="POST" action="/admin/players/{{ player.uuid }}/unban" onsubmit="return confirm('Unban {{ player.username }}?')">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-primary">Unban Player</button>
+            </form>
+        {% else %}
+            <form method="POST" action="/admin/players/{{ player.uuid }}/ban" class="ban-form" onsubmit="return confirm('Ban {{ player.username }}?')">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                <div class="form-group">
+                    <label>Ban Reason</label>
+                    <input type="text" name="reason" placeholder="Enter ban reason..." required>
+                </div>
+                <button type="submit" class="btn btn-danger">Ban Player</button>
+            </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
