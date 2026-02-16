@@ -202,7 +202,7 @@ class SeasonRepository
             $stmt2 = $db->prepare('
                 SELECT s.id, s.name, s.slug, s.visibility
                 FROM seasons s
-                JOIN season_participants sp ON sp.season_id = s.id AND sp.player_uuid = :uuid
+                JOIN season_participants sp ON sp.season_id = s.id AND sp.player_uuid = :uuid AND sp.opted_out = 0
                 WHERE s.status = :status AND s.visibility != :pub
                 ORDER BY s.ends_at ASC
             ');
@@ -278,9 +278,41 @@ class SeasonRepository
     public function isParticipant(int $seasonId, string $playerUuid): bool
     {
         $db = Database::getConnection();
-        $stmt = $db->prepare('SELECT 1 FROM season_participants WHERE season_id = :sid AND player_uuid = :uuid');
+        $stmt = $db->prepare('SELECT 1 FROM season_participants WHERE season_id = :sid AND player_uuid = :uuid AND opted_out = 0');
         $stmt->execute(['sid' => $seasonId, 'uuid' => $playerUuid]);
         return (bool) $stmt->fetchColumn();
+    }
+
+    public function isOptedOut(int $seasonId, string $playerUuid): bool
+    {
+        $db = Database::getConnection();
+        $stmt = $db->prepare('SELECT 1 FROM season_participants WHERE season_id = :sid AND player_uuid = :uuid AND opted_out = 1');
+        $stmt->execute(['sid' => $seasonId, 'uuid' => $playerUuid]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    public function optOut(int $seasonId, string $playerUuid): void
+    {
+        $db = Database::getConnection();
+        $stmt = $db->prepare('UPDATE season_participants SET opted_out = 1 WHERE season_id = :sid AND player_uuid = :uuid');
+        $stmt->execute(['sid' => $seasonId, 'uuid' => $playerUuid]);
+    }
+
+    public function getPlayerPrivateSeasons(string $playerUuid): array
+    {
+        $db = Database::getConnection();
+        $stmt = $db->prepare('
+            SELECT s.id, s.name, s.slug, s.visibility, s.starts_at, s.ends_at, sp.joined_at
+            FROM season_participants sp
+            JOIN seasons s ON sp.season_id = s.id
+            WHERE sp.player_uuid = :uuid
+              AND sp.opted_out = 0
+              AND s.type = :type
+              AND s.status = :status
+            ORDER BY s.ends_at ASC
+        ');
+        $stmt->execute(['uuid' => $playerUuid, 'type' => 'private', 'status' => 'active']);
+        return $stmt->fetchAll();
     }
 
     public function getParticipantCount(int $seasonId): int

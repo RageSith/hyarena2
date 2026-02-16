@@ -206,4 +206,65 @@ class SeasonService
     {
         return $this->repo->getPlayerSeasonHistory($playerUuid);
     }
+
+    // ==========================================
+    // Player Season Management
+    // ==========================================
+
+    public function joinByCode(string $playerUuid, string $code): array
+    {
+        $season = $this->repo->findByJoinCode($code);
+        if (!$season) {
+            return ['success' => false, 'error' => 'Invalid or expired season code.'];
+        }
+
+        if ($season['type'] !== 'private') {
+            return ['success' => false, 'error' => 'This code is not for a private season.'];
+        }
+
+        $seasonId = (int) $season['id'];
+
+        if ($this->repo->isOptedOut($seasonId, $playerUuid)) {
+            return ['success' => false, 'error' => 'You have already left this season.'];
+        }
+
+        if ($this->repo->isParticipant($seasonId, $playerUuid)) {
+            return ['success' => false, 'error' => 'You are already in this season.'];
+        }
+
+        $this->repo->addParticipant($seasonId, $playerUuid);
+        return ['success' => true, 'season_name' => $season['name']];
+    }
+
+    public function optOut(string $playerUuid, int $seasonId): array
+    {
+        $season = $this->repo->findById($seasonId);
+        if (!$season) {
+            return ['success' => false, 'error' => 'Season not found.'];
+        }
+
+        if ($season['status'] !== 'active') {
+            return ['success' => false, 'error' => 'This season is no longer active.'];
+        }
+
+        if ($season['type'] !== 'private') {
+            return ['success' => false, 'error' => 'You can only leave private seasons.'];
+        }
+
+        if ($this->repo->isOptedOut($seasonId, $playerUuid)) {
+            return ['success' => false, 'error' => 'You have already left this season.'];
+        }
+
+        if (!$this->repo->isParticipant($seasonId, $playerUuid)) {
+            return ['success' => false, 'error' => 'You are not in this season.'];
+        }
+
+        $this->repo->optOut($seasonId, $playerUuid);
+        return ['success' => true, 'season_name' => $season['name']];
+    }
+
+    public function getPlayerPrivateSeasons(string $playerUuid): array
+    {
+        return $this->repo->getPlayerPrivateSeasons($playerUuid);
+    }
 }

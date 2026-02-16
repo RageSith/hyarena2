@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Service\LinkService;
+use App\Service\SeasonService;
 use App\Repository\PlayerRepository;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -171,17 +172,92 @@ class LinkController
         $service = new LinkService();
         $account = $service->getAccount($_SESSION['player_account_id']);
         $player = null;
+        $privateSeasons = [];
 
         if ($account && $account['player_uuid']) {
             $playerRepo = new PlayerRepository();
             $player = $playerRepo->findByUuid($account['player_uuid']);
+
+            $seasonService = new SeasonService();
+            $privateSeasons = $seasonService->getPlayerPrivateSeasons($account['player_uuid']);
         }
+
+        $seasonSuccess = $_SESSION['season_success'] ?? null;
+        $seasonError = $_SESSION['season_error'] ?? null;
+        unset($_SESSION['season_success'], $_SESSION['season_error']);
 
         return $this->twig->render($response, 'auth/profile.twig', [
             'active_page' => 'profile',
             'account' => $account,
             'player' => $player,
+            'private_seasons' => $privateSeasons,
+            'season_success' => $seasonSuccess,
+            'season_error' => $seasonError,
         ]);
+    }
+
+    // ==========================================
+    // Web: Season Management
+    // ==========================================
+
+    public function joinSeason(Request $request, Response $response): Response
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+
+        $playerUuid = $_SESSION['player_uuid'] ?? null;
+        if (!$playerUuid) {
+            $_SESSION['season_error'] = 'You must link your game account first.';
+            return $response->withHeader('Location', '/profile')->withStatus(302);
+        }
+
+        $body = $request->getParsedBody();
+        $code = trim($body['code'] ?? '');
+
+        if (empty($code)) {
+            $_SESSION['season_error'] = 'Please enter a season code.';
+            return $response->withHeader('Location', '/profile')->withStatus(302);
+        }
+
+        $seasonService = new SeasonService();
+        $result = $seasonService->joinByCode($playerUuid, $code);
+
+        if ($result['success']) {
+            $_SESSION['season_success'] = 'You have joined the season "' . $result['season_name'] . '".';
+        } else {
+            $_SESSION['season_error'] = $result['error'];
+        }
+
+        return $response->withHeader('Location', '/profile')->withStatus(302);
+    }
+
+    public function optOutSeason(Request $request, Response $response): Response
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+
+        $playerUuid = $_SESSION['player_uuid'] ?? null;
+        if (!$playerUuid) {
+            $_SESSION['season_error'] = 'You must link your game account first.';
+            return $response->withHeader('Location', '/profile')->withStatus(302);
+        }
+
+        $body = $request->getParsedBody();
+        $seasonId = (int) ($body['season_id'] ?? 0);
+
+        if ($seasonId <= 0) {
+            $_SESSION['season_error'] = 'Invalid season.';
+            return $response->withHeader('Location', '/profile')->withStatus(302);
+        }
+
+        $seasonService = new SeasonService();
+        $result = $seasonService->optOut($playerUuid, $seasonId);
+
+        if ($result['success']) {
+            $_SESSION['season_success'] = 'You have left the season "' . $result['season_name'] . '".';
+        } else {
+            $_SESSION['season_error'] = $result['error'];
+        }
+
+        return $response->withHeader('Location', '/profile')->withStatus(302);
     }
 
     // ==========================================

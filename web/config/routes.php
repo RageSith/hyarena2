@@ -22,6 +22,7 @@ use Slim\Routing\RouteCollectorProxy;
 return function (App $app) {
     // Public pages
     $app->get('/', [PageController::class, 'home']);
+    $app->get('/news', [PageController::class, 'news']);
     $app->get('/live', [PageController::class, 'live']);
     $app->get('/arenas', [PageController::class, 'arenas']);
     $app->get('/kits', [PageController::class, 'kits']);
@@ -72,6 +73,8 @@ return function (App $app) {
         $group->get('/link', [LinkController::class, 'linkPage']);
         $group->post('/link', [LinkController::class, 'link']);
         $group->get('/profile', [LinkController::class, 'profile']);
+        $group->post('/profile/season/join', [LinkController::class, 'joinSeason']);
+        $group->post('/profile/season/opt-out', [LinkController::class, 'optOutSeason']);
         $group->get('/profile/password', [LinkController::class, 'changePasswordPage']);
         $group->post('/profile/password', [LinkController::class, 'changePassword']);
     })->add(new PlayerAuthMiddleware());

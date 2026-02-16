@@ -52,10 +52,60 @@
                     <a href="/player/{{ player.username }}" class="btn btn-primary">View Public Stats</a>
                 </div>
             </div>
+
+            <div class="profile-seasons">
+                <h2>Seasons</h2>
+
+                {% if season_success %}
+                    <div class="alert alert-success">{{ season_success }}</div>
+                {% endif %}
+                {% if season_error %}
+                    <div class="alert alert-danger">{{ season_error }}</div>
+                {% endif %}
+
+                <div class="season-join-card">
+                    <h3>Join a Private Season</h3>
+                    <form action="/profile/season/join" method="post" class="season-join-form">
+                        <input type="text" name="code" class="code-input" placeholder="Enter code" maxlength="20" required>
+                        <button type="submit" class="btn btn-primary">Join</button>
+                    </form>
+                </div>
+
+                <div class="season-list">
+                    <h3>Your Private Seasons</h3>
+                    {% if private_seasons is empty %}
+                        <p class="text-muted">You haven't joined any private seasons yet.</p>
+                    {% else %}
+                        {% for season in private_seasons %}
+                            <div class="season-item">
+                                <div class="season-item-info">
+                                    {% if season.visibility != 'private' %}
+                                        <a href="/seasons/{{ season.slug }}" class="season-item-name">{{ season.name }}</a>
+                                    {% else %}
+                                        <span class="season-item-name">{{ season.name }}</span>
+                                    {% endif %}
+                                    <span class="season-item-date">Joined {{ season.joined_at|date('M j, Y') }}</span>
+                                </div>
+                                <form action="/profile/season/opt-out" method="post" onsubmit="return confirm('You won\'t be able to rejoin this season. Are you sure?');">
+                                    <input type="hidden" name="season_id" value="{{ season.id }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">Leave</button>
+                                </form>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
         {% else %}
             <div class="alert alert-info">
                 Your account is not linked to a game account yet.
                 <a href="/link" style="color: inherit; font-weight: 600;">Link your account</a> to view your stats.
+            </div>
+
+            <div class="profile-seasons">
+                <h2>Seasons</h2>
+                <div class="alert alert-info">
+                    You must first <a href="/link" style="color: inherit; font-weight: 600;">link your character</a> to join seasons.
+                </div>
             </div>
         {% endif %}
 
