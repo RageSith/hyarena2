@@ -300,3 +300,19 @@ CREATE TABLE IF NOT EXISTS `notification_webhooks` (
     CONSTRAINT `fk_nw_notification` FOREIGN KEY (`notification_id`) REFERENCES `server_notifications`(`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_nw_webhook` FOREIGN KEY (`webhook_id`) REFERENCES `discord_webhooks`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Bug Reports (in-game /bug command)
+CREATE TABLE IF NOT EXISTS `bug_reports` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `player_uuid` CHAR(36) NOT NULL,
+    `player_name` VARCHAR(64) NOT NULL,
+    `title` VARCHAR(128) NOT NULL,
+    `category` ENUM('ui_ux', 'arena', 'kit', 'matchmaking', 'other') NOT NULL DEFAULT 'other',
+    `description` TEXT NOT NULL,
+    `status` ENUM('open', 'acknowledged', 'resolved', 'closed') NOT NULL DEFAULT 'open',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_player_uuid` (`player_uuid`),
+    INDEX `idx_status` (`status`),
+    INDEX `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

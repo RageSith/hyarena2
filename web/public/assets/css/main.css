@@ -2432,7 +2432,7 @@ ul {
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-xl);
-    overflow: hidden;
+    overflow-x: auto;
     margin-bottom: var(--space-xl);
 }
 

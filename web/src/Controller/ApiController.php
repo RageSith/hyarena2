@@ -258,6 +258,42 @@ class ApiController
         }
     }
 
+    public function submitBugReport(Request $request, Response $response): Response
+    {
+        $data = $request->getParsedBody();
+        if (!$data) {
+            $data = json_decode((string) $request->getBody(), true);
+        }
+
+        if (empty($data['uuid']) || empty($data['title']) || empty($data['description'])) {
+            return $this->error($response, 'Missing required fields: uuid, title, description', 'VALIDATION_ERROR');
+        }
+
+        $allowedCategories = ['ui_ux', 'arena', 'kit', 'matchmaking', 'other'];
+        $category = $data['category'] ?? 'other';
+        if (!in_array($category, $allowedCategories, true)) {
+            $category = 'other';
+        }
+
+        $uuid = substr((string) $data['uuid'], 0, 36);
+        $username = substr((string) ($data['username'] ?? 'Unknown'), 0, 64);
+        $title = substr((string) $data['title'], 0, 128);
+        $description = substr((string) $data['description'], 0, 5000);
+
+        try {
+            $pdo = \App\Database::getConnection();
+            $stmt = $pdo->prepare(
+                'INSERT INTO `bug_reports` (`player_uuid`, `player_name`, `title`, `category`, `description`) VALUES (?, ?, ?, ?, ?)'
+            );
+            $stmt->execute([$uuid, $username, $title, $category, $description]);
+            $reportId = (int) $pdo->lastInsertId();
+
+            return $this->success($response, ['report_id' => $reportId]);
+        } catch (\Exception $e) {
+            return $this->error($response, 'Failed to submit bug report: ' . $e->getMessage(), 'SUBMISSION_ERROR', 500);
+        }
+    }
+
     public function playerSync(Request $request, Response $response): Response
     {
         $data = $request->getParsedBody();

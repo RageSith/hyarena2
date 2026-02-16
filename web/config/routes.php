@@ -43,6 +43,7 @@ return function (App $app) {
         $group->post('/sync', [ApiController::class, 'sync']);
         $group->post('/player/sync', [ApiController::class, 'playerSync']);
         $group->post('/link/generate', [LinkController::class, 'generateCode']);
+        $group->post('/bug/submit', [ApiController::class, 'submitBugReport']);
     })->add(new ApiKeyMiddleware())->add(new CorsMiddleware());
 
     // Player auth pages

@@ -22,6 +22,7 @@ public class WelcomeCommand extends AbstractPlayerCommand {
 
     public WelcomeCommand(HyArena2 plugin) {
         super("welcome", "Shows the welcome page");
+        this.requirePermission("hyarena.use");
         this.plugin = plugin;
     }
 

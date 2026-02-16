@@ -1,0 +1,83 @@
+$C = "../Common.ui";
+
+Group #BugReportPage {
+    $C.@PageOverlay {}
+
+    $C.@DecoratedContainer {
+        @CloseButton = true;
+        Anchor: (Width: 560, Height: 400);
+
+        Group #Title {
+            $C.@Title #TitleLabel {
+                @Text = "Report a Bug";
+                Anchor: (Top: 12, Height: 24);
+            }
+        }
+
+        Group #Content {
+            Padding: (Full: 20);
+            Anchor: (Top: 40, Bottom: 70);
+
+            Group #FormScroll {
+                LayoutMode: TopScrolling;
+                ScrollbarStyle: $C.@DefaultScrollbarStyle;
+
+                // Title
+                Group {
+                    Anchor: (Height: 32, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "Title"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #TitleField { FlexWeight: 1; PlaceholderText: "Brief bug summary"; }
+                }
+
+                // Category
+                Group #CategoryRow {
+                    Anchor: (Height: 38, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "Category"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@DropdownBox #CategoryDropdown {
+                        Anchor: (Width: 200, Height: 32);
+                    }
+                    Group { FlexWeight: 1; }
+                }
+
+                // Description
+                Group {
+                    Anchor: (Height: 32, Top: 4);
+                    LayoutMode: Left;
+                    Label { Text: "Description"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    $C.@TextField #DescriptionField { FlexWeight: 1; PlaceholderText: "Describe the bug in detail..."; }
+                }
+
+                // Status Message
+                Label #StatusMessage {
+                    Text: "";
+                    Anchor: (Height: 20, Top: 12);
+                    Visible: false;
+                    Style: (FontSize: 12, TextColor: #e74c3c, Alignment: Center);
+                }
+
+                // Bottom padding
+                Group { Anchor: (Height: 20); }
+            }
+        }
+
+        // Bottom Button Row
+        Group #ButtonRow {
+            Anchor: (Bottom: 16, Height: 44, Left: 20, Right: 20);
+            LayoutMode: Left;
+
+            $C.@SecondaryTextButton #CancelBtn {
+                @Text = "Cancel";
+                @Anchor = (Width: 120);
+            }
+
+            Group { FlexWeight: 1; }
+
+            $C.@TextButton #SubmitBtn {
+                @Text = "Submit Report";
+                @Anchor = (Width: 160);
+            }
+        }
+    }
+}
