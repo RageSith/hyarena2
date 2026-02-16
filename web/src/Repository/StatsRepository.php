@@ -262,7 +262,7 @@ class StatsRepository
         $db = Database::getConnection();
         $stmt = $db->prepare('
             SELECT mp.*, m.arena_id, m.game_mode, m.duration_seconds, m.ended_at,
-                   a.display_name AS arena_name, w.username AS winner_name
+                   a.display_name AS arena_name, a.icon AS arena_icon, w.username AS winner_name
             FROM match_participants mp
             JOIN matches m ON mp.match_id = m.id
             JOIN arenas a ON m.arena_id = a.id

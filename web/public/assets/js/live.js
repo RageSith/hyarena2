@@ -156,8 +156,12 @@ async function loadRecentMatches() {
                     detailSpan = `<span class="vs">scored ${winnerKills} kills in ${duration}</span>`;
                 }
 
+                const bgSrc = match.arena_icon
+                    ? `/assets/images/maps/${encodeURIComponent(match.arena_icon)}`
+                    : '/assets/images/maps/noimage.png';
+
                 return `
-                    <div class="battle-entry clickable" onclick="showMatchDetails(${match.id})" title="Click for details">
+                    <div class="battle-entry clickable" onclick="showMatchDetails(${match.id})" title="Click for details" style="background-image: url('${bgSrc}')">
                         <span class="battle-arena">${escapeHtml(match.arena_name)}</span>
                         <span class="battle-result">
                             <span class="winner ${isWaveDefense ? 'wave-result' : (winnerIsBot ? 'bot-winner' : '')}">${winnerDisplay}</span>
@@ -309,7 +313,12 @@ async function showMatchDetails(matchId) {
             `;
         }
 
+        const modalThumbSrc = match.arena_icon
+            ? `/assets/images/maps/${encodeURIComponent(match.arena_icon)}`
+            : '/assets/images/maps/noimage.png';
+
         document.getElementById('match-modal-body').innerHTML = `
+            <div class="match-modal-image" style="background-image: url('${modalThumbSrc}')"></div>
             <h2>Match Details</h2>
             <div class="match-info">
                 <div class="match-info-row">

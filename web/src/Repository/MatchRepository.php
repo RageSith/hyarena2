@@ -39,7 +39,7 @@ class MatchRepository
     {
         $db = Database::getConnection();
         $stmt = $db->prepare('
-            SELECT m.*, a.display_name AS arena_name,
+            SELECT m.*, a.display_name AS arena_name, a.icon AS arena_icon,
                    p.username AS winner_name,
                    (SELECT COUNT(*) FROM match_participants mp WHERE mp.match_id = m.id) AS participant_count,
                    (wp.pvp_kills + wp.pve_kills) AS winner_kills,
@@ -64,7 +64,7 @@ class MatchRepository
         $db = Database::getConnection();
 
         $stmt = $db->prepare('
-            SELECT m.*, a.display_name AS arena_name, p.username AS winner_name
+            SELECT m.*, a.display_name AS arena_name, a.icon AS arena_icon, p.username AS winner_name
             FROM matches m
             JOIN arenas a ON m.arena_id = a.id
             LEFT JOIN players p ON m.winner_uuid = p.uuid

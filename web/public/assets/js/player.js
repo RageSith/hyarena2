@@ -259,18 +259,16 @@ function displayPlayerProfile(data) {
                     statsHtml += `<span class="match-stats-pve">${match.pve_kills || 0} PvE Kills / ${match.pve_deaths || 0} Deaths</span>`;
                 }
 
+                const matchBgSrc = match.arena_icon
+                    ? `/assets/images/maps/${encodeURIComponent(match.arena_icon)}`
+                    : '/assets/images/maps/noimage.png';
+
                 return `
-                    <div class="match-card ${resultClass}">
-                        <div class="match-result">
-                            <span class="result-badge ${resultClass}">${resultText}</span>
-                        </div>
-                        <div class="match-info">
-                            <span class="match-arena">${escapeHtml(match.arena_name)}</span>
-                            <div class="match-stats-wrapper">${statsHtml}</div>
-                        </div>
-                        <div class="match-meta">
-                            <span class="match-time">${timeAgo}</span>
-                        </div>
+                    <div class="match-card ${resultClass}" style="background-image: url('${matchBgSrc}')">
+                        <span class="result-badge ${resultClass}">${resultText}</span>
+                        <span class="match-arena">${escapeHtml(match.arena_name)}</span>
+                        <div class="match-stats-wrapper">${statsHtml}</div>
+                        <span class="match-time">${timeAgo}</span>
                     </div>
                 `;
             }).join('');
