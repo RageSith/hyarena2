@@ -85,7 +85,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
     private List<ArenaConfig.SpawnPoint> formWaveSpawnPoints;
 
     private List<String> gameModeIds;
-    private static final String[] BOT_DIFFICULTIES = {"EASY", "MEDIUM", "HARD", "EXTREME"};
+    private static final String[] BOT_DIFFICULTIES = {"EASY", "MEDIUM", "HARD", "EXTREME", "EASY_TANK", "MEDIUM_TANK", "HARD_TANK", "EXTREME_TANK"};
 
     public ArenaEditorPage(PlayerRef playerRef, UUID playerUuid,
                            ArenaConfig existingConfig,
@@ -772,6 +772,10 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             case "EASY": return "Easy";
             case "HARD": return "Hard";
             case "EXTREME": return "Extreme";
+            case "EASY_TANK": return "Easy Tank";
+            case "MEDIUM_TANK": return "Medium Tank";
+            case "HARD_TANK": return "Hard Tank";
+            case "EXTREME_TANK": return "Extreme Tank";
             default: return "Medium";
         }
     }

@@ -88,6 +88,92 @@ public enum BotDifficulty {
         0.02,   // decisionMomentum
         300,    // threatMemoryTicks (15s at 20 TPS)
         80.0    // threatDistanceMax
+    ),
+
+    // Tank variants: high health/block/retreat, offense stays at base tier level
+    EASY_TANK(
+        1500,   // reactionTimeMs (same as EASY)
+        0.40,   // aimAccuracy (same as EASY)
+        3.0,    // attackRange (same as EASY)
+        15.0,   // chaseRange (same as EASY)
+        0.7,    // movementSpeedMultiplier (slower)
+        1.4,    // healthMultiplier (EASY 0.8 → 1.4)
+        1000,   // attackCooldownMs (same as EASY)
+        0.40,   // retreatThreshold (retreats earlier)
+        15.0,   // baseDamage (same as EASY)
+        0.35,   // blockProbability — legacy path (EASY 0.20 → 0.35)
+        55.0,   // blockMaxEnergy — brain path
+        25.0,   // blockMinEnergy — brain path
+        // Utility AI weights (same as EASY but higher self-preservation)
+        0.6,    // combatWeight
+        0.5,    // objectiveWeight
+        0.6,    // selfPreservationWeight
+        0.08,   // decisionMomentum
+        80,     // threatMemoryTicks
+        20.0    // threatDistanceMax
+    ),
+    MEDIUM_TANK(
+        800,    // reactionTimeMs (same as MEDIUM)
+        0.65,   // aimAccuracy (same as MEDIUM)
+        4.0,    // attackRange (same as MEDIUM)
+        25.0,   // chaseRange (same as MEDIUM)
+        0.9,    // movementSpeedMultiplier (slightly slower)
+        1.8,    // healthMultiplier (MEDIUM 1.0 → 1.8)
+        900,    // attackCooldownMs (same as MEDIUM)
+        0.35,   // retreatThreshold (retreats earlier)
+        20.0,   // baseDamage (same as MEDIUM)
+        0.55,   // blockProbability — legacy path (MEDIUM 0.40 → 0.55)
+        85.0,   // blockMaxEnergy — brain path
+        20.0,   // blockMinEnergy — brain path
+        // Utility AI weights (same as MEDIUM but higher self-preservation)
+        0.75,   // combatWeight
+        0.7,    // objectiveWeight
+        0.7,    // selfPreservationWeight
+        0.05,   // decisionMomentum
+        120,    // threatMemoryTicks
+        40.0    // threatDistanceMax
+    ),
+    HARD_TANK(
+        300,    // reactionTimeMs (same as HARD)
+        0.90,   // aimAccuracy (same as HARD)
+        5.0,    // attackRange (same as HARD)
+        40.0,   // chaseRange (same as HARD)
+        1.0,    // movementSpeedMultiplier (slower than HARD 1.2)
+        2.4,    // healthMultiplier (HARD 1.4 → 2.4)
+        600,    // attackCooldownMs (same as HARD)
+        0.25,   // retreatThreshold (retreats earlier)
+        25.0,   // baseDamage (slightly less than HARD 28)
+        0.80,   // blockProbability — legacy path (HARD 0.70 → 0.80)
+        110.0,  // blockMaxEnergy — brain path
+        15.0,   // blockMinEnergy — brain path
+        // Utility AI weights (same as HARD but higher self-preservation)
+        0.9,    // combatWeight
+        0.85,   // objectiveWeight
+        0.85,   // selfPreservationWeight
+        0.03,   // decisionMomentum
+        200,    // threatMemoryTicks
+        60.0    // threatDistanceMax
+    ),
+    EXTREME_TANK(
+        150,    // reactionTimeMs (same as EXTREME)
+        0.98,   // aimAccuracy (same as EXTREME)
+        6.0,    // attackRange (same as EXTREME)
+        50.0,   // chaseRange (same as EXTREME)
+        1.1,    // movementSpeedMultiplier (slower than EXTREME 1.4)
+        3.0,    // healthMultiplier (EXTREME 1.8 → 3.0)
+        400,    // attackCooldownMs (same as EXTREME)
+        0.20,   // retreatThreshold (retreats earlier)
+        30.0,   // baseDamage (less than EXTREME 35)
+        0.90,   // blockProbability — legacy path (EXTREME 0.85 → 0.90)
+        130.0,  // blockMaxEnergy — brain path
+        10.0,   // blockMinEnergy — brain path
+        // Utility AI weights (same as EXTREME but higher self-preservation)
+        0.95,   // combatWeight
+        0.9,    // objectiveWeight
+        0.9,    // selfPreservationWeight
+        0.02,   // decisionMomentum
+        300,    // threatMemoryTicks
+        80.0    // threatDistanceMax
     );
 
     private final int reactionTimeMs;

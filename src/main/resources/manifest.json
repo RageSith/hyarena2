@@ -3,5 +3,6 @@
   "Name": "HyArena2",
   "Version": "1.0.0",
   "Main": "de.ragesith.hyarena2.HyArena2",
+  "ServerVersion": ">=0.1.0",
   "IncludesAssetPack": true
 }
