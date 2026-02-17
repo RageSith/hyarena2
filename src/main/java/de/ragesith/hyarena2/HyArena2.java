@@ -25,6 +25,7 @@ import de.ragesith.hyarena2.command.AdminCommand;
 import de.ragesith.hyarena2.command.AdminPlayCommand;
 import de.ragesith.hyarena2.command.ArenaCommand;
 import de.ragesith.hyarena2.command.DebugCommand;
+import de.ragesith.hyarena2.command.BuildCommand;
 import de.ragesith.hyarena2.command.BugCommand;
 import de.ragesith.hyarena2.command.LinkCommand;
 import de.ragesith.hyarena2.command.WelcomeCommand;
@@ -273,6 +274,7 @@ public class HyArena2 extends JavaPlugin {
         this.getCommandRegistry().registerCommand(new WelcomeCommand(this));
         this.getCommandRegistry().registerCommand(new AdminPlayCommand(scheduler));
         this.getCommandRegistry().registerCommand(new BugCommand(this));
+        this.getCommandRegistry().registerCommand(new BuildCommand(hubManager));
 
         // Test match commands (Phase 2 testing)
         this.getCommandRegistry().registerCommand(new TestMatchArenasCommand(matchManager));
@@ -632,6 +634,12 @@ public class HyArena2 extends JavaPlugin {
         // Check if player is already in hub world (same-world teleport won't trigger world change event)
         String hubWorldName = configManager.getHubConfig().getEffectiveWorldName();
         boolean alreadyInHub = player.getWorld().getName().equals(hubWorldName);
+
+        // Skip hub teleport if player is in the build world (preserve their position)
+        if (player.getWorld().getName().equals(BuildCommand.BUILD_WORLD_NAME)) {
+            System.out.println("[HyArena2] Player " + playerName + " is in build world, skipping hub teleport");
+            return;
+        }
 
         // Teleport to hub
         hubManager.teleportToHub(player, () -> {

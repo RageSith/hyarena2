@@ -211,6 +211,16 @@ public class KillDetectionSystem extends DamageEventSystem {
         float currentHealth = healthStat.get();
         float damageAmount = damage.getAmount();
 
+        // Override damage when attacker is a bot — use difficulty-based baseDamage
+        // instead of the NPC's native attack value
+        if (botManager != null && attackerUuid != null) {
+            BotParticipant attackerBot = botManager.getBot(attackerUuid);
+            if (attackerBot != null) {
+                damageAmount = (float) attackerBot.getDifficulty().getBaseDamage();
+                damage.setAmount(damageAmount);
+            }
+        }
+
         // Seed base health on first hit this tick
         tickBaseHealth.putIfAbsent(victimUuid, currentHealth);
         tickDamageAccumulator.putIfAbsent(victimUuid, 0f);
@@ -341,14 +351,14 @@ public class KillDetectionSystem extends DamageEventSystem {
             return;
         }
 
-        // Determine if attacker is a player (only player-on-bot goes through this path)
+        // Determine if attacker is a player or another entity
         Ref<EntityStore> attackerEntityRef = getAttackerEntityRef(damage.getSource());
         Player attackerPlayer = (attackerEntityRef != null)
             ? store.getComponent(attackerEntityRef, Player.getComponentType()) : null;
 
-        // Non-player damage to bots (bot-on-bot, environment, etc.) is cancelled here;
-        // bot-on-bot is handled solely by BotManager.handleBotDamage()
-        if (attackerPlayer == null) {
+        // Bot-on-bot damage is cancelled here — handled solely by BotManager.handleBotCombat()
+        // Environmental damage (lava, fire, fall — no entity source) is allowed through
+        if (attackerPlayer == null && attackerEntityRef != null) {
             damage.setCancelled(true);
             return;
         }
@@ -363,6 +373,7 @@ public class KillDetectionSystem extends DamageEventSystem {
         boolean died = botVictim.takeDamage(damageAmount);
 
         // Register attacker as a threat on the victim's brain (with attack type classification)
+        // Only for player attackers — environmental damage has no attacker to track
         if (botVictim.getBrain() != null && attackerUuid != null) {
             ThreatType attackType = ThreatType.MELEE;
             if (attackerEntityRef != null && attackerEntityRef.isValid()) {
@@ -391,8 +402,8 @@ public class KillDetectionSystem extends DamageEventSystem {
         damage.setCancelled(true);
 
         // Grant signature energy to player attacker since damage was cancelled
-        // Skip when interaction is null (signature spells / AoE abilities)
-        if (hasActiveInteraction(attackerEntityRef, store)) {
+        // Skip for environmental damage (no player attacker) and null interactions (signature spells / AoE)
+        if (attackerEntityRef != null && hasActiveInteraction(attackerEntityRef, store)) {
             grantSignatureEnergy(attackerEntityRef, store);
         }
 

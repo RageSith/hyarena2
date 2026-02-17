@@ -136,6 +136,7 @@ public class BoundaryManager {
                         continue;
                     }
 
+
                     // Skip grace period (cheap check before player resolution)
                     if (isInTeleportGrace(playerId)) {
                         continue;
@@ -175,6 +176,10 @@ public class BoundaryManager {
                     }
 
                     if (!playerWorld.getName().equals(hubWorldName)) {
+                        // Skip players in the build world
+                        if (playerWorld.getName().equals(de.ragesith.hyarena2.command.BuildCommand.BUILD_WORLD_NAME)) {
+                            continue;
+                        }
                         // Player is in hub world store but reports different world — teleport back
                         hubManager.teleportToHub(player, null);
                         grantTeleportGrace(playerId);
