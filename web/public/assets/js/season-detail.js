@@ -30,7 +30,13 @@ async function loadSeasonDetail() {
         if (data.success && data.data.season) {
             seasonData = data.data.season;
             displaySeasonHeader(seasonData);
-            loadLeaderboard();
+
+            if (seasonData.restricted) {
+                document.getElementById('season-restricted').style.display = 'flex';
+                document.getElementById('season-leaderboard').style.display = 'none';
+            } else {
+                loadLeaderboard();
+            }
 
             document.getElementById('season-loading').style.display = 'none';
             document.getElementById('season-content').style.display = 'block';
@@ -71,20 +77,33 @@ function displaySeasonHeader(season) {
     const endDate = new Date(season.ends_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     document.getElementById('season-dates').textContent = `${startDate} - ${endDate}`;
     document.getElementById('season-participants').textContent = `${season.participant_count || 0} participants`;
-    document.getElementById('season-ranking-mode').textContent = formatRankingMode(season.ranking_mode);
+    const rankingModeEl = document.getElementById('season-ranking-mode');
+    if (season.ranking_mode) {
+        rankingModeEl.textContent = formatRankingMode(season.ranking_mode);
+    } else {
+        rankingModeEl.style.display = 'none';
+    }
+
+    // Recurrence badge
+    const isRecurring = season.recurrence && season.recurrence !== 'none';
+    if (isRecurring) {
+        const badgeEl = document.createElement('span');
+        badgeEl.className = 'season-recurrence-badge';
+        badgeEl.textContent = season.recurrence;
+        statusEl.insertAdjacentElement('afterend', badgeEl);
+    }
 
     // Countdown for active seasons
     const countdownEl = document.getElementById('season-countdown');
     if (season.status === 'active') {
-        const endsAt = new Date(season.ends_at);
-        const now = new Date();
-        const diff = endsAt - now;
+        const diff = new Date(season.ends_at) - new Date();
         if (diff > 0) {
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            countdownEl.textContent = `${days}d ${hours}h remaining`;
+            const time = formatTimeRemaining(diff);
+            countdownEl.textContent = isRecurring
+                ? `Resets in ${time}`
+                : `${time} remaining`;
         } else {
-            countdownEl.textContent = 'Season ending soon';
+            countdownEl.textContent = isRecurring ? 'Resetting soon' : 'Season ending soon';
         }
     } else if (season.status === 'ended' || season.status === 'archived') {
         countdownEl.textContent = 'Season has ended - Final standings';
@@ -93,7 +112,9 @@ function displaySeasonHeader(season) {
     }
 
     // Update table headers based on ranking mode
-    updateTableHeaders(season.ranking_mode);
+    if (season.ranking_mode) {
+        updateTableHeaders(season.ranking_mode);
+    }
 }
 
 function updateTableHeaders(rankingMode) {
@@ -261,6 +282,26 @@ function formatRankingMode(mode) {
         'points': 'Ranked by Points',
     };
     return labels[mode] || mode;
+}
+
+function formatTimeRemaining(ms) {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) {
+        const remHours = hours % 24;
+        return remHours > 0 ? `${days}d ${remHours}h` : `${days}d`;
+    }
+    if (hours > 0) {
+        const remMin = minutes % 60;
+        return remMin > 0 ? `${hours}h ${remMin}m` : `${hours}h`;
+    }
+    if (minutes > 0) {
+        return `${minutes}m`;
+    }
+    return 'less than a minute';
 }
 
 function escapeHtml(text) {

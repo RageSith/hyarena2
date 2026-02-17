@@ -10,8 +10,8 @@ class GameModeRepository
     {
         $db = Database::getConnection();
         $stmt = $db->prepare('
-            INSERT INTO game_modes (id, display_name, description, is_visible)
-            VALUES (:id, :display_name, :description, 1)
+            INSERT INTO game_modes (id, display_name, description, is_visible, shown)
+            VALUES (:id, :display_name, :description, 1, 1)
             ON DUPLICATE KEY UPDATE
                 display_name = VALUES(display_name),
                 description = VALUES(description),
@@ -33,6 +33,6 @@ class GameModeRepository
     public function getAll(): array
     {
         $db = Database::getConnection();
-        return $db->query('SELECT * FROM game_modes WHERE is_visible = 1 ORDER BY display_name')->fetchAll();
+        return $db->query('SELECT * FROM game_modes WHERE is_visible = 1 AND shown = 1 ORDER BY display_name')->fetchAll();
     }
 }

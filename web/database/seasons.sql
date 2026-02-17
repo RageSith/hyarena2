@@ -18,11 +18,18 @@ CREATE TABLE IF NOT EXISTS `seasons` (
     `game_mode_ids` JSON NULL COMMENT 'NULL = all game modes',
     `visibility` ENUM('public', 'unlisted', 'private') NOT NULL DEFAULT 'public',
     `join_code` VARCHAR(8) NULL UNIQUE,
+    `recurrence` ENUM('none','daily','weekly','monthly','yearly') NOT NULL DEFAULT 'none',
+    `recurrence_ends_at` DATETIME NULL,
+    `base_name` VARCHAR(100) NULL,
+    `iteration` INT UNSIGNED NULL,
+    `parent_season_id` INT UNSIGNED NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX `idx_status` (`status`),
     INDEX `idx_visibility_status` (`visibility`, `status`),
-    INDEX `idx_ends_at` (`ends_at`)
+    INDEX `idx_ends_at` (`ends_at`),
+    INDEX `idx_recurrence` (`recurrence`),
+    FOREIGN KEY (`parent_season_id`) REFERENCES `seasons`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `season_participants` (

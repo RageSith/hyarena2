@@ -145,12 +145,132 @@ class SeasonService
     }
 
     // ==========================================
+    // Recurring Season Lifecycle
+    // ==========================================
+
+    public function runCronCycle(): array
+    {
+        $log = [];
+        $counts = ['checked_drafts' => 0, 'checked_active' => 0, 'checked_recurring' => 0,
+                    'activated' => 0, 'ended' => 0, 'spawned' => 0, 'stopped' => 0];
+
+        // 1. Auto-activate draft seasons past starts_at
+        $drafts = $this->repo->getDraftSeasonsToActivate();
+        $counts['checked_drafts'] = count($drafts);
+        foreach ($drafts as $season) {
+            $this->repo->updateStatus((int) $season['id'], 'active');
+            $counts['activated']++;
+            $log[] = "Activated season #{$season['id']} \"{$season['name']}\"";
+        }
+
+        // 2. Auto-end active seasons past ends_at (freeze rankings)
+        $actives = $this->repo->getActiveSeasonsToEnd();
+        $counts['checked_active'] = count($actives);
+        foreach ($actives as $season) {
+            $this->endSeason((int) $season['id']);
+            $counts['ended']++;
+            $log[] = "Ended season #{$season['id']} \"{$season['name']}\"";
+        }
+
+        // 3. Spawn next iterations for ended recurring seasons
+        $recurring = $this->repo->getEndedRecurringSeasons();
+        $counts['checked_recurring'] = count($recurring);
+        foreach ($recurring as $season) {
+            // Check if recurrence chain has expired
+            if (!empty($season['recurrence_ends_at'])) {
+                $chainEnd = new \DateTimeImmutable($season['recurrence_ends_at']);
+                $nextStart = new \DateTimeImmutable($season['ends_at']);
+                if ($nextStart >= $chainEnd) {
+                    $this->repo->updateRecurrence((int) $season['id'], 'none');
+                    $counts['stopped']++;
+                    $log[] = "Stopped recurring season #{$season['id']} \"{$season['name']}\" (recurrence_ends_at reached)";
+                    continue;
+                }
+            }
+
+            $newId = $this->spawnNextIteration($season);
+            $counts['spawned']++;
+            $log[] = "Spawned iteration #{$newId} from season #{$season['id']} \"{$season['name']}\" (recurrence={$season['recurrence']})";
+        }
+
+        return ['actions' => $log, 'counts' => $counts];
+    }
+
+    public function spawnNextIteration(array $endedSeason): int
+    {
+        $recurrence = $endedSeason['recurrence'];
+        $baseName = $endedSeason['base_name'] ?? $endedSeason['name'];
+
+        $endsAt = new \DateTimeImmutable($endedSeason['ends_at']);
+        $nextStartsAt = $endsAt;
+
+        switch ($recurrence) {
+            case 'daily':
+                $nextEndsAt = $nextStartsAt->modify('+1 day');
+                break;
+            case 'weekly':
+                $nextEndsAt = $nextStartsAt->modify('+7 days');
+                break;
+            case 'monthly':
+                $nextEndsAt = $nextStartsAt->modify('+1 month');
+                break;
+            case 'yearly':
+                $nextEndsAt = $nextStartsAt->modify('+1 year');
+                break;
+            default:
+                $origStart = new \DateTimeImmutable($endedSeason['starts_at']);
+                $origEnd = new \DateTimeImmutable($endedSeason['ends_at']);
+                $duration = $origStart->diff($origEnd);
+                $nextEndsAt = $nextStartsAt->add($duration);
+                break;
+        }
+
+        // Increment iteration number
+        $nextIteration = ((int) ($endedSeason['iteration'] ?? 0)) + 1;
+        $baseSlug = preg_replace('/-\d+$/', '', $endedSeason['slug']);
+
+        $data = [
+            'name' => $baseName . ' #' . $nextIteration,
+            'slug' => $baseSlug . '-' . $nextIteration,
+            'description' => $endedSeason['description'],
+            'type' => $endedSeason['type'],
+            'status' => 'active',
+            'starts_at' => $nextStartsAt->format('Y-m-d H:i:s'),
+            'ends_at' => $nextEndsAt->format('Y-m-d H:i:s'),
+            'ranking_mode' => $endedSeason['ranking_mode'],
+            'ranking_config' => $endedSeason['ranking_config'] ? json_decode($endedSeason['ranking_config'], true) : null,
+            'min_matches' => (int) $endedSeason['min_matches'],
+            'arena_ids' => $endedSeason['arena_ids'] ? json_decode($endedSeason['arena_ids'], true) : null,
+            'game_mode_ids' => $endedSeason['game_mode_ids'] ? json_decode($endedSeason['game_mode_ids'], true) : null,
+            'visibility' => $endedSeason['visibility'],
+            'join_code' => $endedSeason['join_code'],
+            'recurrence' => $recurrence,
+            'recurrence_ends_at' => $endedSeason['recurrence_ends_at'],
+            'base_name' => $baseName,
+            'iteration' => $nextIteration,
+            'parent_season_id' => (int) $endedSeason['id'],
+        ];
+
+        $newId = $this->repo->create($data);
+
+        // Auto-archive the old iteration
+        $this->repo->updateStatus((int) $endedSeason['id'], 'archived');
+
+        return $newId;
+    }
+
+    // ==========================================
     // Query Passthroughs
     // ==========================================
 
     public function getPublicActiveSeasons(): array
     {
         return $this->repo->getPublicActive();
+    }
+
+    public function getActiveSeasonsForPlayer(?string $playerUuid): array
+    {
+        return $this->repo->getActiveForPlayer($playerUuid);
     }
 
     public function getEndedSeasons(int $limit = 25, int $offset = 0): array

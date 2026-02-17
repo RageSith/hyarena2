@@ -6,7 +6,10 @@
 <div class="admin-page">
     <div class="admin-page-header">
         <h1>Seasons</h1>
-        <a href="/admin/seasons/create" class="btn btn-primary">Create Season</a>
+        <div>
+            <a href="/admin/seasons/cron-log" class="btn btn-secondary">Cron Log</a>
+            <a href="/admin/seasons/create" class="btn btn-primary">Create Season</a>
+        </div>
     </div>
 
     <div class="admin-table-wrapper">
@@ -29,9 +32,15 @@
                     </tr>
                 {% else %}
                     {% for season in seasons %}
+                    {% set is_chain = season._chain is defined and season._chain %}
                     <tr>
                         <td>
                             <strong>{{ season.name }}</strong>
+                            {% if is_chain and season._archived_count > 0 %}
+                                <button class="btn-chain-toggle" onclick="toggleChain('chain-{{ season.id }}')" title="Show past iterations">
+                                    +{{ season._archived_count }} past
+                                </button>
+                            {% endif %}
                             <br><span class="text-muted">{{ season.slug }}</span>
                         </td>
                         <td>
@@ -48,6 +57,9 @@
                                 <span class="badge badge-season-ended">Ended</span>
                             {% else %}
                                 <span class="badge badge-season-archived">Archived</span>
+                            {% endif %}
+                            {% if season.recurrence is defined and season.recurrence != 'none' %}
+                                <span class="badge badge-info">{{ season.recurrence }}</span>
                             {% endif %}
                         </td>
                         <td class="text-muted">
@@ -77,13 +89,61 @@
                                     <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
                                     <button type="submit" class="btn btn-secondary btn-sm">Archive</button>
                                 </form>
+                            {% elseif season.status == 'archived' %}
+                                <form method="post" action="/admin/seasons/{{ season.id }}/delete" style="display:inline;">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this archived season?')">Delete</button>
+                                </form>
                             {% endif %}
                         </td>
                     </tr>
+                    {% if is_chain and season._history is defined and season._history|length > 0 %}
+                        {% for old in season._history %}
+                        <tr class="chain-row chain-{{ season.id }}" style="display:none;">
+                            <td style="padding-left: 2rem;">
+                                <span class="text-muted">{{ old.name }}</span>
+                                <br><span class="text-muted" style="font-size:0.75rem;">{{ old.slug }}</span>
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ old.type == 'system' ? 'info' : 'warning' }}">
+                                    {{ old.type }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if old.status == 'ended' %}
+                                    <span class="badge badge-season-ended">Ended</span>
+                                {% else %}
+                                    <span class="badge badge-season-archived">Archived</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted">
+                                {{ old.starts_at|date('M j, Y') }}<br>
+                                {{ old.ends_at|date('M j, Y') }}
+                            </td>
+                            <td>{{ old.ranking_mode }}</td>
+                            <td>{{ old.participant_count }}</td>
+                            <td class="actions">
+                                <a href="/admin/seasons/{{ old.id }}/edit" class="btn btn-secondary btn-sm">View</a>
+                                <form method="post" action="/admin/seasons/{{ old.id }}/delete" style="display:inline;">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this archived season?')">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endif %}
                     {% endfor %}
                 {% endif %}
             </tbody>
         </table>
     </div>
 </div>
+
+<script>
+function toggleChain(className) {
+    const rows = document.querySelectorAll('.' + className);
+    const visible = rows[0] && rows[0].style.display !== 'none';
+    rows.forEach(r => r.style.display = visible ? 'none' : '');
+}
+</script>
 {% endblock %}

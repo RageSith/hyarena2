@@ -112,30 +112,42 @@ function renderSeasonCard(season, isEnded = false) {
 
     const rankingLabel = formatRankingMode(season.ranking_mode);
 
-    let countdownHtml = '';
+    const isRecurring = season.recurrence && season.recurrence !== 'none';
+
+    let countdownText = '';
     if (!isEnded && season.status === 'active') {
-        const endsAt = new Date(season.ends_at);
-        const now = new Date();
-        const diff = endsAt - now;
+        const diff = new Date(season.ends_at) - new Date();
         if (diff > 0) {
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            countdownHtml = `<span class="season-card-countdown">${days}d remaining</span>`;
+            const label = isRecurring ? 'Resets in ' : '';
+            const suffix = isRecurring ? '' : ' remaining';
+            countdownText = label + formatTimeRemaining(diff) + suffix;
+        } else {
+            countdownText = isRecurring ? 'Resetting soon' : 'Ending soon';
         }
     }
 
+    const isPrivate = season.visibility && season.visibility !== 'public';
+    const privateClass = isPrivate ? ' season-card-private' : '';
+    const privateBadge = isPrivate ? '<span class="season-card-badge-private">Private</span>' : '';
+
     return `
-        <a href="/seasons/${encodeURIComponent(season.slug)}" class="season-card ${statusClass}">
+        <a href="/seasons/${encodeURIComponent(season.slug)}" class="season-card ${statusClass}${privateClass}">
             <div class="season-card-header">
-                <h3 class="season-card-name">${escapeHtml(season.name)}</h3>
-                <span class="season-card-status ${statusClass}">${statusText}</span>
+                <h3 class="season-card-name">${escapeHtml(season.name)}${privateBadge}</h3>
+                <div class="season-card-badges">
+                    <span class="season-card-status ${statusClass}">${statusText}</span>
+                    ${isRecurring ? `<span class="season-card-recurrence">${season.recurrence}</span>` : ''}
+                </div>
             </div>
-            ${season.description ? `<p class="season-card-desc">${escapeHtml(season.description)}</p>` : ''}
             <div class="season-card-meta">
                 <span class="season-card-dates">${startDate} - ${endDate}</span>
                 <span class="season-card-players">${participants} players</span>
+            </div>
+            ${season.description ? `<p class="season-card-desc">${escapeHtml(season.description)}</p>` : ''}
+            <div class="season-card-footer">
+                <span class="season-card-countdown">${countdownText}</span>
                 <span class="season-card-ranking">${rankingLabel}</span>
             </div>
-            ${countdownHtml}
         </a>
     `;
 }
@@ -149,6 +161,26 @@ function formatRankingMode(mode) {
         'points': 'Ranked by Points',
     };
     return labels[mode] || mode;
+}
+
+function formatTimeRemaining(ms) {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) {
+        const remHours = hours % 24;
+        return remHours > 0 ? `${days}d ${remHours}h` : `${days}d`;
+    }
+    if (hours > 0) {
+        const remMin = minutes % 60;
+        return remMin > 0 ? `${hours}h ${remMin}m` : `${hours}h`;
+    }
+    if (minutes > 0) {
+        return `${minutes}m`;
+    }
+    return 'less than a minute';
 }
 
 function escapeHtml(text) {

@@ -158,6 +158,46 @@
     </div>
 </section>
 
+<!-- Latest News -->
+{% if latest_news is defined and latest_news|length > 0 %}
+<section class="section latest-news-section">
+    <div class="container">
+        <h2 class="section-title">Latest News</h2>
+        <p class="section-subtitle">Stay up to date with the latest from HyArena.</p>
+
+        <div class="latest-news-grid">
+            {% for post in latest_news %}
+                <a href="/news" class="latest-news-card">
+                    <div class="latest-news-image">
+                        {% if post.image_path %}
+                            <img src="/uploads/news/{{ post.image_path }}" alt="{{ post.title }}" loading="lazy">
+                        {% else %}
+                            <div class="latest-news-placeholder">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2"/>
+                                    <line x1="10" y1="6" x2="18" y2="6"/>
+                                    <line x1="10" y1="10" x2="18" y2="10"/>
+                                    <line x1="10" y1="14" x2="14" y2="14"/>
+                                </svg>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="latest-news-body">
+                        <span class="news-type-badge news-type-{{ post.type }}">{{ post.type }}</span>
+                        <h3 class="latest-news-title">{{ post.title }}</h3>
+                        <span class="latest-news-date">{{ post.created_at|date('M j, Y') }}</span>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+
+        <div style="text-align: center; margin-top: var(--space-xl);">
+            <a href="/news" class="btn btn-secondary">View All News</a>
+        </div>
+    </div>
+</section>
+{% endif %}
+
 <!-- Join Section -->
 <section class="section join" id="join">
     <div class="container">

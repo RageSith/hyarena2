@@ -1,0 +1,42 @@
+{% extends "admin/layout.twig" %}
+
+{% block title %}Season Cron Log{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-page-header">
+        <h1>Season Cron Log</h1>
+        <a href="/admin/seasons" class="btn btn-secondary">Back to Seasons</a>
+    </div>
+
+    <div class="cron-log-box">
+        {% if lines is empty %}
+            <p class="text-muted">No log entries yet. The cron only logs when actions are taken.</p>
+        {% else %}
+            <pre class="cron-log-output">{% for line in lines %}{{ line }}
+{% endfor %}</pre>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .cron-log-box {
+        background: #0d1117;
+        border: 1px solid var(--admin-border);
+        border-radius: var(--admin-radius);
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+    .cron-log-output {
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 0.8rem;
+        line-height: 1.6;
+        color: #c9d1d9;
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}

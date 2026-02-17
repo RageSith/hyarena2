@@ -10,8 +10,8 @@ class ArenaRepository
     {
         $db = Database::getConnection();
         $stmt = $db->prepare('
-            INSERT INTO arenas (id, display_name, description, game_mode, world_name, min_players, max_players, icon, is_visible)
-            VALUES (:id, :display_name, :description, :game_mode, :world_name, :min_players, :max_players, :icon, 1)
+            INSERT INTO arenas (id, display_name, description, game_mode, world_name, min_players, max_players, icon, is_visible, shown)
+            VALUES (:id, :display_name, :description, :game_mode, :world_name, :min_players, :max_players, :icon, 1, 1)
             ON DUPLICATE KEY UPDATE
                 display_name = VALUES(display_name),
                 description = VALUES(description),
@@ -19,7 +19,6 @@ class ArenaRepository
                 world_name = VALUES(world_name),
                 min_players = VALUES(min_players),
                 max_players = VALUES(max_players),
-                icon = VALUES(icon),
                 is_visible = 1
         ');
         $stmt->execute([
@@ -43,7 +42,7 @@ class ArenaRepository
     public function getAll(): array
     {
         $db = Database::getConnection();
-        return $db->query('SELECT * FROM arenas WHERE is_visible = 1 ORDER BY display_name')->fetchAll();
+        return $db->query('SELECT * FROM arenas WHERE is_visible = 1 AND shown = 1 ORDER BY display_name')->fetchAll();
     }
 
     public function findById(string $id): ?array
@@ -57,6 +56,6 @@ class ArenaRepository
     public function getCount(): int
     {
         $db = Database::getConnection();
-        return (int) $db->query('SELECT COUNT(*) FROM arenas WHERE is_visible = 1')->fetchColumn();
+        return (int) $db->query('SELECT COUNT(*) FROM arenas WHERE is_visible = 1 AND shown = 1')->fetchColumn();
     }
 }

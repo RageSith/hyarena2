@@ -1,0 +1,86 @@
+{% extends "base.twig" %}
+
+{% block title %}{{ site_name }} - News{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="page-hero">
+    <div class="container">
+        <h1 class="page-hero-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2"/>
+                <line x1="10" y1="6" x2="18" y2="6"/>
+                <line x1="10" y1="10" x2="18" y2="10"/>
+                <line x1="10" y1="14" x2="14" y2="14"/>
+            </svg>
+            News
+        </h1>
+        <p class="page-hero-subtitle">Updates, announcements, and everything happening on HyArena.</p>
+    </div>
+</section>
+
+<!-- News List -->
+<section class="section">
+    <div class="container">
+        {% if posts|length > 0 %}
+            <div class="news-list">
+                {% for post in posts %}
+                    <article class="news-post">
+                        {% if post.is_pinned %}
+                            <span class="news-pinned-badge">
+                                <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+                                    <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/>
+                                </svg>
+                                Pinned
+                            </span>
+                        {% endif %}
+                        <div class="news-post-inner{% if not post.image_path %} news-post-no-image{% endif %}">
+                            {% if post.image_path %}
+                                <div class="news-post-image">
+                                    <img src="/uploads/news/{{ post.image_path }}" alt="{{ post.title }}" loading="lazy">
+                                </div>
+                            {% endif %}
+                            <div class="news-post-content">
+                                <div class="news-post-meta">
+                                    <span class="news-type-badge news-type-{{ post.type }}">{{ post.type }}</span>
+                                    <span class="news-post-date">{{ post.created_at|date('M j, Y') }}</span>
+                                    {% if post.author_name %}
+                                        <span class="news-post-author">by {{ post.author_name }}</span>
+                                    {% endif %}
+                                </div>
+                                <h2 class="news-post-title">{{ post.title }}</h2>
+                                <div class="markdown-content">
+                                    {{ post.message_html|raw }}
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+
+            {% if total_pages > 1 %}
+                <div class="news-pagination">
+                    {% if page > 1 %}
+                        <a href="/news?page={{ page - 1 }}" class="btn btn-secondary">&larr; Newer</a>
+                    {% endif %}
+                    <span class="news-pagination-info">Page {{ page }} of {{ total_pages }}</span>
+                    {% if page < total_pages %}
+                        <a href="/news?page={{ page + 1 }}" class="btn btn-secondary">Older &rarr;</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-state-icon">
+                    <path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2"/>
+                    <line x1="10" y1="6" x2="18" y2="6"/>
+                    <line x1="10" y1="10" x2="18" y2="10"/>
+                    <line x1="10" y1="14" x2="14" y2="14"/>
+                </svg>
+                <h3>No news yet</h3>
+                <p>Check back later for updates and announcements.</p>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

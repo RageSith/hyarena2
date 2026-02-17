@@ -16,6 +16,8 @@
                     <th>Title</th>
                     <th>Type</th>
                     <th>Active</th>
+                    <th>Pinned</th>
+                    <th>Image</th>
                     <th>Created</th>
                     <th>Actions</th>
                 </tr>
@@ -26,6 +28,8 @@
                     <td>{{ notification.title }}</td>
                     <td><span class="badge badge-{{ notification.type }}">{{ notification.type }}</span></td>
                     <td>{{ notification.is_active ? 'Yes' : 'No' }}</td>
+                    <td>{{ notification.is_pinned ? 'Yes' : 'No' }}</td>
+                    <td>{{ notification.image_path ? 'Yes' : 'No' }}</td>
                     <td>{{ notification.created_at }}</td>
                     <td class="actions">
                         <a href="/admin/notifications/{{ notification.id }}/edit" class="btn btn-sm">Edit</a>
@@ -37,7 +41,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="5" class="empty">No notifications yet.</td>
+                    <td colspan="7" class="empty">No notifications yet.</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -118,14 +118,17 @@ class PlayerRepository
         $where = '';
         $params = [];
         if ($query) {
-            $where = 'WHERE username LIKE :query OR uuid LIKE :query2';
+            $where = 'WHERE p.username LIKE :query OR p.uuid LIKE :query2';
             $params['query'] = '%' . $query . '%';
             $params['query2'] = '%' . $query . '%';
         }
 
         $stmt = $db->prepare("
-            SELECT * FROM players $where
-            ORDER BY last_seen DESC
+            SELECT p.*, (la.id IS NOT NULL) AS is_linked
+            FROM players p
+            LEFT JOIN linked_accounts la ON la.player_uuid = p.uuid
+            $where
+            ORDER BY p.last_seen DESC
             LIMIT :limit OFFSET :offset
         ");
         foreach ($params as $k => $v) {

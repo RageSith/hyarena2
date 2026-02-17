@@ -6,7 +6,7 @@
 <div class="admin-page">
     <h1>{{ notification ? 'Edit' : 'Create' }} Notification</h1>
 
-    <form method="POST" class="admin-form">
+    <form method="POST" class="admin-form" enctype="multipart/form-data">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
 
         <div class="form-group">
@@ -15,8 +15,22 @@
         </div>
 
         <div class="form-group">
-            <label for="message">Message</label>
-            <textarea id="message" name="message" rows="4" required>{{ notification.message ?? '' }}</textarea>
+            <label for="message">Message <span style="font-weight: normal; color: var(--admin-text-muted); font-size: 0.8em;">(Markdown supported)</span></label>
+            <textarea id="message" name="message" rows="10" required>{{ notification.message ?? '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="image">Image</label>
+            <input type="file" id="image" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+            {% if notification and notification.image_path %}
+                <div style="margin-top: 0.75rem;">
+                    <img src="/uploads/news/{{ notification.image_path }}" alt="Current image" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid var(--admin-border);">
+                    <label style="display: block; margin-top: 0.5rem;">
+                        <input type="checkbox" name="remove_image" value="1">
+                        Remove current image
+                    </label>
+                </div>
+            {% endif %}
         </div>
 
         <div class="form-group">
@@ -33,6 +47,10 @@
             <label>
                 <input type="checkbox" name="is_active" {{ (notification.is_active ?? true) ? 'checked' : '' }}>
                 Active
+            </label>
+            <label style="margin-left: 1.5rem;">
+                <input type="checkbox" name="is_pinned" {{ (notification.is_pinned is defined and notification.is_pinned) ? 'checked' : '' }}>
+                Pinned
             </label>
         </div>
 

@@ -7,18 +7,29 @@ use App\Config;
 
 class AdminAuth
 {
+    private static string $sessionName = 'hyarena_admin';
+
     public static function init(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            $lifetime = Config::get('admin.session_lifetime', 3600);
-            session_set_cookie_params([
-                'lifetime' => $lifetime,
-                'path' => '/admin',
-                'httponly' => true,
-                'samesite' => 'Strict',
-            ]);
-            session_start();
+        // Already running the admin session — nothing to do
+        if (session_status() === PHP_SESSION_ACTIVE && session_name() === self::$sessionName) {
+            return;
         }
+
+        // A player session may be active — close it so we can start the admin one
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
+        $lifetime = Config::get('admin.session_lifetime', 3600);
+        session_name(self::$sessionName);
+        session_set_cookie_params([
+            'lifetime' => $lifetime,
+            'path' => '/admin',
+            'httponly' => true,
+            'samesite' => 'Strict',
+        ]);
+        session_start();
 
         // Regenerate session ID periodically
         if (!isset($_SESSION['_last_regen']) || (time() - $_SESSION['_last_regen']) > 1800) {
@@ -65,6 +76,12 @@ class AdminAuth
     public static function logout(): void
     {
         self::init();
+        $_SESSION = [];
+
+        // Expire the admin session cookie
+        $params = session_get_cookie_params();
+        setcookie(self::$sessionName, '', time() - 3600, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+
         session_destroy();
     }
 

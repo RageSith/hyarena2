@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Service\SeasonService;
 use App\Repository\PlayerRepository;
+use App\Repository\SeasonRepository;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
@@ -34,7 +35,8 @@ class SeasonApiController
     {
         try {
             $service = new SeasonService();
-            $seasons = $service->getPublicActiveSeasons();
+            $playerUuid = $_SESSION['player_uuid'] ?? null;
+            $seasons = $service->getActiveSeasonsForPlayer($playerUuid);
             return $this->success($response, ['seasons' => $seasons]);
         } catch (\Exception $e) {
             return $this->error($response, 'Failed to fetch seasons', 'SERVER_ERROR', 500);
@@ -78,6 +80,29 @@ class SeasonApiController
                 return $this->error($response, 'Season not found', 'NOT_FOUND', 404);
             }
 
+            // Private season restriction: strip ranking details for non-participants
+            if ($season['visibility'] !== 'public') {
+                $playerUuid = $_SESSION['player_uuid'] ?? null;
+                $repo = new SeasonRepository();
+                $isEnrolled = $playerUuid && $repo->isParticipant((int) $season['id'], $playerUuid);
+
+                if (!$isEnrolled) {
+                    $season = [
+                        'name' => $season['name'],
+                        'slug' => $season['slug'],
+                        'description' => $season['description'],
+                        'status' => $season['status'],
+                        'starts_at' => $season['starts_at'],
+                        'ends_at' => $season['ends_at'],
+                        'participant_count' => $season['participant_count'],
+                        'visibility' => $season['visibility'],
+                        'restricted' => true,
+                    ];
+                    return $this->success($response, ['season' => $season]);
+                }
+            }
+
+            $season['restricted'] = false;
             return $this->success($response, ['season' => $season]);
         } catch (\Exception $e) {
             return $this->error($response, 'Failed to fetch season', 'SERVER_ERROR', 500);
@@ -100,6 +125,17 @@ class SeasonApiController
 
             if (!$season) {
                 return $this->error($response, 'Season not found', 'NOT_FOUND', 404);
+            }
+
+            // Block leaderboard access for non-participants of private seasons
+            if ($season['visibility'] !== 'public') {
+                $playerUuid = $_SESSION['player_uuid'] ?? null;
+                $repo = new SeasonRepository();
+                $isEnrolled = $playerUuid && $repo->isParticipant((int) $season['id'], $playerUuid);
+
+                if (!$isEnrolled) {
+                    return $this->error($response, 'This season is private. Only participants can view rankings.', 'SEASON_PRIVATE', 403);
+                }
             }
 
             $seasonId = (int) $season['id'];

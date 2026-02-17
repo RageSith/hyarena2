@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS `match_participants` (
     `player_uuid` CHAR(36) DEFAULT NULL COMMENT 'NULL for bots',
     `is_bot` TINYINT(1) NOT NULL DEFAULT 0,
     `bot_name` VARCHAR(64) DEFAULT NULL,
-    `bot_difficulty` VARCHAR(16) DEFAULT NULL COMMENT 'EASY, MEDIUM, HARD',
+    `bot_difficulty` VARCHAR(16) DEFAULT NULL COMMENT 'EASY, MEDIUM, HARD, EXTREME, *_TANK variants',
     `kit_id` VARCHAR(64) DEFAULT NULL,
     `pvp_kills` INT UNSIGNED NOT NULL DEFAULT 0,
     `pvp_deaths` INT UNSIGNED NOT NULL DEFAULT 0,

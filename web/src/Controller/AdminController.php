@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Auth\AdminAuth;
 use App\Repository\AdminRepository;
 use App\Repository\BugReportRepository;
+use App\Service\ImageService;
 use App\Service\NotificationService;
 use App\Service\WebhookService;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -113,10 +114,21 @@ class AdminController
         $body = $request->getParsedBody();
         $admin = AdminAuth::getAdmin();
 
+        $imagePath = null;
+        $files = $request->getUploadedFiles();
+        if (!empty($files['image']) && $files['image']->getError() === UPLOAD_ERR_OK) {
+            $imagePath = ImageService::processNewsImage([
+                'tmp_name' => $files['image']->getStream()->getMetadata('uri'),
+                'error' => $files['image']->getError(),
+            ]);
+        }
+
         $service = new NotificationService();
         $service->create([
             'title' => $body['title'] ?? '',
             'message' => $body['message'] ?? '',
+            'image_path' => $imagePath,
+            'is_pinned' => isset($body['is_pinned']) ? 1 : 0,
             'type' => $body['type'] ?? 'info',
             'is_active' => isset($body['is_active']) ? 1 : 0,
             'starts_at' => $body['starts_at'] ?? null,
@@ -131,16 +143,41 @@ class AdminController
     {
         $route = \Slim\Routing\RouteContext::fromRequest($request)->getRoute();
         $body = $request->getParsedBody();
+        $id = (int) $route->getArgument('id');
 
         $service = new NotificationService();
-        $service->update((int) $route->getArgument('id'), [
+        $existing = $service->findById($id);
+
+        $data = [
             'title' => $body['title'] ?? '',
             'message' => $body['message'] ?? '',
             'type' => $body['type'] ?? 'info',
             'is_active' => isset($body['is_active']) ? 1 : 0,
+            'is_pinned' => isset($body['is_pinned']) ? 1 : 0,
             'starts_at' => $body['starts_at'] ?? null,
             'ends_at' => $body['ends_at'] ?? null,
-        ]);
+        ];
+
+        // Handle image upload / removal
+        $files = $request->getUploadedFiles();
+        if (!empty($files['image']) && $files['image']->getError() === UPLOAD_ERR_OK) {
+            // New image uploaded — replace old one
+            if (!empty($existing['image_path'])) {
+                ImageService::deleteNewsImage($existing['image_path']);
+            }
+            $data['image_path'] = ImageService::processNewsImage([
+                'tmp_name' => $files['image']->getStream()->getMetadata('uri'),
+                'error' => $files['image']->getError(),
+            ]);
+        } elseif (!empty($body['remove_image'])) {
+            // Remove existing image without replacing
+            if (!empty($existing['image_path'])) {
+                ImageService::deleteNewsImage($existing['image_path']);
+            }
+            $data['image_path'] = null;
+        }
+
+        $service->update($id, $data);
 
         return $response->withHeader('Location', '/admin/notifications')->withStatus(302);
     }
@@ -148,8 +185,15 @@ class AdminController
     public function deleteNotification(Request $request, Response $response): Response
     {
         $route = \Slim\Routing\RouteContext::fromRequest($request)->getRoute();
+        $id = (int) $route->getArgument('id');
+
         $service = new NotificationService();
-        $service->delete((int) $route->getArgument('id'));
+        $existing = $service->findById($id);
+        if (!empty($existing['image_path'])) {
+            ImageService::deleteNewsImage($existing['image_path']);
+        }
+
+        $service->delete($id);
         return $response->withHeader('Location', '/admin/notifications')->withStatus(302);
     }
 

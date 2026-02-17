@@ -122,6 +122,7 @@ return function (App $app) {
         // Seasons (admin+ only)
         $group->group('', function (RouteCollectorProxy $inner) {
             $inner->get('/seasons', [SeasonAdminController::class, 'list']);
+            $inner->get('/seasons/cron-log', [SeasonAdminController::class, 'cronLog']);
             $inner->get('/seasons/create', [SeasonAdminController::class, 'createForm']);
             $inner->post('/seasons/create', [SeasonAdminController::class, 'create']);
             $inner->get('/seasons/{id}/edit', [SeasonAdminController::class, 'editForm']);

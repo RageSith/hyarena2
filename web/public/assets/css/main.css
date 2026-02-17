@@ -467,6 +467,36 @@ ul {
     margin-left: 4px;
 }
 
+.nav-badge.nav-badge-private {
+    background: rgba(239, 68, 68, 0.25);
+    color: #f87171;
+}
+
+/* Private season nav link — reddish instead of green */
+.nav-link.nav-seasons.nav-seasons-private {
+    color: #f87171;
+    text-shadow: 0 0 10px rgba(248, 113, 113, 0.5);
+}
+
+.nav-link.nav-seasons.nav-seasons-private:hover {
+    color: #fca5a5;
+    text-shadow: 0 0 15px rgba(248, 113, 113, 0.7);
+}
+
+.nav-link.nav-seasons.nav-seasons-private .seasons-icon {
+    background: linear-gradient(135deg, #f87171, #ef4444);
+    animation: seasons-glow-private 2s ease-in-out infinite;
+}
+
+@keyframes seasons-glow-private {
+    0%, 100% {
+        filter: drop-shadow(0 0 4px rgba(248, 113, 113, 0.6));
+    }
+    50% {
+        filter: drop-shadow(0 0 8px rgba(248, 113, 113, 0.9));
+    }
+}
+
 .nav-link.nav-cta {
     background: var(--color-primary);
     color: white;
@@ -4512,7 +4542,8 @@ a.season-item-name:hover {
 }
 
 .season-card {
-    display: block;
+    display: flex;
+    flex-direction: column;
     padding: var(--space-xl);
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
@@ -4556,6 +4587,38 @@ a.season-item-name:hover {
     color: var(--color-success);
 }
 
+/* Private season cards — reddish accent */
+.season-card.season-card-private {
+    border-color: rgba(248, 113, 113, 0.3);
+}
+
+.season-card.season-card-private:hover {
+    border-color: #f87171;
+    box-shadow: 0 4px 20px rgba(248, 113, 113, 0.15);
+}
+
+.season-card.season-card-private .season-card-name {
+    color: #fca5a5;
+}
+
+.season-card.season-card-private .season-card-status.active {
+    background: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+}
+
+.season-card-badge-private {
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+    background: rgba(239, 68, 68, 0.25);
+    color: #f87171;
+    vertical-align: middle;
+    margin-left: 6px;
+}
+
 .season-card-status.ended {
     background: rgba(152, 152, 176, 0.15);
     color: var(--color-text-muted);
@@ -4579,14 +4642,57 @@ a.season-item-name:hover {
     gap: var(--space-md);
     font-size: 0.8rem;
     color: var(--color-text-dark);
+    margin-bottom: var(--space-md);
+}
+
+.season-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-border);
+    font-size: 0.8rem;
+}
+
+.season-card-badges {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+}
+
+.season-card-recurrence {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius-sm);
+    background: rgba(96, 165, 250, 0.15);
+    color: #60a5fa;
+}
+
+.season-recurrence-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-sm);
+    background: rgba(96, 165, 250, 0.15);
+    color: #60a5fa;
+    margin-left: 0.5rem;
+    vertical-align: middle;
 }
 
 .season-card-countdown {
-    display: block;
-    margin-top: var(--space-md);
-    font-size: 0.85rem;
     font-weight: 600;
     color: var(--color-primary);
+}
+
+.season-card-ranking {
+    color: var(--color-text-dark);
 }
 
 .seasons-archive-link {
@@ -4678,6 +4784,39 @@ a.season-item-name:hover {
     font-size: 0.95rem;
     font-weight: 600;
     color: var(--color-primary);
+}
+
+.season-restricted-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    padding: var(--space-3xl) var(--space-xl);
+    margin-bottom: var(--space-2xl);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    text-align: center;
+}
+
+.season-restricted-message svg {
+    width: 48px;
+    height: 48px;
+    color: var(--color-danger);
+    opacity: 0.7;
+}
+
+.season-restricted-message h3 {
+    margin: 0;
+    font-size: var(--text-lg);
+    color: var(--color-text);
+}
+
+.season-restricted-message p {
+    margin: 0;
+    color: var(--color-text-muted);
+    max-width: 400px;
 }
 
 .season-leaderboard {

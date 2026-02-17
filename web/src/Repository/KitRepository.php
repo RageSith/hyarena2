@@ -10,12 +10,11 @@ class KitRepository
     {
         $db = Database::getConnection();
         $stmt = $db->prepare('
-            INSERT INTO kits (id, display_name, description, icon, is_visible)
-            VALUES (:id, :display_name, :description, :icon, 1)
+            INSERT INTO kits (id, display_name, description, icon, is_visible, shown)
+            VALUES (:id, :display_name, :description, :icon, 1, 1)
             ON DUPLICATE KEY UPDATE
                 display_name = VALUES(display_name),
                 description = VALUES(description),
-                icon = VALUES(icon),
                 is_visible = 1
         ');
         $stmt->execute([
@@ -51,7 +50,7 @@ class KitRepository
     public function getAll(): array
     {
         $db = Database::getConnection();
-        return $db->query('SELECT * FROM kits WHERE is_visible = 1 ORDER BY display_name')->fetchAll();
+        return $db->query('SELECT * FROM kits WHERE is_visible = 1 AND shown = 1 ORDER BY display_name')->fetchAll();
     }
 
     public function findById(string $id): ?array
@@ -92,7 +91,7 @@ class KitRepository
                 SUM(pks.damage_dealt) AS total_damage_dealt
             FROM kits k
             JOIN player_kit_stats pks ON pks.kit_id = k.id
-            WHERE k.is_visible = 1
+            WHERE k.is_visible = 1 AND k.shown = 1
             GROUP BY k.id, k.display_name, k.description, k.icon
             HAVING SUM(pks.matches_played) > 0
             ORDER BY total_matches DESC
@@ -104,6 +103,6 @@ class KitRepository
     public function getCount(): int
     {
         $db = Database::getConnection();
-        return (int) $db->query('SELECT COUNT(*) FROM kits WHERE is_visible = 1')->fetchColumn();
+        return (int) $db->query('SELECT COUNT(*) FROM kits WHERE is_visible = 1 AND shown = 1')->fetchColumn();
     }
 }

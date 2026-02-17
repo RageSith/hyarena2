@@ -18,11 +18,13 @@ class SeasonRepository
             INSERT INTO seasons
                 (name, slug, description, type, status, starts_at, ends_at,
                  ranking_mode, ranking_config, min_matches,
-                 arena_ids, game_mode_ids, visibility, join_code)
+                 arena_ids, game_mode_ids, visibility, join_code,
+                 recurrence, recurrence_ends_at, base_name, iteration, parent_season_id)
             VALUES
                 (:name, :slug, :description, :type, :status, :starts_at, :ends_at,
                  :ranking_mode, :ranking_config, :min_matches,
-                 :arena_ids, :game_mode_ids, :visibility, :join_code)
+                 :arena_ids, :game_mode_ids, :visibility, :join_code,
+                 :recurrence, :recurrence_ends_at, :base_name, :iteration, :parent_season_id)
         ');
         $stmt->execute([
             'name' => $data['name'],
@@ -39,6 +41,11 @@ class SeasonRepository
             'game_mode_ids' => isset($data['game_mode_ids']) ? json_encode($data['game_mode_ids']) : null,
             'visibility' => $data['visibility'] ?? 'public',
             'join_code' => $data['join_code'] ?? null,
+            'recurrence' => $data['recurrence'] ?? 'none',
+            'recurrence_ends_at' => $data['recurrence_ends_at'] ?? null,
+            'base_name' => $data['base_name'] ?? null,
+            'iteration' => $data['iteration'] ?? null,
+            'parent_season_id' => $data['parent_season_id'] ?? null,
         ]);
         return (int) $db->lastInsertId();
     }
@@ -60,7 +67,9 @@ class SeasonRepository
                 arena_ids = :arena_ids,
                 game_mode_ids = :game_mode_ids,
                 visibility = :visibility,
-                join_code = :join_code
+                join_code = :join_code,
+                recurrence = :recurrence,
+                recurrence_ends_at = :recurrence_ends_at
             WHERE id = :id
         ');
         $stmt->execute([
@@ -78,6 +87,8 @@ class SeasonRepository
             'game_mode_ids' => isset($data['game_mode_ids']) ? json_encode($data['game_mode_ids']) : null,
             'visibility' => $data['visibility'] ?? 'public',
             'join_code' => $data['join_code'] ?? null,
+            'recurrence' => $data['recurrence'] ?? 'none',
+            'recurrence_ends_at' => $data['recurrence_ends_at'] ?? null,
         ]);
     }
 
@@ -112,11 +123,18 @@ class SeasonRepository
         $stmt->execute(['id' => $id, 'status' => $status]);
     }
 
+    public function updateRecurrence(int $id, string $recurrence): void
+    {
+        $db = Database::getConnection();
+        $stmt = $db->prepare('UPDATE seasons SET recurrence = :recurrence WHERE id = :id');
+        $stmt->execute(['id' => $id, 'recurrence' => $recurrence]);
+    }
+
     public function delete(int $id): void
     {
         $db = Database::getConnection();
-        $stmt = $db->prepare('DELETE FROM seasons WHERE id = :id AND status = :status');
-        $stmt->execute(['id' => $id, 'status' => 'draft']);
+        $stmt = $db->prepare('DELETE FROM seasons WHERE id = :id AND status IN (\'draft\', \'archived\')');
+        $stmt->execute(['id' => $id]);
     }
 
     public function getAll(): array
@@ -147,6 +165,39 @@ class SeasonRepository
         ');
         $stmt->execute(['status' => 'active', 'visibility' => 'public']);
         return $stmt->fetchAll();
+    }
+
+    public function getActiveForPlayer(?string $playerUuid): array
+    {
+        $db = Database::getConnection();
+
+        // All public active seasons
+        $stmt = $db->prepare('
+            SELECT s.*,
+                   (SELECT COUNT(*) FROM season_participants sp WHERE sp.season_id = s.id) AS participant_count
+            FROM seasons s
+            WHERE s.status = :status AND s.visibility = :visibility
+            ORDER BY s.ends_at ASC
+        ');
+        $stmt->execute(['status' => 'active', 'visibility' => 'public']);
+        $seasons = $stmt->fetchAll();
+
+        // If logged in, also include non-public active seasons the player is enrolled in
+        if ($playerUuid) {
+            $stmt2 = $db->prepare('
+                SELECT s.*,
+                       (SELECT COUNT(*) FROM season_participants sp WHERE sp.season_id = s.id) AS participant_count
+                FROM seasons s
+                JOIN season_participants sp ON sp.season_id = s.id AND sp.player_uuid = :uuid AND sp.opted_out = 0
+                WHERE s.status = :status AND s.visibility != :pub
+                ORDER BY s.ends_at ASC
+            ');
+            $stmt2->execute(['uuid' => $playerUuid, 'status' => 'active', 'pub' => 'public']);
+            $private = $stmt2->fetchAll();
+            $seasons = array_merge($seasons, $private);
+        }
+
+        return $seasons;
     }
 
     public function getPublicEnded(int $limit = 25, int $offset = 0): array
@@ -212,6 +263,34 @@ class SeasonRepository
         }
 
         return $seasons;
+    }
+
+    // ==========================================
+    // Cron Lifecycle Queries
+    // ==========================================
+
+    public function getDraftSeasonsToActivate(): array
+    {
+        $db = Database::getConnection();
+        $stmt = $db->prepare('SELECT * FROM seasons WHERE status = :status AND starts_at <= NOW()');
+        $stmt->execute(['status' => 'draft']);
+        return $stmt->fetchAll();
+    }
+
+    public function getActiveSeasonsToEnd(): array
+    {
+        $db = Database::getConnection();
+        $stmt = $db->prepare('SELECT * FROM seasons WHERE status = :status AND ends_at <= NOW()');
+        $stmt->execute(['status' => 'active']);
+        return $stmt->fetchAll();
+    }
+
+    public function getEndedRecurringSeasons(): array
+    {
+        $db = Database::getConnection();
+        $stmt = $db->prepare("SELECT * FROM seasons WHERE status = :status AND recurrence != 'none'");
+        $stmt->execute(['status' => 'ended']);
+        return $stmt->fetchAll();
     }
 
     // ==========================================

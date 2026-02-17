@@ -10,6 +10,7 @@
         </button>
         <ul class="nav-menu" id="nav-menu">
             <li><a href="/" class="nav-link{% if active_page is defined and active_page == 'home' %} active{% endif %}">Home</a></li>
+            <li><a href="/news" class="nav-link{% if active_page is defined and active_page == 'news' %} active{% endif %}">News</a></li>
             <li><a href="/live" class="nav-link nav-live{% if active_page is defined and active_page == 'live' %} active{% endif %}"><span class="live-dot"></span>Live</a></li>
             <li class="nav-dropdown">
                 <button class="nav-link nav-dropdown-toggle{% if active_page is defined and active_page in ['arenas', 'kits', 'features'] %} active{% endif %}" aria-expanded="false">Game</button>
@@ -25,7 +26,7 @@
                     <li><a href="/leaderboard" class="nav-link nav-ranking"><span class="ranking-icon"></span>Global</a></li>
                     {% if nav_seasons is defined and nav_seasons|length > 0 %}
                         {% for season in nav_seasons %}
-                            <li><a href="/seasons/{{ season.slug }}" class="nav-link nav-seasons{% if active_page is defined and active_page == 'season_detail' and active_season_slug is defined and active_season_slug == season.slug %} active{% endif %}"><span class="seasons-icon"></span>{{ season.name }}{% if season.visibility != 'public' %} <span class="nav-badge">Private</span>{% endif %}</a></li>
+                            <li><a href="/seasons/{{ season.slug }}" class="nav-link nav-seasons{% if season.visibility != 'public' %} nav-seasons-private{% endif %}{% if active_page is defined and active_page == 'season_detail' and active_season_slug is defined and active_season_slug == season.slug %} active{% endif %}"><span class="seasons-icon"></span>{{ season.name }}{% if season.visibility != 'public' %} <span class="nav-badge nav-badge-private">Private</span>{% endif %}</a></li>
                         {% endfor %}
                     {% endif %}
                     <li><a href="/seasons" class="nav-link{% if active_page is defined and active_page == 'seasons' %} active{% endif %}">All Seasons</a></li>

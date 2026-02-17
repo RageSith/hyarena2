@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Service\NotificationService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -12,8 +13,38 @@ class PageController
 
     public function home(Request $request, Response $response): Response
     {
+        $service = new NotificationService();
+        $latestNews = $service->getLatestActive(3);
+        foreach ($latestNews as &$post) {
+            $post['message_html'] = $service->renderMarkdown($post['message']);
+        }
+
         return $this->twig->render($response, 'pages/home.twig', [
             'active_page' => 'home',
+            'latest_news' => $latestNews,
+        ]);
+    }
+
+    public function news(Request $request, Response $response): Response
+    {
+        $perPage = 10;
+        $page = max(1, (int) ($request->getQueryParams()['page'] ?? 1));
+
+        $service = new NotificationService();
+        $total = $service->getActiveCount();
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        $page = min($page, $totalPages);
+
+        $posts = $service->getActivePaginated($perPage, ($page - 1) * $perPage);
+        foreach ($posts as &$post) {
+            $post['message_html'] = $service->renderMarkdown($post['message']);
+        }
+
+        return $this->twig->render($response, 'pages/news.twig', [
+            'active_page' => 'news',
+            'posts' => $posts,
+            'page' => $page,
+            'total_pages' => $totalPages,
         ]);
     }
 

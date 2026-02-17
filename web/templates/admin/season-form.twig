@@ -48,6 +48,7 @@
             <input type="text" id="join_code" name="join_code" value="{{ season ? season.join_code : '' }}" maxlength="8" placeholder="e.g. ABC123">
         </div>
 
+        {% set form_ends_at = (season and season.recurrence is defined and season.recurrence != 'none' and season.recurrence_ends_at) ? season.recurrence_ends_at : (season ? season.ends_at : '') %}
         <div class="form-row">
             <div class="form-group">
                 <label for="starts_at">Start Date</label>
@@ -55,9 +56,23 @@
             </div>
 
             <div class="form-group">
-                <label for="ends_at">End Date</label>
-                <input type="datetime-local" id="ends_at" name="ends_at" value="{{ season ? season.ends_at|date('Y-m-d\\TH:i') : '' }}" required>
+                <label for="ends_at" id="ends_at_label">End Date</label>
+                <input type="datetime-local" id="ends_at" name="ends_at" value="{{ form_ends_at ? form_ends_at|date('Y-m-d\\TH:i') : '' }}" required>
             </div>
+        </div>
+
+        <div class="form-group">
+            <label for="recurrence">Recurrence</label>
+            <select id="recurrence" name="recurrence">
+                <option value="none" {{ season and season.recurrence == 'none' ? 'selected' : (not season ? 'selected' : '') }}>None (one-time)</option>
+                <option value="daily" {{ season and season.recurrence == 'daily' ? 'selected' : '' }}>Daily</option>
+                <option value="weekly" {{ season and season.recurrence == 'weekly' ? 'selected' : '' }}>Weekly</option>
+                <option value="monthly" {{ season and season.recurrence == 'monthly' ? 'selected' : '' }}>Monthly</option>
+                <option value="yearly" {{ season and season.recurrence == 'yearly' ? 'selected' : '' }}>Yearly</option>
+            </select>
+            <small id="recurrence-help" class="form-help" style="display: none; color: var(--admin-text-muted); margin-top: 0.25rem;">
+                Period length is determined by recurrence type. "Runs Until" controls when to stop creating new periods.
+            </small>
         </div>
 
         <div class="form-row">
@@ -163,6 +178,18 @@
     }
     typeSelect.addEventListener('change', toggleJoinCode);
     toggleJoinCode();
+
+    // Toggle recurrence help text and end date label
+    const recurrenceSelect = document.getElementById('recurrence');
+    const recurrenceHelp = document.getElementById('recurrence-help');
+    const endsAtLabel = document.getElementById('ends_at_label');
+    function toggleRecurrence() {
+        const isRecurring = recurrenceSelect.value !== 'none';
+        recurrenceHelp.style.display = isRecurring ? '' : 'none';
+        endsAtLabel.textContent = isRecurring ? 'Runs Until' : 'End Date';
+    }
+    recurrenceSelect.addEventListener('change', toggleRecurrence);
+    toggleRecurrence();
 
     // Auto-generate slug from name
     const nameInput = document.getElementById('name');

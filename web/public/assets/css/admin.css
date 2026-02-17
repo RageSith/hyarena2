@@ -287,6 +287,22 @@ a:hover { text-decoration: underline; }
 
 .btn-sm { padding: 0.25rem 0.75rem; font-size: 0.8rem; }
 
+.btn-chain-toggle {
+    background: rgba(96, 165, 250, 0.15);
+    color: #60a5fa;
+    border: none;
+    padding: 0.1rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+.btn-chain-toggle:hover { background: rgba(96, 165, 250, 0.3); }
+
+.chain-row td { background: rgba(0,0,0,0.15); }
+
 .btn-block { width: 100%; justify-content: center; }
 
 /* Forms */
@@ -329,6 +345,15 @@ a:hover { text-decoration: underline; }
 }
 
 .form-group textarea { resize: vertical; }
+
+.form-group input[type="file"] {
+    padding: 0.5rem;
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    color: var(--admin-text);
+    cursor: pointer;
+}
 
 .form-row {
     display: grid;
@@ -421,6 +446,15 @@ a:hover { text-decoration: underline; }
 .badge-role-super_admin { background: rgba(248, 113, 113, 0.15); color: var(--admin-error); }
 .badge-role-admin { background: rgba(224, 122, 47, 0.15); color: var(--admin-primary); }
 .badge-role-moderator { background: rgba(74, 158, 245, 0.15); color: var(--admin-info); }
+
+/* Verified Icon */
+.icon-verified {
+    width: 16px;
+    height: 16px;
+    color: var(--admin-info);
+    vertical-align: -2px;
+    margin-left: 2px;
+}
 
 /* Player Status Badges */
 .badge-banned { background: rgba(248, 113, 113, 0.15); color: var(--admin-error); }

@@ -33,16 +33,19 @@ class App
                 $twig->getEnvironment()->addGlobal('site_name', $settings['site']['name'] ?? 'HyArena');
                 $twig->getEnvironment()->addGlobal('site_url', $settings['site']['url'] ?? '');
 
-                // Start session only if a session cookie exists (logged-in user)
-                if (session_status() === PHP_SESSION_NONE && !empty($_COOKIE[session_name()])) {
+                // Start player session only for non-admin routes and only if the cookie exists
+                $isAdmin = str_starts_with($_SERVER['REQUEST_URI'] ?? '', '/admin');
+                if (!$isAdmin && session_status() === PHP_SESSION_NONE && !empty($_COOKIE['PHPSESSID'])) {
                     session_start();
                 }
-                $twig->getEnvironment()->addGlobal('player_session', !empty($_SESSION['player_account_id'] ?? null));
+
+                $playerSession = !$isAdmin && !empty($_SESSION['player_account_id'] ?? null);
+                $twig->getEnvironment()->addGlobal('player_session', $playerSession);
 
                 // Load active seasons for nav dropdown
                 try {
                     $seasonRepo = new SeasonRepository();
-                    $playerUuid = $_SESSION['player_uuid'] ?? null;
+                    $playerUuid = (!$isAdmin) ? ($_SESSION['player_uuid'] ?? null) : null;
                     $twig->getEnvironment()->addGlobal('nav_seasons', $seasonRepo->getNavSeasons($playerUuid));
                 } catch (\Throwable $e) {
                     $twig->getEnvironment()->addGlobal('nav_seasons', []);
