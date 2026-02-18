@@ -356,6 +356,43 @@ Group #ArenaEditorPage {
                     }
                 }
 
+                // ===== Nav Waypoints Section =====
+                $C.@ContentSeparator { @Anchor = (Top: 18); }
+
+                Label #NavWaypointsHeader {
+                    Text: "NAV WAYPOINTS";
+                    Anchor: (Height: 20, Top: 12);
+                    Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                }
+
+                Label #NavWaypointsDesc {
+                    Text: "Pathfinding hints for bots on multi-level maps (unstick points)";
+                    Anchor: (Height: 18, Top: 4);
+                    Style: (FontSize: 11, TextColor: #6b7d8e);
+                }
+
+                Group #NavWaypointsList {
+                    Anchor: (Top: 6);
+                    LayoutMode: Top;
+                }
+
+                Group #NavWaypointButtons {
+                    Anchor: (Height: 38, Top: 14);
+                    LayoutMode: Left;
+
+                    $C.@SecondaryTextButton #AddNavWaypointBtn {
+                        @Text = "+ Add Waypoint";
+                        @Anchor = (Width: 190);
+                    }
+
+                    $C.@SecondaryTextButton #AddNavWaypointHereBtn {
+                        @Text = "+ Add Here";
+                        @Anchor = (Width: 180, Left: 12);
+                    }
+
+                    Group { FlexWeight: 1; }
+                }
+
                 // ===== Bounds Section =====
                 $C.@ContentSeparator { @Anchor = (Top: 18); }
 

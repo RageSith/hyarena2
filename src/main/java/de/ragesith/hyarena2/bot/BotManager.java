@@ -116,6 +116,14 @@ public class BotManager {
     private static final double DEFEND_RANGE = 3.0;
     private static final double WATCHOUT_RANGE = 10.0;
 
+    // Nav waypoint scoring — quadratic Y penalty so large Y gaps strongly favor waypoints
+    private static final double NAV_Y_PENALTY = 0.5;
+    private static final double NAV_ZONE_TIEBREAKER = 0.05; // small weight so zone proximity only breaks ties
+    private static final double NAV_ARRIVAL_RADIUS = 2.5; // mark waypoint visited when bot gets this close
+
+    // Per-bot visited waypoint indices — prevents oscillation around reached waypoints
+    private final Map<UUID, Set<Integer>> visitedWaypoints = new ConcurrentHashMap<>();
+
     public void setUseBrainAI(boolean use) { this.useBrainAI = use; }
     public boolean isUsingBrainAI() { return useBrainAI; }
 
@@ -317,6 +325,7 @@ public class BotManager {
         UUID respawnId = bot.getUniqueId();
         botNpcState.remove(respawnId);
         strafeState.remove(respawnId);
+        visitedWaypoints.remove(respawnId);
 
         // Legacy path cleanup
         enemyWasAttacking.remove(respawnId);
@@ -384,6 +393,7 @@ public class BotManager {
         wasAttacking.remove(botId);
         botNpcState.remove(botId);
         strafeState.remove(botId);
+        visitedWaypoints.remove(botId);
 
         // Legacy path cleanup
         followStuckTicks.remove(botId);
@@ -744,24 +754,14 @@ public class BotManager {
             }
 
             case OBJECTIVE -> {
-                Position botTarget = getBotZoneTarget(botId, ctx.objective);
-                if (!"Follow".equals(prevState)) {
-                    BotAI ai = bot.getAI();
-                    if (ai != null) ai.clearTarget();
-                    Ref<EntityStore> marker = getOrCreateObjectiveMarker(botId, botTarget, store);
-                    if (marker != null && marker.isValid()) {
-                        setNpcObjectiveTarget(role, marker, bot.getEntityRef(), store);
-                        botNpcState.put(botId, "Follow");
-                    }
-                } else {
-                    Ref<EntityStore> marker = getOrCreateObjectiveMarker(botId, botTarget, store);
-                    if (marker != null && marker.isValid()) {
-                        MarkedEntitySupport markedSupport = role.getMarkedEntitySupport();
-                        if (markedSupport != null) {
-                            markedSupport.setMarkedEntity(MarkedEntitySupport.DEFAULT_TARGET_SLOT, marker);
-                        }
-                    }
+                Position zoneTarget = getBotZoneTarget(botId, ctx.objective);
+                // Clear visited waypoints on zone arrival — mission accomplished
+                if (ctx.botInZone) {
+                    visitedWaypoints.remove(botId);
                 }
+                List<ArenaConfig.SpawnPoint> waypoints = ctx.match.getArena().getConfig().getNavWaypoints();
+                Position navTarget = pickBestNavTarget(botId, ctx.botPos, zoneTarget, waypoints);
+                applyFollowTarget(bot, role, botId, navTarget, prevState, store);
             }
 
             case STRAFE_EVADE -> {
@@ -942,6 +942,87 @@ public class BotManager {
         // Use vertical midpoint of zone box so markers aren't at floor level
         double ty = (objective.minY() + objective.maxY()) / 2.0;
         return new Position(tx, ty, tz);
+    }
+
+    private void applyFollowTarget(BotParticipant bot, Role role, UUID botId, Position target,
+                                     String prevState, Store<EntityStore> store) {
+        if (!"Follow".equals(prevState)) {
+            BotAI ai = bot.getAI();
+            if (ai != null) ai.clearTarget();
+            Ref<EntityStore> marker = getOrCreateObjectiveMarker(botId, target, store);
+            if (marker != null && marker.isValid()) {
+                setNpcObjectiveTarget(role, marker, bot.getEntityRef(), store);
+                botNpcState.put(botId, "Follow");
+            }
+        } else {
+            Ref<EntityStore> marker = getOrCreateObjectiveMarker(botId, target, store);
+            if (marker != null && marker.isValid()) {
+                MarkedEntitySupport markedSupport = role.getMarkedEntitySupport();
+                if (markedSupport != null) {
+                    markedSupport.setMarkedEntity(MarkedEntitySupport.DEFAULT_TARGET_SLOT, marker);
+                }
+            }
+        }
+    }
+
+    /**
+     * Picks the best navigation target from zone + all waypoints.
+     * Only considers waypoints that make Y-progress toward the zone — the waypoint's
+     * Y gap to zone must be at least 1 block smaller than the bot's Y gap.
+     * This prevents bots from visiting same-level waypoints and handles zone rotation.
+     * Tracks visited waypoints to prevent oscillation — once a bot reaches a waypoint
+     * (within arrival radius), it's permanently excluded until zone arrival or respawn.
+     */
+    private Position pickBestNavTarget(UUID botId, Position botPos, Position zoneTarget, List<ArenaConfig.SpawnPoint> waypoints) {
+        if (botPos == null) return zoneTarget;
+
+        // Zone scored on reachability alone (no tiebreaker — it IS the goal)
+        double bestCost = navReachCost(botPos, zoneTarget);
+        Position bestTarget = zoneTarget;
+
+        if (waypoints != null) {
+            Set<Integer> visited = visitedWaypoints.computeIfAbsent(botId, k -> new HashSet<>());
+            double botYGap = Math.abs(botPos.getY() - zoneTarget.getY());
+
+            for (int i = 0; i < waypoints.size(); i++) {
+                ArenaConfig.SpawnPoint wp = waypoints.get(i);
+                Position wpPos = new Position(wp.getX(), wp.getY(), wp.getZ());
+
+                // Mark as visited when within arrival radius
+                if (botPos.distanceTo(wpPos) < NAV_ARRIVAL_RADIUS) {
+                    visited.add(i);
+                }
+
+                // Skip visited waypoints
+                if (visited.contains(i)) continue;
+
+                // Only consider waypoints that make Y-progress toward the zone
+                double wpYGap = Math.abs(wpPos.getY() - zoneTarget.getY());
+                if (wpYGap >= botYGap - 1.0) continue;
+
+                // Reachability from bot + tiny zone proximity tiebreaker
+                double cost = navReachCost(botPos, wpPos)
+                    + wpPos.distanceTo(zoneTarget) * NAV_ZONE_TIEBREAKER;
+                if (cost < bestCost) {
+                    bestCost = cost;
+                    bestTarget = wpPos;
+                }
+            }
+        }
+
+        return bestTarget;
+    }
+
+    /**
+     * Path cost from one position to another. Horizontal distance is linear,
+     * Y difference is quadratic — small Y gaps are cheap, large gaps are very expensive.
+     */
+    private double navReachCost(Position from, Position to) {
+        double dx = from.getX() - to.getX();
+        double dz = from.getZ() - to.getZ();
+        double horizontalDist = Math.sqrt(dx * dx + dz * dz);
+        double yDiff = Math.abs(from.getY() - to.getY());
+        return horizontalDist + yDiff * yDiff * NAV_Y_PENALTY;
     }
 
     private Ref<EntityStore> getOrCreateObjectiveMarker(UUID botId, Position target, Store<EntityStore> store) {

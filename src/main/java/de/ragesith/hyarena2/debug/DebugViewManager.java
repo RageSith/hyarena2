@@ -36,6 +36,7 @@ public class DebugViewManager {
     private static final com.hypixel.hytale.protocol.Vector3f COLOR_KOTH_ZONE = new com.hypixel.hytale.protocol.Vector3f(1.0f, 0.0f, 1.0f);
     private static final com.hypixel.hytale.protocol.Vector3f COLOR_PLAYER_SPAWN = new com.hypixel.hytale.protocol.Vector3f(0.0f, 1.0f, 0.0f);
     private static final com.hypixel.hytale.protocol.Vector3f COLOR_WAVE_SPAWN = new com.hypixel.hytale.protocol.Vector3f(1.0f, 0.5f, 0.0f);
+    private static final com.hypixel.hytale.protocol.Vector3f COLOR_NAV_WAYPOINT = new com.hypixel.hytale.protocol.Vector3f(0.3f, 0.7f, 1.0f);
 
     private static final float EDGE_THICKNESS = 0.05f;
     private static final float SHAPE_DURATION = 2.0f;
@@ -284,6 +285,13 @@ public class DebugViewManager {
             if (config.getWaveSpawnPoints() != null) {
                 for (ArenaConfig.SpawnPoint sp : config.getWaveSpawnPoints()) {
                     renderSmallMarker(playerRef, sp.getX(), sp.getY(), sp.getZ(), COLOR_WAVE_SPAWN);
+                }
+            }
+
+            // Nav waypoints (light blue)
+            if (config.getNavWaypoints() != null) {
+                for (ArenaConfig.SpawnPoint sp : config.getNavWaypoints()) {
+                    renderSmallMarker(playerRef, sp.getX(), sp.getY(), sp.getZ(), COLOR_NAV_WAYPOINT);
                 }
             }
         }

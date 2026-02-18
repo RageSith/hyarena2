@@ -83,6 +83,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
     private double[] formBoundsMax;
     private List<ArenaConfig.CaptureZone> formCaptureZones;
     private List<ArenaConfig.SpawnPoint> formWaveSpawnPoints;
+    private List<ArenaConfig.SpawnPoint> formNavWaypoints;
 
     private List<String> gameModeIds;
     private static final String[] BOT_DIFFICULTIES = {"EASY", "MEDIUM", "HARD", "EXTREME", "EASY_TANK", "MEDIUM_TANK", "HARD_TANK", "EXTREME_TANK"};
@@ -147,6 +148,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
 
             formCaptureZones = existingConfig.getCaptureZones() != null ? new ArrayList<>(existingConfig.getCaptureZones()) : new ArrayList<>();
             formWaveSpawnPoints = existingConfig.getWaveSpawnPoints() != null ? new ArrayList<>(existingConfig.getWaveSpawnPoints()) : new ArrayList<>();
+            formNavWaypoints = existingConfig.getNavWaypoints() != null ? new ArrayList<>(existingConfig.getNavWaypoints()) : new ArrayList<>();
         } else {
             formId = "";
             formDisplayName = "";
@@ -174,6 +176,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             formBoundsMax = new double[]{0, 0, 0};
             formCaptureZones = new ArrayList<>();
             formWaveSpawnPoints = new ArrayList<>();
+            formNavWaypoints = new ArrayList<>();
         }
     }
 
@@ -365,6 +368,31 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             }
         }
 
+        // Nav waypoints (always visible)
+        for (int i = 0; i < formNavWaypoints.size(); i++) {
+            ArenaConfig.SpawnPoint sp = formNavWaypoints.get(i);
+            cmd.append("#NavWaypointsList", "Pages/AdminSpawnRow.ui");
+            String row = "#NavWaypointsList[" + i + "]";
+
+            cmd.set(row + " #SpawnIndex.Text", "#" + (i + 1));
+            cmd.set(row + " #SpawnXField.Value", formatCoord(sp.getX()));
+            cmd.set(row + " #SpawnYField.Value", formatCoord(sp.getY()));
+            cmd.set(row + " #SpawnZField.Value", formatCoord(sp.getZ()));
+            cmd.set(row + " #SpawnYawField.Value", formatCoord(sp.getYaw()));
+            cmd.set(row + " #SpawnPitchField.Value", formatCoord(sp.getPitch()));
+
+            bindTextField(events, row + " #SpawnXField", "navWpX", String.valueOf(i));
+            bindTextField(events, row + " #SpawnYField", "navWpY", String.valueOf(i));
+            bindTextField(events, row + " #SpawnZField", "navWpZ", String.valueOf(i));
+            bindTextField(events, row + " #SpawnYawField", "navWpYaw", String.valueOf(i));
+            bindTextField(events, row + " #SpawnPitchField", "navWpPitch", String.valueOf(i));
+
+            events.addEventBinding(CustomUIEventBindingType.Activating, row + " #SpawnSetBtn",
+                EventData.of("Action", "setNavWp").append("Index", String.valueOf(i)), false);
+            events.addEventBinding(CustomUIEventBindingType.Activating, row + " #SpawnRemoveBtn",
+                EventData.of("Action", "removeNavWp").append("Index", String.valueOf(i)), false);
+        }
+
         // Bind text field events for basic fields
         bindTextField(events, "#IdField", "id", null);
         bindTextField(events, "#DisplayNameField", "displayName", null);
@@ -425,6 +453,10 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             EventData.of("Action", "addWaveSpawn"), false);
         events.addEventBinding(CustomUIEventBindingType.Activating, "#AddWaveSpawnHereBtn",
             EventData.of("Action", "addWaveSpawnHere"), false);
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#AddNavWaypointBtn",
+            EventData.of("Action", "addNavWp"), false);
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#AddNavWaypointHereBtn",
+            EventData.of("Action", "addNavWpHere"), false);
 
         events.addEventBinding(CustomUIEventBindingType.Activating, "#SaveBtn",
             EventData.of("Action", "save"), false);
@@ -564,6 +596,26 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
                     rebuild();
                     break;
 
+                case "addNavWp":
+                    formNavWaypoints.add(new ArenaConfig.SpawnPoint(0, 0, 0, 0, 0));
+                    active = true;
+                    rebuild();
+                    break;
+
+                case "addNavWpHere":
+                    addNavWpFromPosition();
+                    break;
+
+                case "setNavWp":
+                    setNavWpFromPosition(data.index);
+                    break;
+
+                case "removeNavWp":
+                    removeNavWpAtIndex(data.index);
+                    active = true;
+                    rebuild();
+                    break;
+
                 case "save":
                     handleSave();
                     break;
@@ -647,6 +699,23 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
                 break;
             case "waveSpawnPitch":
                 if (idx >= 0 && idx < formWaveSpawnPoints.size()) formWaveSpawnPoints.get(idx).setPitch((float) parseDoubleSafe(data.value, 0));
+                break;
+
+            // Nav waypoint fields
+            case "navWpX":
+                if (idx >= 0 && idx < formNavWaypoints.size()) formNavWaypoints.get(idx).setX(parseDoubleSafe(data.value, 0));
+                break;
+            case "navWpY":
+                if (idx >= 0 && idx < formNavWaypoints.size()) formNavWaypoints.get(idx).setY(parseDoubleSafe(data.value, 0));
+                break;
+            case "navWpZ":
+                if (idx >= 0 && idx < formNavWaypoints.size()) formNavWaypoints.get(idx).setZ(parseDoubleSafe(data.value, 0));
+                break;
+            case "navWpYaw":
+                if (idx >= 0 && idx < formNavWaypoints.size()) formNavWaypoints.get(idx).setYaw((float) parseDoubleSafe(data.value, 0));
+                break;
+            case "navWpPitch":
+                if (idx >= 0 && idx < formNavWaypoints.size()) formNavWaypoints.get(idx).setPitch((float) parseDoubleSafe(data.value, 0));
                 break;
 
             // Bounds
@@ -752,6 +821,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
         ));
         config.setCaptureZones(new ArrayList<>(formCaptureZones));
         config.setWaveSpawnPoints(formWaveSpawnPoints.isEmpty() ? null : new ArrayList<>(formWaveSpawnPoints));
+        config.setNavWaypoints(formNavWaypoints.isEmpty() ? null : new ArrayList<>(formNavWaypoints));
         config.setWaveBonusSecondsPerKill(formWaveBonusPerKill);
         config.setWaveBonusSecondsPerWaveClear(formWaveBonusPerWave);
 
@@ -927,6 +997,42 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
     private void removeWaveSpawnAtIndex(String indexStr) {
         int idx = parseIndex(indexStr);
         if (idx >= 0 && idx < formWaveSpawnPoints.size()) formWaveSpawnPoints.remove(idx);
+    }
+
+    private void addNavWpFromPosition() {
+        double[] pos = getAdminPosition();
+        if (pos == null) {
+            showStatus("Could not read position", "#e74c3c");
+            return;
+        }
+        formNavWaypoints.add(new ArenaConfig.SpawnPoint(pos[0], pos[1], pos[2], (float) pos[3], (float) pos[4]));
+        active = true;
+        rebuild();
+    }
+
+    private void setNavWpFromPosition(String indexStr) {
+        int idx = parseIndex(indexStr);
+        if (idx < 0 || idx >= formNavWaypoints.size()) return;
+
+        double[] pos = getAdminPosition();
+        if (pos == null) {
+            showStatus("Could not read position", "#e74c3c");
+            return;
+        }
+
+        ArenaConfig.SpawnPoint sp = formNavWaypoints.get(idx);
+        sp.setX(pos[0]);
+        sp.setY(pos[1]);
+        sp.setZ(pos[2]);
+        sp.setYaw((float) pos[3]);
+        sp.setPitch((float) pos[4]);
+        active = true;
+        rebuild();
+    }
+
+    private void removeNavWpAtIndex(String indexStr) {
+        int idx = parseIndex(indexStr);
+        if (idx >= 0 && idx < formNavWaypoints.size()) formNavWaypoints.remove(idx);
     }
 
     private int parseIndex(String s) {
