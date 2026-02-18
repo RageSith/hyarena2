@@ -53,7 +53,7 @@ class MatchSubmissionService
             // Insert participants and update stats
             foreach ($data['participants'] as $p) {
                 $isBot = $p['is_bot'] ?? false;
-                $isWinner = ($p['uuid'] ?? null) === ($data['winner_uuid'] ?? '__none__');
+                $isWinner = $p['is_winner'] ?? false;
 
                 $this->participantRepo->create([
                     'match_id' => $matchId,

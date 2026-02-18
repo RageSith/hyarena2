@@ -119,7 +119,32 @@ public class KillDetectionSystem extends DamageEventSystem {
                 }
             }
 
-            // Unknown entity type - allow normal damage processing
+            // Check if this is a passthrough NPC (e.g. training dummy) — let Hytale handle damage
+            com.hypixel.hytale.server.npc.entities.NPCEntity npcEntity =
+                store.getComponent(victimRef, com.hypixel.hytale.server.npc.entities.NPCEntity.getComponentType());
+            if (npcEntity != null && "FunctionalDummyRole".equals(npcEntity.getNPCTypeId())) {
+                return;
+            }
+
+            // Unknown entity type - debug log to attacker's chat
+            Ref<EntityStore> dbgAttackerRef = getAttackerEntityRef(damage.getSource());
+            if (dbgAttackerRef != null) {
+                Player dbgAttacker = store.getComponent(dbgAttackerRef, Player.getComponentType());
+                if (dbgAttacker != null) {
+                    String nameStr = "unnamed";
+                    com.hypixel.hytale.server.core.entity.nameplate.Nameplate nameplate =
+                        store.getComponent(victimRef, com.hypixel.hytale.server.core.entity.nameplate.Nameplate.getComponentType());
+                    if (nameplate != null && nameplate.getText() != null && !nameplate.getText().isEmpty()) {
+                        nameStr = nameplate.getText();
+                    }
+                    String modelStr = npcEntity != null ? npcEntity.getNPCTypeId() : "unknown";
+                    if (modelStr == null || modelStr.isEmpty()) modelStr = "unknown";
+                    UUIDComponent dbgUuid = store.getComponent(victimRef, UUIDComponent.getComponentType());
+                    String uuidStr = dbgUuid != null ? dbgUuid.getUuid().toString().substring(0, 8) : "no-uuid";
+                    dbgAttacker.sendMessage(TinyMsg.parse("<color:#7f8c8d>[debug] Hit entity: " + nameStr + " | model=" + modelStr + " (uuid=" + uuidStr + ")</color>"));
+                }
+            }
+            damage.setCancelled(true);
         } catch (Exception e) {
             System.err.println("Error in KillDetectionSystem: " + e.getMessage());
             e.printStackTrace();
