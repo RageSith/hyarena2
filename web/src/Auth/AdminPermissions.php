@@ -7,11 +7,11 @@ class AdminPermissions
     private const PERMISSIONS = [
         'super_admin' => [
             'dashboard', 'bug_reports', 'players',
-            'notifications', 'seasons', 'webhooks', 'admin_users',
+            'notifications', 'seasons', 'webhooks', 'admin_users', 'servers',
         ],
         'admin' => [
             'dashboard', 'bug_reports', 'players',
-            'notifications', 'seasons',
+            'notifications', 'seasons', 'servers',
         ],
         'moderator' => [
             'dashboard', 'bug_reports', 'players',

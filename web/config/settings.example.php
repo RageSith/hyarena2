@@ -30,4 +30,10 @@ return [
     'admin' => [
         'session_lifetime' => 3600,
     ],
+    'hywarden' => [
+        'url' => 'http://localhost:8080',
+        'username' => '',
+        'password' => '',
+        'token_file' => '/tmp/hywarden_token.json',
+    ],
 ];

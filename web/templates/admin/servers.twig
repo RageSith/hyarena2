@@ -1,0 +1,105 @@
+{% extends "admin/layout.twig" %}
+
+{% block title %}Servers{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-page-header">
+        <h1>Servers</h1>
+    </div>
+
+    {% if hw_error %}
+    <div class="alert alert-error">Unable to connect to Hywarden: {{ hw_error }}</div>
+    {% endif %}
+
+    <div class="admin-stats-grid" id="hw-metrics">
+        <div class="admin-stat-card">
+            <span class="admin-stat-value" id="hw-cpu">{{ metrics.cpu_percent is defined ? metrics.cpu_percent|round(1) ~ '%' : '--' }}</span>
+            <span class="admin-stat-label">CPU</span>
+        </div>
+        <div class="admin-stat-card">
+            <span class="admin-stat-value" id="hw-mem">{{ metrics.mem_percent is defined ? metrics.mem_percent|round(1) ~ '%' : '--' }}</span>
+            <span class="admin-stat-label">Memory</span>
+        </div>
+        <div class="admin-stat-card">
+            <span class="admin-stat-value" id="hw-disk">{{ metrics.disk_percent is defined ? metrics.disk_percent|round(1) ~ '%' : '--' }}</span>
+            <span class="admin-stat-label">Disk</span>
+        </div>
+        <div class="admin-stat-card">
+            <span class="admin-stat-value" id="hw-host" style="font-size:1.1rem">{{ metrics.hostname ?? '--' }}</span>
+            <span class="admin-stat-label">Hostname</span>
+        </div>
+    </div>
+
+    <div class="admin-table-wrapper">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Patchline</th>
+                    <th>Version</th>
+                    <th>CPU</th>
+                    <th>Memory</th>
+                    <th>Players</th>
+                    <th>Uptime</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="hw-servers">
+                {% for server in servers %}
+                <tr>
+                    <td>{{ server.name }}</td>
+                    <td>
+                        {% if server.crashed %}
+                            <span class="badge badge-hw-crashed">Crashed</span>
+                        {% elseif server.running %}
+                            <span class="badge badge-hw-running">Running</span>
+                        {% else %}
+                            <span class="badge badge-hw-stopped">Stopped</span>
+                        {% endif %}
+                        {% if server.update_available %}
+                            <span class="badge badge-warning" style="margin-left:4px">Update</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ server.patchline ?? '-' }}</td>
+                    <td>{{ server.version ?? '-' }}</td>
+                    <td>{{ server.running ? server.cpu_percent|round(1) ~ '%' : '-' }}</td>
+                    <td>{{ server.running ? server.memory_mb ~ ' MB' : '-' }}</td>
+                    <td>{{ server.players ?? 0 }}</td>
+                    <td>{{ server.running ? server.uptime : '-' }}</td>
+                    <td class="actions">
+                        {% if server.running %}
+                            <button class="btn btn-sm btn-danger" onclick="hwAction('stop', '{{ server.id }}')">Stop</button>
+                            <button class="btn btn-sm btn-danger" onclick="hwAction('kill', '{{ server.id }}')">Kill</button>
+                        {% else %}
+                            <button class="btn btn-sm btn-primary" onclick="hwAction('start', '{{ server.id }}')">Start</button>
+                        {% endif %}
+                        <button class="btn btn-sm btn-secondary" onclick="hwOpenConsole('{{ server.id }}', '{{ server.name }}')">Console</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="empty">No servers configured.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="hw-console-overlay" id="hw-console-overlay" onclick="if(event.target===this)hwCloseConsole()">
+    <div class="hw-console-modal">
+        <div class="hw-console-header">
+            <h3 id="hw-console-title">Console</h3>
+            <button class="hw-console-close" onclick="hwCloseConsole()">&times;</button>
+        </div>
+        <div class="hw-console-body" id="hw-console-body"></div>
+    </div>
+</div>
+
+<script>
+    window.HW_CSRF_TOKEN = '{{ csrf_token }}';
+</script>
+<script src="/assets/js/admin-servers.js"></script>
+{% endblock %}

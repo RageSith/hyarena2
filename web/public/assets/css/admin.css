@@ -643,6 +643,83 @@ a:hover { text-decoration: underline; }
 
 .ban-form .form-group { margin-bottom: 0.75rem; }
 
+/* Hywarden Server Status Badges */
+.badge-hw-running { background: rgba(74, 222, 128, 0.15); color: var(--admin-success); }
+.badge-hw-stopped { background: rgba(152, 152, 176, 0.15); color: var(--admin-text-muted); }
+.badge-hw-crashed { background: rgba(248, 113, 113, 0.15); color: var(--admin-error); }
+
+/* Console Overlay */
+.hw-console-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.hw-console-overlay.show { display: flex; }
+
+.hw-console-modal {
+    width: 90%;
+    max-width: 900px;
+    background: var(--admin-bg-card);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+}
+
+.hw-console-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.hw-console-header h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.hw-console-close {
+    background: none;
+    border: none;
+    color: var(--admin-text-muted);
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    line-height: 1;
+}
+
+.hw-console-close:hover { color: var(--admin-text); }
+
+.hw-console-body {
+    flex: 1;
+    background: #0a0a12;
+    padding: 0.75rem 1rem;
+    overflow-y: auto;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    min-height: 300px;
+    max-height: 70vh;
+}
+
+.hw-console-line {
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: #c8c8d8;
+}
+
+.hw-console-body::-webkit-scrollbar { width: 8px; }
+.hw-console-body::-webkit-scrollbar-track { background: #0a0a12; }
+.hw-console-body::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 4px; }
+.hw-console-body::-webkit-scrollbar-thumb:hover { background: #3a3a4e; }
+
 /* Responsive */
 @media (max-width: 768px) {
     .admin-sidebar {

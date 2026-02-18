@@ -9,6 +9,7 @@ use App\Controller\LinkController;
 use App\Controller\PlayerManagementController;
 use App\Controller\SeasonApiController;
 use App\Controller\SeasonAdminController;
+use App\Controller\ServerManagerController;
 use App\Middleware\ApiKeyMiddleware;
 use App\Middleware\RateLimitMiddleware;
 use App\Middleware\CorsMiddleware;
@@ -142,5 +143,16 @@ return function (App $app) {
             $inner->post('/users/{id}/edit', [AdminUserController::class, 'edit']);
             $inner->post('/users/{id}/delete', [AdminUserController::class, 'delete']);
         })->add(new AdminRoleMiddleware('admin_users'));
+
+        // Hywarden Server Manager (admin+ only)
+        $group->group('', function (RouteCollectorProxy $inner) {
+            $inner->get('/servers', [ServerManagerController::class, 'page']);
+            $inner->get('/api/hywarden/servers', [ServerManagerController::class, 'apiServers']);
+            $inner->get('/api/hywarden/metrics', [ServerManagerController::class, 'apiMetrics']);
+            $inner->get('/api/hywarden/servers/{id}/console', [ServerManagerController::class, 'apiConsole']);
+            $inner->post('/api/hywarden/servers/{id}/start', [ServerManagerController::class, 'apiStart']);
+            $inner->post('/api/hywarden/servers/{id}/stop', [ServerManagerController::class, 'apiStop']);
+            $inner->post('/api/hywarden/servers/{id}/kill', [ServerManagerController::class, 'apiKill']);
+        })->add(new AdminRoleMiddleware('servers'));
     })->add(new CsrfMiddleware())->add(new AdminAuthMiddleware());
 };
