@@ -895,6 +895,18 @@ public class Match {
             broadcast("<color:#e74c3c>" + victim.getName() + "</color> <color:#7f8c8d>died</color>");
         }
 
+        // Check if game mode wants to swap the killer's kit on kill
+        if (killer != null && killer.getType() == ParticipantType.PLAYER) {
+            String killKit = gameMode.getKitOnKill(arena.getConfig(), killer);
+            if (killKit != null && kitManager != null) {
+                killer.setSelectedKitId(killKit);
+                Player killerPlayer = getPlayerFromUuid(killer.getUniqueId());
+                if (killerPlayer != null) {
+                    kitManager.applyKit(killerPlayer, killKit);
+                }
+            }
+        }
+
         // Handle respawning
         if (gameMode.shouldRespawn(arena.getConfig(), victim)) {
             // Instant respawn (delay 0 = next tick). Timer infrastructure exists for future delay support.

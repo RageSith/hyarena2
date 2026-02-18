@@ -77,6 +77,8 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
     private int formWaveBonusPerWave;
 
     private List<String> formAllowedKits;
+    private boolean formSwapOnKill;
+    private boolean formSwapOnRespawn;
     private List<String> formRandomKitPool;
     private List<ArenaConfig.SpawnPoint> formSpawnPoints;
     private double[] formBoundsMin; // [x, y, z]
@@ -134,6 +136,8 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             formWaveBonusPerKill = existingConfig.getWaveBonusSecondsPerKill();
             formWaveBonusPerWave = existingConfig.getWaveBonusSecondsPerWaveClear();
             formAllowedKits = existingConfig.getAllowedKits() != null ? new ArrayList<>(existingConfig.getAllowedKits()) : new ArrayList<>();
+            formSwapOnKill = existingConfig.isKitRouletteSwapOnKill();
+            formSwapOnRespawn = existingConfig.isKitRouletteSwapOnRespawn();
             formRandomKitPool = existingConfig.getRandomKitPool() != null ? new ArrayList<>(existingConfig.getRandomKitPool()) : new ArrayList<>();
             formSpawnPoints = existingConfig.getSpawnPoints() != null ? new ArrayList<>(existingConfig.getSpawnPoints()) : new ArrayList<>();
 
@@ -170,6 +174,8 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             formWaveBonusPerKill = 2;
             formWaveBonusPerWave = 60;
             formAllowedKits = new ArrayList<>();
+            formSwapOnKill = true;
+            formSwapOnRespawn = false;
             formRandomKitPool = new ArrayList<>();
             formSpawnPoints = new ArrayList<>();
             formBoundsMin = new double[]{0, 0, 0};
@@ -255,6 +261,9 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
                 events.addEventBinding(CustomUIEventBindingType.Activating, row + " #RowRemoveBtn",
                     EventData.of("Action", "removeRKit").append("Index", String.valueOf(i)), false);
             }
+
+            cmd.set("#SwapOnKillCheckbox.Value", formSwapOnKill);
+            cmd.set("#SwapOnRespawnCheckbox.Value", formSwapOnRespawn);
         }
 
         // Bot settings
@@ -429,10 +438,16 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             EventData.of("Action", "field").append("Field", "botDifficulty")
                 .append("@Value","#BotDifficultyDropdown.Value"), false);
 
-        // Bind checkbox event (uses @BoolValue — checkboxes send boolean, not string)
+        // Bind checkbox events (uses @BoolValue — checkboxes send boolean, not string)
         events.addEventBinding(CustomUIEventBindingType.ValueChanged, "#AutoFillCheckbox",
             EventData.of("Action", "field").append("Field", "autoFill")
                 .append("@BoolValue","#AutoFillCheckbox.Value"), false);
+        events.addEventBinding(CustomUIEventBindingType.ValueChanged, "#SwapOnKillCheckbox",
+            EventData.of("Action", "field").append("Field", "swapOnKill")
+                .append("@BoolValue","#SwapOnKillCheckbox.Value"), false);
+        events.addEventBinding(CustomUIEventBindingType.ValueChanged, "#SwapOnRespawnCheckbox",
+            EventData.of("Action", "field").append("Field", "swapOnRespawn")
+                .append("@BoolValue","#SwapOnRespawnCheckbox.Value"), false);
 
         // Bind action buttons
         events.addEventBinding(CustomUIEventBindingType.Activating, "#AddKitBtn",
@@ -654,6 +669,12 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             case "autoFill":
                 formAutoFill = data.boolValue != null ? data.boolValue : false;
                 break;
+            case "swapOnKill":
+                formSwapOnKill = data.boolValue != null ? data.boolValue : true;
+                break;
+            case "swapOnRespawn":
+                formSwapOnRespawn = data.boolValue != null ? data.boolValue : false;
+                break;
             case "autoFillDelay": formAutoFillDelay = data.intValue != null ? data.intValue : formAutoFillDelay; break;
             case "minRealPlayers": formMinRealPlayers = data.intValue != null ? data.intValue : formMinRealPlayers; break;
             case "waveBonusPerKill": formWaveBonusPerKill = data.intValue != null ? data.intValue : formWaveBonusPerKill; break;
@@ -813,6 +834,8 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             if (k != null && !k.trim().isEmpty()) randomKits.add(k.trim());
         }
         config.setRandomKitPool(randomKits);
+        config.setKitRouletteSwapOnKill(formSwapOnKill);
+        config.setKitRouletteSwapOnRespawn(formSwapOnRespawn);
 
         config.setSpawnPoints(new ArrayList<>(formSpawnPoints));
         config.setBounds(new ArenaConfig.Bounds(

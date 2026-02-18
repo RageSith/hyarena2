@@ -195,6 +195,25 @@ Group #ArenaEditorPage {
                         @Text = "+ Add Kit";
                         @Anchor = (Height: 32, Top: 10, Width: 150);
                     }
+
+                    // Kit swap triggers
+                    Group #SwapOnKillRow {
+                        Anchor: (Height: 38, Top: 10);
+                        LayoutMode: Left;
+                        Label { Text: "Swap Kit on Kill"; Anchor: (Width: 160); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        $C.@CheckBox #SwapOnKillCheckbox {
+                        }
+                        Group { FlexWeight: 1; }
+                    }
+
+                    Group #SwapOnRespawnRow {
+                        Anchor: (Height: 38, Top: 4);
+                        LayoutMode: Left;
+                        Label { Text: "Swap Kit on Respawn"; Anchor: (Width: 160); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        $C.@CheckBox #SwapOnRespawnCheckbox {
+                        }
+                        Group { FlexWeight: 1; }
+                    }
                 }
 
                 // ===== Bot Settings Section =====

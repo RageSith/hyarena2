@@ -117,6 +117,17 @@ public interface GameMode {
     }
 
     /**
+     * Returns a kit ID to assign to the killer after getting a kill.
+     * Returning null means no kit swap on kill (default behavior).
+     * @param config The arena configuration
+     * @param killer The participant who got the kill
+     * @return kit ID to swap to, or null for no swap
+     */
+    default String getKitOnKill(ArenaConfig config, Participant killer) {
+        return null;
+    }
+
+    /**
      * Determines if damage between two participants should be allowed.
      * Game modes can override this to disable friendly fire (e.g., wave defense).
      * @param attacker The participant dealing damage

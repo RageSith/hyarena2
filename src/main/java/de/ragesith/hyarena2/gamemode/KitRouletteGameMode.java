@@ -54,10 +54,19 @@ public class KitRouletteGameMode implements GameMode {
 
     @Override
     public String getNextKitId(ArenaConfig config, Participant participant) {
+        if (!config.isKitRouletteSwapOnRespawn()) return null;
+        return pickRandomKit(config);
+    }
+
+    @Override
+    public String getKitOnKill(ArenaConfig config, Participant killer) {
+        if (!config.isKitRouletteSwapOnKill()) return null;
+        return pickRandomKit(config);
+    }
+
+    private String pickRandomKit(ArenaConfig config) {
         List<String> pool = config.getRandomKitPool();
-        if (pool == null || pool.isEmpty()) {
-            return null;
-        }
+        if (pool == null || pool.isEmpty()) return null;
         return pool.get(random.nextInt(pool.size()));
     }
 

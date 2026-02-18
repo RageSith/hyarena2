@@ -28,6 +28,8 @@ public class ArenaConfig {
     private int scoreTarget = 0; // Control-seconds needed to win (0 = unused)
     private int zoneRotationSeconds = 60; // Rotation interval for multiple zones
     private List<String> randomKitPool; // Kit IDs for random assignment (Kit Roulette)
+    private boolean kitRouletteSwapOnKill = true; // Swap kit when getting a kill
+    private boolean kitRouletteSwapOnRespawn = false; // Swap kit on respawn
     private List<SpawnPoint> waveSpawnPoints; // Spawn points for wave defense enemy bots
     private List<SpawnPoint> navWaypoints; // Nav waypoints for bot pathfinding on multi-level maps
     private int waveBonusSecondsPerKill = 2; // Bonus seconds added per wave mob killed
@@ -56,6 +58,8 @@ public class ArenaConfig {
     public int getScoreTarget() { return scoreTarget; }
     public int getZoneRotationSeconds() { return zoneRotationSeconds; }
     public List<String> getRandomKitPool() { return randomKitPool; }
+    public boolean isKitRouletteSwapOnKill() { return kitRouletteSwapOnKill; }
+    public boolean isKitRouletteSwapOnRespawn() { return kitRouletteSwapOnRespawn; }
     public List<SpawnPoint> getWaveSpawnPoints() { return waveSpawnPoints; }
     public List<SpawnPoint> getNavWaypoints() { return navWaypoints; }
     public int getWaveBonusSecondsPerKill() { return waveBonusSecondsPerKill; }
@@ -84,6 +88,8 @@ public class ArenaConfig {
     public void setScoreTarget(int scoreTarget) { this.scoreTarget = scoreTarget; }
     public void setZoneRotationSeconds(int zoneRotationSeconds) { this.zoneRotationSeconds = zoneRotationSeconds; }
     public void setRandomKitPool(List<String> randomKitPool) { this.randomKitPool = randomKitPool; }
+    public void setKitRouletteSwapOnKill(boolean kitRouletteSwapOnKill) { this.kitRouletteSwapOnKill = kitRouletteSwapOnKill; }
+    public void setKitRouletteSwapOnRespawn(boolean kitRouletteSwapOnRespawn) { this.kitRouletteSwapOnRespawn = kitRouletteSwapOnRespawn; }
     public void setWaveSpawnPoints(List<SpawnPoint> waveSpawnPoints) { this.waveSpawnPoints = waveSpawnPoints; }
     public void setNavWaypoints(List<SpawnPoint> navWaypoints) { this.navWaypoints = navWaypoints; }
     public void setWaveBonusSecondsPerKill(int waveBonusSecondsPerKill) { this.waveBonusSecondsPerKill = waveBonusSecondsPerKill; }
