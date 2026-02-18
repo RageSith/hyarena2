@@ -193,12 +193,9 @@ public class HudManager {
     /**
      * Shows the victory screen as an interactive page for a player after a match ends.
      * The page persists after teleport to hub and must be dismissed manually by the player.
-     * @param playerUuid the player's UUID
-     * @param match the finished match
-     * @param isWinner whether this player won
-     * @param winnerName the name of the winner (or null for draw)
      */
-    public void showVictoryHud(UUID playerUuid, Match match, boolean isWinner, String winnerName) {
+    public void showVictoryHud(UUID playerUuid, Match match, boolean isWinner,
+                               String resultTitle, String resultSubtitle) {
         // Shut down existing victory page if any
         VictoryHud oldHud = victoryHuds.remove(playerUuid);
         if (oldHud != null) {
@@ -228,7 +225,7 @@ public class HudManager {
             return;
         }
 
-        VictoryHud hud = new VictoryHud(playerRef, playerUuid, match, isWinner, winnerName, this);
+        VictoryHud hud = new VictoryHud(playerRef, playerUuid, match, isWinner, resultTitle, resultSubtitle, this);
         victoryHuds.put(playerUuid, hud);
 
         try {

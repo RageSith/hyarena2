@@ -4,11 +4,9 @@ import de.ragesith.hyarena2.arena.ArenaConfig;
 import de.ragesith.hyarena2.arena.Match;
 import de.ragesith.hyarena2.participant.Participant;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Kit Roulette game mode — every time a player dies and respawns they get a random kit
@@ -152,29 +150,7 @@ public class KitRouletteGameMode implements GameMode {
 
     @Override
     public List<UUID> getWinners(ArenaConfig config, List<Participant> participants) {
-        if (participants.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        int maxKills = participants.stream()
-                .mapToInt(Participant::getKills)
-                .max()
-                .orElse(0);
-
-        if (maxKills == 0) {
-            return new ArrayList<>();
-        }
-
-        List<Participant> topKillers = participants.stream()
-                .filter(p -> p.getKills() == maxKills)
-                .collect(Collectors.toList());
-
-        if (topKillers.size() == 1) {
-            return List.of(topKillers.get(0).getUniqueId());
-        }
-
-        // Tie — no winner
-        return new ArrayList<>();
+        return DeathmatchGameMode.resolveWinnerByKills(participants);
     }
 
     @Override

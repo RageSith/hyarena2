@@ -36,16 +36,18 @@ public class VictoryHud extends InteractiveCustomUIPage<VictoryHud.PageEventData
     private final UUID playerUuid;
     private final Match match;
     private final boolean isWinner;
-    private final String winnerName;
+    private final String resultTitle;
+    private final String resultSubtitle;
     private final HudManager hudManager;
 
-    public VictoryHud(PlayerRef playerRef, UUID playerUuid, Match match, boolean isWinner, String winnerName,
-                      HudManager hudManager) {
+    public VictoryHud(PlayerRef playerRef, UUID playerUuid, Match match, boolean isWinner,
+                      String resultTitle, String resultSubtitle, HudManager hudManager) {
         super(playerRef, CustomPageLifetime.CanDismiss, PageEventData.CODEC);
         this.playerUuid = playerUuid;
         this.match = match;
         this.isWinner = isWinner;
-        this.winnerName = winnerName;
+        this.resultTitle = resultTitle;
+        this.resultSubtitle = resultSubtitle;
         this.hudManager = hudManager;
     }
 
@@ -55,23 +57,19 @@ public class VictoryHud extends InteractiveCustomUIPage<VictoryHud.PageEventData
         // Load UI file
         cmd.append("Huds/VictoryHud.ui");
 
-        // Victory/Defeat title
+        // Title and subtitle
+        cmd.set("#ResultTitle.Text", resultTitle);
         if (isWinner) {
-            cmd.set("#ResultTitle.Text", "VICTORY!");
             cmd.set("#ResultTitle.Style.TextColor", "#f1c40f"); // Gold
-        } else {
-            cmd.set("#ResultTitle.Text", "DEFEAT");
+            cmd.set("#WinnerName.Style.TextColor", "#2ecc71");
+        } else if ("DEFEAT".equals(resultTitle)) {
             cmd.set("#ResultTitle.Style.TextColor", "#e74c3c"); // Red
-        }
-
-        // Winner name
-        if (winnerName != null && !winnerName.isEmpty()) {
-            cmd.set("#WinnerName.Text", winnerName);
-            cmd.set("#WinnerName.Style.TextColor", isWinner ? "#2ecc71" : "#b7cedd");
+            cmd.set("#WinnerName.Style.TextColor", "#b7cedd");
         } else {
-            cmd.set("#WinnerName.Text", "Draw");
+            cmd.set("#ResultTitle.Style.TextColor", "#f39c12"); // Orange (draw)
             cmd.set("#WinnerName.Style.TextColor", "#96a9be");
         }
+        cmd.set("#WinnerName.Text", resultSubtitle);
 
         // Player stats
         Participant participant = match.getParticipant(playerUuid);

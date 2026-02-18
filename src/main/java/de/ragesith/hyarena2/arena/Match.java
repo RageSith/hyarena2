@@ -1475,18 +1475,37 @@ public class Match {
     }
 
     /**
-     * Shows VictoryHud to all player participants.
-     * @param winnerName the name of the winner, or null for draw
+     * Shows VictoryHud to all player participants with personalized title/subtitle.
      */
     private void showVictoryHudToAllPlayers(String winnerName) {
         if (hudManager == null) {
             return;
         }
 
+        boolean isWaveDefense = "wave_defense".equals(gameMode.getId());
+
         for (Participant participant : getParticipants()) {
             if (participant.getType() == ParticipantType.PLAYER) {
                 boolean isWinner = winners.contains(participant.getUniqueId());
-                hudManager.showVictoryHud(participant.getUniqueId(), this, isWinner, winnerName);
+                String title;
+                String subtitle;
+
+                if (isWaveDefense) {
+                    title = "DEFEATED";
+                    int wave = gameMode.getParticipantScore(participant.getUniqueId());
+                    subtitle = wave > 0 ? "Wave " + wave + " reached!" : "Better luck next time!";
+                } else if (isWinner) {
+                    title = "VICTORY!";
+                    subtitle = "You won!";
+                } else if (winnerName != null) {
+                    title = "DEFEAT";
+                    subtitle = winnerName + " wins";
+                } else {
+                    title = "DRAW";
+                    subtitle = "No winner";
+                }
+
+                hudManager.showVictoryHud(participant.getUniqueId(), this, isWinner, title, subtitle);
             }
         }
     }

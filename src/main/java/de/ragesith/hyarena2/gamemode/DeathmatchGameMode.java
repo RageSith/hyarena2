@@ -126,6 +126,14 @@ public class DeathmatchGameMode implements GameMode {
 
     @Override
     public List<UUID> getWinners(ArenaConfig config, List<Participant> participants) {
+        return resolveWinnerByKills(participants);
+    }
+
+    /**
+     * Shared winner resolution for kill-based modes (Deathmatch, Kit Roulette).
+     * Tiebreakers: most kills → most damage dealt → fewest deaths → favor players over bots.
+     */
+    static List<UUID> resolveWinnerByKills(List<Participant> participants) {
         if (participants.isEmpty()) {
             return new ArrayList<>();
         }
@@ -139,15 +147,37 @@ public class DeathmatchGameMode implements GameMode {
             return new ArrayList<>();
         }
 
-        List<Participant> topKillers = participants.stream()
+        List<Participant> candidates = participants.stream()
                 .filter(p -> p.getKills() == maxKills)
                 .collect(Collectors.toList());
 
-        if (topKillers.size() == 1) {
-            return List.of(topKillers.get(0).getUniqueId());
+        if (candidates.size() == 1) {
+            return List.of(candidates.get(0).getUniqueId());
         }
 
-        // Tie — no winner
+        // Tiebreaker 1: most damage dealt
+        double maxDamage = candidates.stream().mapToDouble(Participant::getDamageDealt).max().orElse(0);
+        candidates = candidates.stream().filter(p -> p.getDamageDealt() == maxDamage).collect(Collectors.toList());
+        if (candidates.size() == 1) {
+            return List.of(candidates.get(0).getUniqueId());
+        }
+
+        // Tiebreaker 2: fewest deaths
+        int minDeaths = candidates.stream().mapToInt(Participant::getDeaths).min().orElse(0);
+        candidates = candidates.stream().filter(p -> p.getDeaths() == minDeaths).collect(Collectors.toList());
+        if (candidates.size() == 1) {
+            return List.of(candidates.get(0).getUniqueId());
+        }
+
+        // Tiebreaker 3: favor players over bots
+        List<Participant> players = candidates.stream()
+                .filter(p -> p.getType() == de.ragesith.hyarena2.participant.ParticipantType.PLAYER)
+                .collect(Collectors.toList());
+        if (players.size() == 1) {
+            return List.of(players.get(0).getUniqueId());
+        }
+
+        // Still tied — genuine draw
         return new ArrayList<>();
     }
 
