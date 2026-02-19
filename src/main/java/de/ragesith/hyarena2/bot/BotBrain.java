@@ -3,6 +3,7 @@ package de.ragesith.hyarena2.bot;
 import de.ragesith.hyarena2.arena.ArenaConfig;
 import de.ragesith.hyarena2.config.Position;
 import de.ragesith.hyarena2.participant.Participant;
+import de.ragesith.hyarena2.participant.ParticipantType;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -206,7 +207,27 @@ public class BotBrain {
             zoneRelevance = 1.4; // High priority to stop capturers
         }
 
-        return combat * distanceFeasibility * targetAttractiveness * threatResponse * zoneRelevance;
+        // Player preference: bots slightly prefer engaging real players
+        double playerBoost = enemy.participant.getType() == ParticipantType.PLAYER ? 1.15 : 1.0;
+
+        // Leader pressure: slightly prefer the leading participant (most kills)
+        double leaderBoost = 1.0;
+        if (ctx.leaderKills > 0 && enemy.participant.getKills() == ctx.leaderKills) {
+            leaderBoost = 1.1;
+        }
+
+        // Y penalty: penalizes vertical distance (unreachable targets above/below)
+        // Applied last so it can override player/leader boosts
+        double yPenalty = 1.0;
+        if (ctx.botPos != null && enemy.position != null) {
+            double dy = Math.abs(ctx.botPos.getY() - enemy.position.getY());
+            yPenalty = 1.0 / (1.0 + dy * 0.2);
+        }
+
+        // Proximity tiebreaker: tiny bonus for closer targets to break equal-score ties
+        double proximityTiebreaker = 0.001 / (1.0 + dist);
+
+        return combat * distanceFeasibility * targetAttractiveness * threatResponse * zoneRelevance * playerBoost * leaderBoost * yPenalty + proximityTiebreaker;
     }
 
     /**

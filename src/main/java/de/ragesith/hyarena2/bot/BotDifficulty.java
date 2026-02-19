@@ -8,8 +8,8 @@ public enum BotDifficulty {
     EASY(
         1500,   // reactionTimeMs
         0.40,   // aimAccuracy (40%)
-        3.0,    // attackRange
-        15.0,   // chaseRange
+        1.5,    // attackRange
+        30.0,   // chaseRange
         0.8,    // movementSpeedMultiplier
         0.8,    // healthMultiplier
         1000,   // attackCooldownMs
@@ -29,8 +29,8 @@ public enum BotDifficulty {
     MEDIUM(
         800,    // reactionTimeMs
         0.65,   // aimAccuracy (65%)
-        4.0,    // attackRange
-        25.0,   // chaseRange
+        1.5,    // attackRange
+        40.0,   // chaseRange
         1.0,    // movementSpeedMultiplier
         1.0,    // healthMultiplier
         900,    // attackCooldownMs
@@ -50,8 +50,8 @@ public enum BotDifficulty {
     HARD(
         300,    // reactionTimeMs
         0.90,   // aimAccuracy (90%)
-        5.0,    // attackRange
-        40.0,   // chaseRange
+        1.5,    // attackRange
+        50.0,   // chaseRange
         1.2,    // movementSpeedMultiplier
         1.4,    // healthMultiplier
         600,    // attackCooldownMs
@@ -71,8 +71,8 @@ public enum BotDifficulty {
     EXTREME(
         150,    // reactionTimeMs
         0.98,   // aimAccuracy (98%)
-        6.0,    // attackRange
-        50.0,   // chaseRange
+        1.5,    // attackRange
+        60.0,   // chaseRange
         1.4,    // movementSpeedMultiplier
         1.8,    // healthMultiplier
         400,    // attackCooldownMs
@@ -94,8 +94,8 @@ public enum BotDifficulty {
     EASY_TANK(
         1500,   // reactionTimeMs (same as EASY)
         0.40,   // aimAccuracy (same as EASY)
-        3.0,    // attackRange (same as EASY)
-        15.0,   // chaseRange (same as EASY)
+        1.5,    // attackRange (same as EASY)
+        30.0,   // chaseRange (same as EASY)
         0.7,    // movementSpeedMultiplier (slower)
         1.4,    // healthMultiplier (EASY 0.8 → 1.4)
         1000,   // attackCooldownMs (same as EASY)
@@ -115,8 +115,8 @@ public enum BotDifficulty {
     MEDIUM_TANK(
         800,    // reactionTimeMs (same as MEDIUM)
         0.65,   // aimAccuracy (same as MEDIUM)
-        4.0,    // attackRange (same as MEDIUM)
-        25.0,   // chaseRange (same as MEDIUM)
+        1.5,    // attackRange (same as MEDIUM)
+        40.0,   // chaseRange (same as MEDIUM)
         0.9,    // movementSpeedMultiplier (slightly slower)
         1.8,    // healthMultiplier (MEDIUM 1.0 → 1.8)
         900,    // attackCooldownMs (same as MEDIUM)
@@ -136,8 +136,8 @@ public enum BotDifficulty {
     HARD_TANK(
         300,    // reactionTimeMs (same as HARD)
         0.90,   // aimAccuracy (same as HARD)
-        5.0,    // attackRange (same as HARD)
-        40.0,   // chaseRange (same as HARD)
+        1.5,    // attackRange (same as HARD)
+        50.0,   // chaseRange (same as HARD)
         1.0,    // movementSpeedMultiplier (slower than HARD 1.2)
         2.4,    // healthMultiplier (HARD 1.4 → 2.4)
         600,    // attackCooldownMs (same as HARD)
@@ -157,8 +157,8 @@ public enum BotDifficulty {
     EXTREME_TANK(
         150,    // reactionTimeMs (same as EXTREME)
         0.98,   // aimAccuracy (same as EXTREME)
-        6.0,    // attackRange (same as EXTREME)
-        50.0,   // chaseRange (same as EXTREME)
+        1.5,    // attackRange (same as EXTREME)
+        60.0,   // chaseRange (same as EXTREME)
         1.1,    // movementSpeedMultiplier (slower than EXTREME 1.4)
         3.0,    // healthMultiplier (EXTREME 1.8 → 3.0)
         400,    // attackCooldownMs (same as EXTREME)

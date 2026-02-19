@@ -34,6 +34,9 @@ public class BrainContext {
     public final double botHealthPercent;
     public final double botBlockEnergy;
 
+    // Match leader info (highest kills among all participants)
+    public final int leaderKills;
+
     // Convenience refs (derived from enemies list, may be null)
     public final EnemyInfo nearestEnemy;
     public final EnemyInfo nearestAttackingEnemy;
@@ -42,7 +45,7 @@ public class BrainContext {
     public BrainContext(BotParticipant bot, Match match, Store<EntityStore> store, Position botPos,
                         BotObjective objective, boolean botInZone, boolean botIsAttacking,
                         ArenaConfig.Bounds arenaBounds, List<EnemyInfo> enemies,
-                        double botHealthPercent, double botBlockEnergy) {
+                        double botHealthPercent, double botBlockEnergy, int leaderKills) {
         this.bot = bot;
         this.match = match;
         this.store = store;
@@ -54,6 +57,7 @@ public class BrainContext {
         this.enemies = enemies;
         this.botHealthPercent = botHealthPercent;
         this.botBlockEnergy = botBlockEnergy;
+        this.leaderKills = leaderKills;
 
         // Derive aggregated counts and convenience refs
         int threats = 0, ranged = 0, melee = 0;

@@ -692,8 +692,16 @@ public class BotManager {
         double botHealthPercent = bot.getHealthPercentage();
         double botBlockEnergy = (brain != null) ? brain.getBlockEnergy() : 0;
 
+        // Find the highest kill count among all participants
+        int leaderKills = 0;
+        for (Participant p : match.getParticipants()) {
+            if (p.getKills() > leaderKills) {
+                leaderKills = p.getKills();
+            }
+        }
+
         return new BrainContext(bot, match, store, botPos, objective, botInZone, botAttacking,
-            config.getBounds(), enemies, botHealthPercent, botBlockEnergy);
+            config.getBounds(), enemies, botHealthPercent, botBlockEnergy, leaderKills);
     }
 
     /**
