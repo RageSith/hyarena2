@@ -576,11 +576,11 @@ public class BotBrain {
      * Checks if a target position is in front of the bot (within 90° of facing direction).
      * Uses the bot's yaw from its position to compute facing vector.
      */
-    static boolean isInFront(Position botPos, Position targetPos) {
-        // Bot facing direction from yaw (degrees → radians, Hytale yaw: 0=south, 90=west)
-        double yawRad = Math.toRadians(botPos.getYaw());
-        double facingX = -Math.sin(yawRad);
-        double facingZ = Math.cos(yawRad);
+    public static boolean isInFront(Position botPos, Position targetPos) {
+        // Facing direction from yaw (already in radians from TransformComponent)
+        double yaw = botPos.getYaw();
+        double facingX = -Math.sin(yaw);
+        double facingZ = Math.cos(yaw);
 
         // Direction from bot to target (XZ only)
         double dx = targetPos.getX() - botPos.getX();

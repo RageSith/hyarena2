@@ -16,9 +16,13 @@ import com.hypixel.hytale.server.core.modules.entitystats.asset.EntityStatType;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.Permissions;
+import de.ragesith.hyarena2.bot.BotBrain;
 import de.ragesith.hyarena2.bot.BotManager;
 import de.ragesith.hyarena2.bot.BotParticipant;
 import de.ragesith.hyarena2.bot.ThreatType;
+import de.ragesith.hyarena2.config.Position;
+import com.hypixel.hytale.math.vector.Vector3d;
+import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import de.ragesith.hyarena2.participant.Participant;
 import de.ragesith.hyarena2.participant.ParticipantType;
 import de.ragesith.hyarena2.utils.EntityInteractionHelper;
@@ -195,6 +199,33 @@ public class KillDetectionSystem extends DamageEventSystem {
         if (participant.isImmune()) {
             damage.setCancelled(true);
             return;
+        }
+
+        // Check if player is blocking from the front — cancel damage if so
+        String secondaryInteraction = EntityInteractionHelper.getSecondaryInteraction(victimRef, store);
+        if (EntityInteractionHelper.classifyInteraction(secondaryInteraction) == EntityInteractionHelper.InteractionKind.BLOCK) {
+            Ref<EntityStore> attackerRef = getAttackerEntityRef(damage.getSource());
+            if (attackerRef != null && attackerRef.isValid()) {
+                try {
+                    TransformComponent victimTransform = store.getComponent(victimRef, TransformComponent.getComponentType());
+                    Store<EntityStore> attackerStore = attackerRef.getStore();
+                    TransformComponent attackerTransform = (attackerStore != null)
+                        ? attackerStore.getComponent(attackerRef, TransformComponent.getComponentType()) : null;
+                    if (victimTransform != null && attackerTransform != null) {
+                        Vector3d vPos = victimTransform.getPosition();
+                        Vector3d aPos = attackerTransform.getPosition();
+                        float yaw = victimTransform.getRotation().getYaw();
+                        Position victimPos = new Position(vPos.getX(), vPos.getY(), vPos.getZ(), yaw, 0);
+                        Position attackerPos = new Position(aPos.getX(), aPos.getY(), aPos.getZ());
+                        if (BotBrain.isInFront(victimPos, attackerPos)) {
+                            damage.setCancelled(true);
+                            return;
+                        }
+                    }
+                } catch (Exception e) {
+                    // Fall through — apply damage if block check fails
+                }
+            }
         }
 
         // Get attacker info (UUID and entity ref for signature energy)
