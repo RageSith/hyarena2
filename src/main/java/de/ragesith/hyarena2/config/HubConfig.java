@@ -21,6 +21,13 @@ public class HubConfig {
     private Position spawnPoint;
 
     /**
+     * Optional spawn zone — when set, players teleport to a random X/Z within the zone
+     * at the zone's minY, using the spawnPoint's yaw/pitch for facing direction.
+     * If null, the single spawnPoint is used instead.
+     */
+    private BoundingBox spawnZone;
+
+    /**
      * The boundary area that players are kept within.
      */
     private BoundingBox bounds;
@@ -56,6 +63,14 @@ public class HubConfig {
 
     public void setSpawnPoint(Position spawnPoint) {
         this.spawnPoint = spawnPoint;
+    }
+
+    public BoundingBox getSpawnZone() {
+        return spawnZone;
+    }
+
+    public void setSpawnZone(BoundingBox spawnZone) {
+        this.spawnZone = spawnZone;
     }
 
     public BoundingBox getBounds() {

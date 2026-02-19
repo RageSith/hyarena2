@@ -51,6 +51,10 @@ public class HubSettingsPage extends InteractiveCustomUIPage<HubSettingsPage.Pag
     private String formWorldName;
     private double formSpawnX, formSpawnY, formSpawnZ;
     private float formSpawnYaw, formSpawnPitch;
+    private double formSpawnZoneMinX, formSpawnZoneMinZ;
+    private double formSpawnZoneMaxX, formSpawnZoneMaxZ;
+    private double formSpawnZoneY;
+    private boolean hasSpawnZone;
     private double formBoundsMinX, formBoundsMinY, formBoundsMinZ;
     private double formBoundsMaxX, formBoundsMaxY, formBoundsMaxZ;
 
@@ -80,6 +84,16 @@ public class HubSettingsPage extends InteractiveCustomUIPage<HubSettingsPage.Pag
             formSpawnPitch = spawn.getPitch();
         }
 
+        BoundingBox spawnZone = config.getSpawnZone();
+        if (spawnZone != null) {
+            hasSpawnZone = true;
+            formSpawnZoneMinX = spawnZone.getMinX();
+            formSpawnZoneMinZ = spawnZone.getMinZ();
+            formSpawnZoneMaxX = spawnZone.getMaxX();
+            formSpawnZoneMaxZ = spawnZone.getMaxZ();
+            formSpawnZoneY = spawnZone.getMinY();
+        }
+
         BoundingBox bounds = config.getBounds();
         if (bounds != null) {
             formBoundsMinX = bounds.getMinX();
@@ -102,6 +116,13 @@ public class HubSettingsPage extends InteractiveCustomUIPage<HubSettingsPage.Pag
         cmd.set("#SpawnZField.Value", fmt(formSpawnZ));
         cmd.set("#SpawnYawField.Value", fmt(formSpawnYaw));
         cmd.set("#SpawnPitchField.Value", fmt(formSpawnPitch));
+        cmd.set("#SpawnZoneEnabled.Value", hasSpawnZone);
+        cmd.set("#SpawnZoneMinXField.Value", fmt(formSpawnZoneMinX));
+        cmd.set("#SpawnZoneMinZField.Value", fmt(formSpawnZoneMinZ));
+        cmd.set("#SpawnZoneMaxXField.Value", fmt(formSpawnZoneMaxX));
+        cmd.set("#SpawnZoneMaxZField.Value", fmt(formSpawnZoneMaxZ));
+        cmd.set("#SpawnZoneYField.Value", fmt(formSpawnZoneY));
+        cmd.set("#SpawnZoneSection.Visible", hasSpawnZone);
         cmd.set("#BoundsMinXField.Value", fmt(formBoundsMinX));
         cmd.set("#BoundsMinYField.Value", fmt(formBoundsMinY));
         cmd.set("#BoundsMinZField.Value", fmt(formBoundsMinZ));
@@ -116,6 +137,11 @@ public class HubSettingsPage extends InteractiveCustomUIPage<HubSettingsPage.Pag
         bindField(events, "#SpawnZField", "spawnZ");
         bindField(events, "#SpawnYawField", "spawnYaw");
         bindField(events, "#SpawnPitchField", "spawnPitch");
+        bindField(events, "#SpawnZoneMinXField", "szMinX");
+        bindField(events, "#SpawnZoneMinZField", "szMinZ");
+        bindField(events, "#SpawnZoneMaxXField", "szMaxX");
+        bindField(events, "#SpawnZoneMaxZField", "szMaxZ");
+        bindField(events, "#SpawnZoneYField", "szY");
         bindField(events, "#BoundsMinXField", "boundsMinX");
         bindField(events, "#BoundsMinYField", "boundsMinY");
         bindField(events, "#BoundsMinZField", "boundsMinZ");
@@ -126,6 +152,12 @@ public class HubSettingsPage extends InteractiveCustomUIPage<HubSettingsPage.Pag
         // Buttons
         events.addEventBinding(CustomUIEventBindingType.Activating, "#SetSpawnBtn",
             EventData.of("Action", "setSpawn"), false);
+        events.addEventBinding(CustomUIEventBindingType.ValueChanged, "#SpawnZoneEnabled",
+            EventData.of("Action", "toggleSpawnZone").append("@BoolValue", "#SpawnZoneEnabled.Value"), false);
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#SetSZMinBtn",
+            EventData.of("Action", "setSZMin"), false);
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#SetSZMaxBtn",
+            EventData.of("Action", "setSZMax"), false);
         events.addEventBinding(CustomUIEventBindingType.Activating, "#SetMinBtn",
             EventData.of("Action", "setMin"), false);
         events.addEventBinding(CustomUIEventBindingType.Activating, "#SetMaxBtn",
@@ -170,6 +202,18 @@ public class HubSettingsPage extends InteractiveCustomUIPage<HubSettingsPage.Pag
                     setSpawnFromPosition();
                     break;
 
+                case "toggleSpawnZone":
+                    handleToggleSpawnZone(data);
+                    break;
+
+                case "setSZMin":
+                    setSpawnZoneFromPosition(true);
+                    break;
+
+                case "setSZMax":
+                    setSpawnZoneFromPosition(false);
+                    break;
+
                 case "setMin":
                     setBoundsFromPosition(true);
                     break;
@@ -198,6 +242,11 @@ public class HubSettingsPage extends InteractiveCustomUIPage<HubSettingsPage.Pag
             case "spawnZ": formSpawnZ = parseDbl(data.value, formSpawnZ); break;
             case "spawnYaw": formSpawnYaw = (float) parseDbl(data.value, formSpawnYaw); break;
             case "spawnPitch": formSpawnPitch = (float) parseDbl(data.value, formSpawnPitch); break;
+            case "szMinX": formSpawnZoneMinX = parseDbl(data.value, formSpawnZoneMinX); break;
+            case "szMinZ": formSpawnZoneMinZ = parseDbl(data.value, formSpawnZoneMinZ); break;
+            case "szMaxX": formSpawnZoneMaxX = parseDbl(data.value, formSpawnZoneMaxX); break;
+            case "szMaxZ": formSpawnZoneMaxZ = parseDbl(data.value, formSpawnZoneMaxZ); break;
+            case "szY": formSpawnZoneY = parseDbl(data.value, formSpawnZoneY); break;
             case "boundsMinX": formBoundsMinX = parseDbl(data.value, formBoundsMinX); break;
             case "boundsMinY": formBoundsMinY = parseDbl(data.value, formBoundsMinY); break;
             case "boundsMinZ": formBoundsMinZ = parseDbl(data.value, formBoundsMinZ); break;
@@ -243,6 +292,32 @@ public class HubSettingsPage extends InteractiveCustomUIPage<HubSettingsPage.Pag
         rebuild();
     }
 
+    private void handleToggleSpawnZone(PageEventData data) {
+        hasSpawnZone = data.boolValue != null && data.boolValue;
+        UICommandBuilder cmd = new UICommandBuilder();
+        cmd.set("#SpawnZoneSection.Visible", hasSpawnZone);
+        safeSendUpdate(cmd);
+    }
+
+    private void setSpawnZoneFromPosition(boolean isMin) {
+        double[] pos = getAdminPosition();
+        if (pos == null) {
+            showStatus("Could not read position", "#e74c3c");
+            return;
+        }
+
+        if (isMin) {
+            formSpawnZoneMinX = pos[0];
+            formSpawnZoneMinZ = pos[2];
+        } else {
+            formSpawnZoneMaxX = pos[0];
+            formSpawnZoneMaxZ = pos[2];
+        }
+        formSpawnZoneY = pos[1];
+        active = true;
+        rebuild();
+    }
+
     private void setBoundsFromPosition(boolean isMin) {
         double[] pos = getAdminPosition();
         if (pos == null) {
@@ -273,10 +348,17 @@ public class HubSettingsPage extends InteractiveCustomUIPage<HubSettingsPage.Pag
         HubConfig newConfig = new HubConfig();
         newConfig.setWorldName(formWorldName.trim());
         newConfig.setSpawnPoint(new Position(formSpawnX, formSpawnY, formSpawnZ, formSpawnYaw, formSpawnPitch));
+        if (hasSpawnZone) {
+            newConfig.setSpawnZone(new BoundingBox(
+                formSpawnZoneMinX, formSpawnZoneY, formSpawnZoneMinZ,
+                formSpawnZoneMaxX, formSpawnZoneY, formSpawnZoneMaxZ
+            ));
+        }
         newConfig.setBounds(new BoundingBox(
             formBoundsMinX, formBoundsMinY, formBoundsMinZ,
             formBoundsMaxX, formBoundsMaxY, formBoundsMaxZ
         ));
+        newConfig.setHolograms(hubManager.getConfig().getHolograms());
 
         // Save to disk
         configManager.saveConfig("hub", newConfig);
@@ -328,6 +410,7 @@ public class HubSettingsPage extends InteractiveCustomUIPage<HubSettingsPage.Pag
         public String action;
         public String field;
         public String value;
+        public Boolean boolValue;
 
         public static final BuilderCodec<PageEventData> CODEC =
             BuilderCodec.builder(PageEventData.class, PageEventData::new)
@@ -337,6 +420,8 @@ public class HubSettingsPage extends InteractiveCustomUIPage<HubSettingsPage.Pag
                     (d, v) -> d.field = v, d -> d.field).add()
                 .append(new KeyedCodec<>("@Value", Codec.STRING),
                     (d, v) -> d.value = v, d -> d.value).add()
+                .append(new KeyedCodec<>("@BoolValue", Codec.BOOLEAN),
+                    (d, v) -> d.boolValue = v, d -> d.boolValue).add()
                 .build();
     }
 }

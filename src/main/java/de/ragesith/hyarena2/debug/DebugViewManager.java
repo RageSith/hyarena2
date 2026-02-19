@@ -41,6 +41,7 @@ public class DebugViewManager {
     private static final com.hypixel.hytale.protocol.Vector3f COLOR_FINISH_ZONE = new com.hypixel.hytale.protocol.Vector3f(1.0f, 0.84f, 0.0f);
     private static final com.hypixel.hytale.protocol.Vector3f COLOR_CHECKPOINT = new com.hypixel.hytale.protocol.Vector3f(0.2f, 0.6f, 1.0f);
     private static final com.hypixel.hytale.protocol.Vector3f COLOR_KILL_PLANE = new com.hypixel.hytale.protocol.Vector3f(1.0f, 0.2f, 0.2f);
+    private static final com.hypixel.hytale.protocol.Vector3f COLOR_SPAWN_ZONE = new com.hypixel.hytale.protocol.Vector3f(0.2f, 0.8f, 0.4f);
 
     private static final float EDGE_THICKNESS = 0.05f;
     private static final float SHAPE_DURATION = 2.0f;
@@ -307,6 +308,16 @@ public class DebugViewManager {
                     hubBounds.getMinX(), hubBounds.getMinY(), hubBounds.getMinZ(),
                     hubBounds.getMaxX(), hubBounds.getMaxY(), hubBounds.getMaxZ(),
                     COLOR_HUB_BOUNDARY);
+            }
+
+            // Hub spawn zone (green, flat box at floor Y)
+            BoundingBox spawnZone = configManager.getHubConfig().getSpawnZone();
+            if (spawnZone != null) {
+                double szY = spawnZone.getMinY();
+                renderWireframeBox(playerRef,
+                    spawnZone.getMinX(), szY, spawnZone.getMinZ(),
+                    spawnZone.getMaxX(), szY + 0.1, spawnZone.getMaxZ(),
+                    COLOR_SPAWN_ZONE);
             }
         }
     }

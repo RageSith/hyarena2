@@ -15,6 +15,7 @@ import com.hypixel.hytale.server.core.modules.entitystats.asset.EntityStatType;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import de.ragesith.hyarena2.config.BoundingBox;
 import de.ragesith.hyarena2.config.HubConfig;
 import de.ragesith.hyarena2.config.Position;
 import de.ragesith.hyarena2.utils.HologramUtil;
@@ -22,6 +23,7 @@ import de.ragesith.hyarena2.utils.HologramUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -87,7 +89,7 @@ public class HubManager {
      * Automatically heals the player to full health on arrival.
      */
     public void teleportToHub(Player player, Runnable onComplete) {
-        Position spawn = config.getSpawnPoint();
+        Position spawn = resolveSpawnPosition();
 
         if (spawn == null) {
             System.err.println("[HyArena2] Hub spawn point is null!");
@@ -251,9 +253,29 @@ public class HubManager {
 
     /**
      * Gets the hub spawn position.
+     * If a spawn zone is configured, returns a random position within it.
      */
     public Position getSpawnPoint() {
-        return config.getSpawnPoint();
+        return resolveSpawnPosition();
+    }
+
+    /**
+     * Resolves the spawn position — random within spawnZone if set, otherwise the fixed spawnPoint.
+     */
+    private Position resolveSpawnPosition() {
+        Position baseSpawn = config.getSpawnPoint();
+        BoundingBox zone = config.getSpawnZone();
+
+        if (zone == null || baseSpawn == null || zone.getMaxX() <= zone.getMinX() || zone.getMaxZ() <= zone.getMinZ()) {
+            return baseSpawn;
+        }
+
+        ThreadLocalRandom rng = ThreadLocalRandom.current();
+        double x = rng.nextDouble(zone.getMinX(), zone.getMaxX());
+        double z = rng.nextDouble(zone.getMinZ(), zone.getMaxZ());
+        double y = zone.getMinY();
+
+        return new Position(x, y, z, baseSpawn.getYaw(), baseSpawn.getPitch());
     }
 
     /**

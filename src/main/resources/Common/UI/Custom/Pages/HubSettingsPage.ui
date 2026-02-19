@@ -5,7 +5,7 @@ Group #HubSettingsPage {
 
     $C.@DecoratedContainer {
         @CloseButton = true;
-        Anchor: (Width: 520, Height: 440);
+        Anchor: (Width: 520, Height: 560);
 
         Group #Title {
             $C.@Title #TitleLabel {
@@ -70,6 +70,59 @@ Group #HubSettingsPage {
                 $C.@SecondaryTextButton #SetSpawnBtn {
                     @Text = "Set to Current Position";
                     @Anchor = (Height: 32, Top: 8, Width: 200);
+                }
+
+                // Spawn Zone
+                $C.@ContentSeparator { @Anchor = (Top: 10); }
+
+                Group {
+                    Anchor: (Height: 28, Top: 8);
+                    LayoutMode: Left;
+                    Label {
+                        Text: "SPAWN ZONE";
+                        Anchor: (Width: 120);
+                        Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true, VerticalAlignment: Center);
+                    }
+                    $C.@CheckBox #SpawnZoneEnabled { @Anchor = (Width: 28, Left: 8); }
+                    Label { Text: "Enable random spawn within zone"; Anchor: (Width: 240, Left: 6); Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                    Group { FlexWeight: 1; }
+                }
+
+                Group #SpawnZoneSection {
+                    LayoutMode: Top;
+                    Visible: false;
+
+                    Group {
+                        Anchor: (Height: 32, Top: 4);
+                        LayoutMode: Left;
+                        Label { Text: "Min"; Anchor: (Width: 40); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        Label { Text: "X"; Anchor: (Width: 20); Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        $C.@TextField #SpawnZoneMinXField { @Anchor = (Width: 80); PlaceholderText: "X"; }
+                        Label { Text: "Z"; Anchor: (Width: 20, Left: 8); Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        $C.@TextField #SpawnZoneMinZField { @Anchor = (Width: 80); PlaceholderText: "Z"; }
+                        $C.@SecondaryTextButton #SetSZMinBtn { @Text = "Set Min"; @Anchor = (Width: 70, Left: 8); }
+                        Group { FlexWeight: 1; }
+                    }
+
+                    Group {
+                        Anchor: (Height: 32, Top: 4);
+                        LayoutMode: Left;
+                        Label { Text: "Max"; Anchor: (Width: 40); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        Label { Text: "X"; Anchor: (Width: 20); Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        $C.@TextField #SpawnZoneMaxXField { @Anchor = (Width: 80); PlaceholderText: "X"; }
+                        Label { Text: "Z"; Anchor: (Width: 20, Left: 8); Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        $C.@TextField #SpawnZoneMaxZField { @Anchor = (Width: 80); PlaceholderText: "Z"; }
+                        $C.@SecondaryTextButton #SetSZMaxBtn { @Text = "Set Max"; @Anchor = (Width: 70, Left: 8); }
+                        Group { FlexWeight: 1; }
+                    }
+
+                    Group {
+                        Anchor: (Height: 32, Top: 4);
+                        LayoutMode: Left;
+                        Label { Text: "Y (floor)"; Anchor: (Width: 80); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        $C.@TextField #SpawnZoneYField { @Anchor = (Width: 80); PlaceholderText: "Y"; }
+                        Group { FlexWeight: 1; }
+                    }
                 }
 
                 // Bounds
