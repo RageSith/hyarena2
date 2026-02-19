@@ -7,13 +7,17 @@ import com.hypixel.hytale.server.core.entity.UUIDComponent;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.effect.EffectControllerComponent;
 import com.hypixel.hytale.server.core.modules.entity.damage.Damage;
+import com.hypixel.hytale.server.core.modules.entity.damage.DamageCause;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageEventSystem;
 import com.hypixel.hytale.server.core.modules.entity.damage.DamageModule;
+import com.hypixel.hytale.server.core.modules.entity.damage.DamageSystems;
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap;
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatValue;
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatsModule;
 import com.hypixel.hytale.server.core.modules.entitystats.asset.EntityStatType;
+import com.hypixel.hytale.server.core.inventory.container.ItemContainer;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.Permissions;
 import de.ragesith.hyarena2.bot.BotBrain;
@@ -267,12 +271,12 @@ public class KillDetectionSystem extends DamageEventSystem {
         float currentHealth = healthStat.get();
         float damageAmount = damage.getAmount();
 
-        // Override damage when attacker is a bot — use difficulty-based baseDamage
-        // instead of the NPC's native attack value
+        // Override bot damage with difficulty-based baseDamage, then apply armor reduction
         if (botManager != null && attackerUuid != null) {
             BotParticipant attackerBot = botManager.getBot(attackerUuid);
             if (attackerBot != null) {
-                damageAmount = (float) attackerBot.getDifficulty().getBaseDamage();
+                float baseDamage = (float) attackerBot.getDifficulty().getBaseDamage();
+                damageAmount = applyArmorReduction(baseDamage, damage.getCause(), victimRef, store, match);
                 damage.setAmount(damageAmount);
             }
         }
@@ -578,6 +582,49 @@ public class KillDetectionSystem extends DamageEventSystem {
             }
         } catch (Exception e) {
             // Silently ignore - signature energy is optional
+        }
+    }
+
+    /**
+     * Applies the engine's armor damage reduction to a base damage value.
+     * Uses DamageSystems.ArmorDamageReduction.getResistanceModifiers() to get
+     * the real armor values, then applies: max(0, dmg - flat) * max(0, 1 - multiplier)
+     */
+    private float applyArmorReduction(float baseDamage, DamageCause cause,
+                                       Ref<EntityStore> victimRef, Store<EntityStore> store, Match match) {
+        try {
+            Player player = store.getComponent(victimRef, Player.getComponentType());
+            if (player == null) return baseDamage;
+
+            ItemContainer armor = player.getInventory() != null ? player.getInventory().getArmor() : null;
+            if (armor == null) return baseDamage;
+
+            World world = match.getArena().getWorld();
+            if (world == null) return baseDamage;
+
+            EffectControllerComponent effectController = store.getComponent(victimRef,
+                    EffectControllerComponent.getComponentType());
+
+            Map<DamageCause, DamageSystems.ArmorDamageReduction.ArmorResistanceModifiers> modifiers =
+                    DamageSystems.ArmorDamageReduction.getResistanceModifiers(
+                            world, armor, player.canApplyItemStackPenalties(victimRef, store), effectController);
+
+            // Walk the damage cause inheritance chain (same as engine does)
+            float reduced = baseDamage;
+            DamageCause current = cause;
+            while (current != null) {
+                DamageSystems.ArmorDamageReduction.ArmorResistanceModifiers mod = modifiers.get(current);
+                if (mod != null) {
+                    reduced = Math.max(0, reduced - mod.flatModifier) * Math.max(0, 1f - mod.multiplierModifier);
+                }
+                current = modifiers.containsKey(current)
+                        ? modifiers.get(current).inheritedParentId : null;
+            }
+
+            return Math.max(0, reduced);
+        } catch (Exception e) {
+            // Fallback to raw baseDamage if armor lookup fails
+            return baseDamage;
         }
     }
 }
