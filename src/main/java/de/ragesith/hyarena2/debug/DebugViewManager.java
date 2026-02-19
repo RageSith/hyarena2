@@ -37,6 +37,10 @@ public class DebugViewManager {
     private static final com.hypixel.hytale.protocol.Vector3f COLOR_PLAYER_SPAWN = new com.hypixel.hytale.protocol.Vector3f(0.0f, 1.0f, 0.0f);
     private static final com.hypixel.hytale.protocol.Vector3f COLOR_WAVE_SPAWN = new com.hypixel.hytale.protocol.Vector3f(1.0f, 0.5f, 0.0f);
     private static final com.hypixel.hytale.protocol.Vector3f COLOR_NAV_WAYPOINT = new com.hypixel.hytale.protocol.Vector3f(0.3f, 0.7f, 1.0f);
+    private static final com.hypixel.hytale.protocol.Vector3f COLOR_START_ZONE = new com.hypixel.hytale.protocol.Vector3f(0.0f, 1.0f, 0.5f);
+    private static final com.hypixel.hytale.protocol.Vector3f COLOR_FINISH_ZONE = new com.hypixel.hytale.protocol.Vector3f(1.0f, 0.84f, 0.0f);
+    private static final com.hypixel.hytale.protocol.Vector3f COLOR_CHECKPOINT = new com.hypixel.hytale.protocol.Vector3f(0.2f, 0.6f, 1.0f);
+    private static final com.hypixel.hytale.protocol.Vector3f COLOR_KILL_PLANE = new com.hypixel.hytale.protocol.Vector3f(1.0f, 0.2f, 0.2f);
 
     private static final float EDGE_THICKNESS = 0.05f;
     private static final float SHAPE_DURATION = 2.0f;
@@ -250,6 +254,46 @@ public class DebugViewManager {
                         zone.getMinX(), zone.getMinY(), zone.getMinZ(),
                         zone.getMaxX(), zone.getMaxY(), zone.getMaxZ(),
                         COLOR_KOTH_ZONE);
+                }
+            }
+
+            // SpeedRun zones
+            if ("speed_run".equals(config.getGameMode())) {
+                // Start zone (green-cyan)
+                if (config.getStartZone() != null) {
+                    ArenaConfig.CaptureZone sz = config.getStartZone();
+                    renderWireframeBox(playerRef,
+                        sz.getMinX(), sz.getMinY(), sz.getMinZ(),
+                        sz.getMaxX(), sz.getMaxY(), sz.getMaxZ(),
+                        COLOR_START_ZONE);
+                }
+
+                // Finish zone (gold)
+                if (config.getFinishZone() != null) {
+                    ArenaConfig.CaptureZone fz = config.getFinishZone();
+                    renderWireframeBox(playerRef,
+                        fz.getMinX(), fz.getMinY(), fz.getMinZ(),
+                        fz.getMaxX(), fz.getMaxY(), fz.getMaxZ(),
+                        COLOR_FINISH_ZONE);
+                }
+
+                // Checkpoints (blue)
+                if (config.getCheckpoints() != null) {
+                    for (ArenaConfig.CaptureZone cp : config.getCheckpoints()) {
+                        renderWireframeBox(playerRef,
+                            cp.getMinX(), cp.getMinY(), cp.getMinZ(),
+                            cp.getMaxX(), cp.getMaxY(), cp.getMaxZ(),
+                            COLOR_CHECKPOINT);
+                    }
+                }
+
+                // Kill plane (red, flat box spanning arena bounds)
+                if (bounds != null) {
+                    double kpY = config.getKillPlaneY();
+                    renderWireframeBox(playerRef,
+                        bounds.getMinX(), kpY, bounds.getMinZ(),
+                        bounds.getMaxX(), kpY + 0.1, bounds.getMaxZ(),
+                        COLOR_KILL_PLANE);
                 }
             }
         }

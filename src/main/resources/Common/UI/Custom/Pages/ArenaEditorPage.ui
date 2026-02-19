@@ -470,6 +470,120 @@ Group #ArenaEditorPage {
                     }
                 }
 
+                // ===== SpeedRun Section (speed_run only) =====
+                Group #SpeedRunSection {
+                    Visible: false;
+                    Anchor: (Top: 18);
+                    LayoutMode: Top;
+
+                    $C.@ContentSeparator {}
+
+                    Label {
+                        Text: "SPEED RUN";
+                        Anchor: (Height: 20, Top: 12);
+                        Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                    }
+
+                    // Kill Plane Y
+                    Group #KillPlaneYRow {
+                        Anchor: (Height: 38, Top: 10);
+                        LayoutMode: Left;
+                        Label { Text: "Kill Plane Y"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        $C.@TextField #KillPlaneYField { @Anchor = (Width: 90); PlaceholderText: "-64"; }
+                        Group { FlexWeight: 1; }
+                    }
+
+                    // Max Respawns
+                    Group #MaxRespawnsRow {
+                        Anchor: (Height: 38, Top: 10);
+                        LayoutMode: Left;
+                        Label { Text: "Max Respawns"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        $C.@NumberField #MaxRespawnsField { @Anchor = (Width: 90); }
+                        Group { FlexWeight: 1; }
+                    }
+
+                    // Start Zone
+                    Label {
+                        Text: "START ZONE";
+                        Anchor: (Height: 20, Top: 16);
+                        Style: (FontSize: 10, TextColor: #8fa7c0, RenderBold: true, RenderUppercase: true);
+                    }
+
+                    Group #StartZoneMinRow {
+                        Anchor: (Height: 38, Top: 8);
+                        LayoutMode: Left;
+                        Label { Text: "Min"; Anchor: (Width: 40); Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        $C.@TextField #StartZoneMinXField { @Anchor = (Width: 80); PlaceholderText: "X"; }
+                        $C.@TextField #StartZoneMinYField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Y"; }
+                        $C.@TextField #StartZoneMinZField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Z"; }
+                        $C.@SecondaryTextButton #SetStartMinBtn { @Text = "Set"; @Anchor = (Width: 90, Left: 10); }
+                        Group { FlexWeight: 1; }
+                    }
+
+                    Group #StartZoneMaxRow {
+                        Anchor: (Height: 38, Top: 8);
+                        LayoutMode: Left;
+                        Label { Text: "Max"; Anchor: (Width: 40); Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        $C.@TextField #StartZoneMaxXField { @Anchor = (Width: 80); PlaceholderText: "X"; }
+                        $C.@TextField #StartZoneMaxYField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Y"; }
+                        $C.@TextField #StartZoneMaxZField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Z"; }
+                        $C.@SecondaryTextButton #SetStartMaxBtn { @Text = "Set"; @Anchor = (Width: 90, Left: 10); }
+                        Group { FlexWeight: 1; }
+                    }
+
+                    // Finish Zone
+                    Label {
+                        Text: "FINISH ZONE";
+                        Anchor: (Height: 20, Top: 16);
+                        Style: (FontSize: 10, TextColor: #8fa7c0, RenderBold: true, RenderUppercase: true);
+                    }
+
+                    Group #FinishZoneMinRow {
+                        Anchor: (Height: 38, Top: 8);
+                        LayoutMode: Left;
+                        Label { Text: "Min"; Anchor: (Width: 40); Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        $C.@TextField #FinishZoneMinXField { @Anchor = (Width: 80); PlaceholderText: "X"; }
+                        $C.@TextField #FinishZoneMinYField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Y"; }
+                        $C.@TextField #FinishZoneMinZField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Z"; }
+                        $C.@SecondaryTextButton #SetFinishMinBtn { @Text = "Set"; @Anchor = (Width: 90, Left: 10); }
+                        Group { FlexWeight: 1; }
+                    }
+
+                    Group #FinishZoneMaxRow {
+                        Anchor: (Height: 38, Top: 8);
+                        LayoutMode: Left;
+                        Label { Text: "Max"; Anchor: (Width: 40); Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        $C.@TextField #FinishZoneMaxXField { @Anchor = (Width: 80); PlaceholderText: "X"; }
+                        $C.@TextField #FinishZoneMaxYField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Y"; }
+                        $C.@TextField #FinishZoneMaxZField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Z"; }
+                        $C.@SecondaryTextButton #SetFinishMaxBtn { @Text = "Set"; @Anchor = (Width: 90, Left: 10); }
+                        Group { FlexWeight: 1; }
+                    }
+
+                    // Checkpoints
+                    Label {
+                        Text: "CHECKPOINTS";
+                        Anchor: (Height: 20, Top: 16);
+                        Style: (FontSize: 10, TextColor: #8fa7c0, RenderBold: true, RenderUppercase: true);
+                    }
+
+                    Label {
+                        Text: "Ordered checkpoint zones (timer pauses inside each)";
+                        Anchor: (Height: 18, Top: 4);
+                        Style: (FontSize: 11, TextColor: #6b7d8e);
+                    }
+
+                    Group #CheckpointsList {
+                        Anchor: (Top: 6);
+                        LayoutMode: Top;
+                    }
+
+                    $C.@SecondaryTextButton #AddCheckpointBtn {
+                        @Text = "+ Add Checkpoint";
+                        @Anchor = (Height: 32, Top: 10, Width: 190);
+                    }
+                }
+
                 // Status Message
                 Label #StatusMessage {
                     Text: "";

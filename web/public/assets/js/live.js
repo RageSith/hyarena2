@@ -137,12 +137,18 @@ async function loadRecentMatches() {
                 const winnerIsBot = match.winner_is_bot == 1;
                 const duration = formatDuration(match.duration_seconds);
                 const isWaveDefense = match.game_mode === 'wave_defense';
+                const isSpeedRun = match.game_mode === 'speed_run';
                 const maxWaves = match.max_waves_survived;
 
                 let winnerDisplay;
                 let detailSpan;
 
-                if (isWaveDefense) {
+                if (isSpeedRun) {
+                    winnerDisplay = match.winner_finish_time_ms != null
+                        ? formatSpeedRunTime(match.winner_finish_time_ms)
+                        : 'DNF';
+                    detailSpan = `<span class="vs">${escapeHtml(match.arena_name)}</span>`;
+                } else if (isWaveDefense) {
                     winnerDisplay = maxWaves != null ? `Wave ${maxWaves}` : 'Wave Defense';
                     detailSpan = `<span class="vs">survived in ${duration}</span>`;
                 } else if (!match.winner_name && !match.winner_bot_name) {
@@ -164,7 +170,7 @@ async function loadRecentMatches() {
                     <div class="battle-entry clickable" onclick="showMatchDetails(${match.id})" title="Click for details" style="background-image: url('${bgSrc}')">
                         <span class="battle-arena">${escapeHtml(match.arena_name)}</span>
                         <span class="battle-result">
-                            <span class="winner ${isWaveDefense ? 'wave-result' : (winnerIsBot ? 'bot-winner' : '')}">${winnerDisplay}</span>
+                            <span class="winner ${isSpeedRun ? 'speedrun-result' : (isWaveDefense ? 'wave-result' : (winnerIsBot ? 'bot-winner' : ''))}">${winnerDisplay}</span>
                             ${detailSpan}
                         </span>
                         <span class="battle-time">${timeAgo}</span>
@@ -230,10 +236,20 @@ async function showMatchDetails(matchId) {
         const endedAt = new Date(match.ended_at).toLocaleString('en-US');
         const gameMode = translateGameMode(match.game_mode);
         const isWaveDefense = match.game_mode === 'wave_defense';
+        const isSpeedRun = match.game_mode === 'speed_run';
 
         // Result row
         let resultLabel, resultHtml;
-        if (isWaveDefense) {
+        if (isSpeedRun) {
+            // Find the best (winner) finish time
+            const winner = participants.find(p => p.is_winner == 1);
+            resultLabel = 'Finish Time';
+            if (winner && winner.finish_time_ms) {
+                resultHtml = formatSpeedRunTime(winner.finish_time_ms);
+            } else {
+                resultHtml = '<span class="no-data-text">Did Not Finish</span>';
+            }
+        } else if (isWaveDefense) {
             const wavesValues = participants.map(p => p.waves_survived).filter(w => w != null);
             const maxWaves = wavesValues.length > 0 ? Math.max(...wavesValues) : null;
             resultLabel = 'Best Wave';
@@ -248,7 +264,59 @@ async function showMatchDetails(matchId) {
 
         // Participants table
         let participantsHtml;
-        if (isWaveDefense) {
+        if (isSpeedRun) {
+            // Speed run: show time, checkpoints, lives used
+            const players = participants.filter(p => p.is_bot == 0);
+            participantsHtml = `
+                <table class="participants-table">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Time</th>
+                            <th>Checkpoints</th>
+                            <th>Lives</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${players.map(p => {
+                            let timeDisplay = 'DNF';
+                            let checkpoints = '-';
+                            let livesUsed = '-';
+
+                            if (p.json_data) {
+                                try {
+                                    const jd = typeof p.json_data === 'string' ? JSON.parse(p.json_data) : p.json_data;
+                                    if (!jd.is_dnf && p.finish_time_ms) {
+                                        timeDisplay = formatSpeedRunTime(p.finish_time_ms);
+                                    }
+                                    if (jd.checkpoints_reached != null) {
+                                        checkpoints = jd.checkpoints_reached;
+                                    }
+                                    if (jd.lives_used != null) {
+                                        livesUsed = jd.lives_used;
+                                    }
+                                } catch (e) {}
+                            } else if (p.finish_time_ms) {
+                                timeDisplay = formatSpeedRunTime(p.finish_time_ms);
+                            }
+
+                            const name = p.username || 'Unknown';
+                            const isWinner = p.is_winner == 1;
+                            const isPb = p.json_data ? (() => { try { const jd = typeof p.json_data === 'string' ? JSON.parse(p.json_data) : p.json_data; return jd.is_new_pb; } catch(e) { return false; } })() : false;
+
+                            return `
+                                <tr class="${isWinner ? 'winner-row' : ''}">
+                                    <td><a href="/player/${encodeURIComponent(name)}" class="player-link">${escapeHtml(name)}</a>${isWinner ? ' <span class="winner-badge">W</span>' : ''}${isPb ? ' <span class="pb-badge">PB</span>' : ''}</td>
+                                    <td class="${timeDisplay === 'DNF' ? 'dnf-text' : ''}">${timeDisplay}</td>
+                                    <td>${checkpoints}</td>
+                                    <td>${livesUsed}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        } else if (isWaveDefense) {
             // Wave defense: only real players, show wave survived
             const players = participants.filter(p => p.is_bot == 0);
             participantsHtml = `
@@ -372,7 +440,20 @@ function translateGameMode(mode) {
         'deathmatch': 'Deathmatch',
         'koth': 'King of the Hill',
         'kit_roulette': 'Kit Roulette',
-        'wave_defense': 'Wave Defense'
+        'wave_defense': 'Wave Defense',
+        'speed_run': 'Speed Run'
     };
     return translations[mode] || mode;
+}
+
+/**
+ * Format speedrun time from milliseconds to M:SS.mmm
+ */
+function formatSpeedRunTime(ms) {
+    if (ms == null || ms <= 0) return '--:--.---';
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const millis = ms % 1000;
+    return `${minutes}:${String(seconds).padStart(2, '0')}.${String(millis).padStart(3, '0')}`;
 }

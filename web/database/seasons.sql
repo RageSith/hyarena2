@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS `seasons` (
     `status` ENUM('draft', 'active', 'ended', 'archived') NOT NULL DEFAULT 'draft',
     `starts_at` DATETIME NOT NULL,
     `ends_at` DATETIME NOT NULL,
-    `ranking_mode` ENUM('wins', 'win_rate', 'pvp_kills', 'pvp_kd_ratio', 'points') NOT NULL DEFAULT 'wins',
+    `ranking_mode` ENUM('wins', 'win_rate', 'pvp_kills', 'pvp_kd_ratio', 'points', 'best_time') NOT NULL DEFAULT 'wins',
     `ranking_config` JSON NULL COMMENT '{"points_per_win":3,"points_per_loss":1,"points_per_kill":0.5,"points_per_death":0}',
     `min_matches` INT UNSIGNED NOT NULL DEFAULT 5,
     `arena_ids` JSON NULL COMMENT 'NULL = all arenas',
@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS `season_player_stats` (
     `damage_taken` BIGINT UNSIGNED NOT NULL DEFAULT 0,
     `total_time_played` INT UNSIGNED NOT NULL DEFAULT 0,
     `best_waves_survived` INT UNSIGNED NULL,
+    `best_time_ms` INT UNSIGNED DEFAULT NULL COMMENT 'SpeedRun: personal best time in milliseconds',
     `ranking_points` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     `pvp_kd_ratio` DECIMAL(6,2) GENERATED ALWAYS AS (
         CASE WHEN pvp_deaths > 0 THEN ROUND(pvp_kills / pvp_deaths, 2) ELSE pvp_kills END
@@ -84,6 +85,8 @@ CREATE TABLE IF NOT EXISTS `season_rankings` (
     `pvp_kd_ratio` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
     `win_rate` DECIMAL(5,1) NOT NULL DEFAULT 0.0,
     `ranking_points` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    `best_waves_survived` INT UNSIGNED DEFAULT NULL,
+    `best_time_ms` INT UNSIGNED DEFAULT NULL,
     `ranking_value` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'The actual value used for ranking (depends on ranking_mode)',
     `frozen_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY `uq_season_player_rank` (`season_id`, `player_uuid`),
@@ -116,6 +119,7 @@ SELECT
     SUM(damage_taken) AS damage_taken,
     SUM(total_time_played) AS total_time_played,
     MAX(best_waves_survived) AS best_waves_survived,
+    MIN(best_time_ms) AS best_time_ms,
     SUM(ranking_points) AS ranking_points,
     CASE WHEN SUM(pvp_deaths) > 0
          THEN ROUND(SUM(pvp_kills) / SUM(pvp_deaths), 2)

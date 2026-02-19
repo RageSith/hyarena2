@@ -170,6 +170,26 @@ public interface GameMode {
     }
 
     /**
+     * Whether this game mode uses the default MatchHud overlay.
+     * Game modes with custom HUDs (e.g., SpeedRun) return false.
+     */
+    default boolean usesDefaultMatchHud() { return true; }
+
+    /**
+     * Whether this game mode uses the default VictoryHud overlay.
+     * Game modes with custom results screens (e.g., SpeedRun) return false.
+     */
+    default boolean usesDefaultVictoryHud() { return true; }
+
+    /**
+     * Called when the match transitions to ENDING state, after rewards but before VictoryHud.
+     * Game modes can use this to show custom end-of-match UI.
+     * @param match The match instance
+     * @param winners List of winner UUIDs
+     */
+    default void onMatchEnding(Match match, List<UUID> winners) {}
+
+    /**
      * Called when the match finishes or is cancelled, before players are teleported back.
      * Game modes can use this for cleanup (e.g., clearing debug shapes).
      * @param participants All participants in the match

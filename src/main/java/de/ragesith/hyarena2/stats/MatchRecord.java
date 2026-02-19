@@ -118,6 +118,11 @@ public class MatchRecord {
                 p.addProperty("waves_survived", rec.getWavesSurvived());
             }
 
+            // Game-mode-specific JSON data (e.g., speedrun splits)
+            if (rec.getJsonData() != null) {
+                p.addProperty("json_data", rec.getJsonData());
+            }
+
             participantsArray.add(p);
         }
         json.add("participants", participantsArray);

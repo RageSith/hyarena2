@@ -153,10 +153,31 @@ function displayPlayerProfile(data) {
                     ? (parseFloat(arena.pve_kills || 0) / arena.pve_deaths).toFixed(2)
                     : parseFloat(arena.pve_kills || 0).toFixed(2);
                 const isWaveDef = arena.game_mode === 'wave_defense';
+                const isSpeedRun = arena.game_mode === 'speed_run';
 
-                // Wave defense: show Best Wave instead of Wins/Win Rate
+                // Game-mode-specific primary stats
                 let primaryStatsHtml;
-                if (isWaveDef) {
+                if (isSpeedRun) {
+                    const bestTime = arena.best_time_ms != null ? formatSpeedRunTime(arena.best_time_ms) : '--:--.---';
+                    primaryStatsHtml = `
+                        <div class="arena-stat highlight">
+                            <span class="value">${bestTime}</span>
+                            <span class="label">Best Time</span>
+                        </div>
+                        <div class="arena-stat">
+                            <span class="value">${arena.matches_played || 0}</span>
+                            <span class="label">Runs</span>
+                        </div>
+                        <div class="arena-stat">
+                            <span class="value">${arena.pve_kills || 0}</span>
+                            <span class="label">PvE Kills</span>
+                        </div>
+                        <div class="arena-stat">
+                            <span class="value">${arena.pve_deaths || 0}</span>
+                            <span class="label">Deaths</span>
+                        </div>
+                    `;
+                } else if (isWaveDef) {
                     const bestWave = arena.best_waves_survived != null ? arena.best_waves_survived : '-';
                     primaryStatsHtml = `
                         <div class="arena-stat highlight">
@@ -209,11 +230,11 @@ function displayPlayerProfile(data) {
                             <span class="arena-games">${arena.matches_played} games</span>
                         </div>
                     </div>
-                    <h4 class="arena-stat-subtitle">${isWaveDef ? 'PvE' : 'PvP'}</h4>
+                    <h4 class="arena-stat-subtitle">${isSpeedRun ? 'Speed Run' : (isWaveDef ? 'PvE' : 'PvP')}</h4>
                     <div class="arena-stat-grid">
                         ${primaryStatsHtml}
                     </div>
-                    ${!isWaveDef && hasPveStats ? `
+                    ${!isWaveDef && !isSpeedRun && hasPveStats ? `
                     <h4 class="arena-stat-subtitle pve-subtitle">PvE</h4>
                     <div class="arena-stat-grid pve-grid">
                         <div class="arena-stat pve-stat">
@@ -247,16 +268,49 @@ function displayPlayerProfile(data) {
         if (recentMatches.length > 0) {
             matchesContainer.innerHTML = recentMatches.map(match => {
                 const isWave = match.game_mode === 'wave_defense';
+                const isSpeedRun = match.game_mode === 'speed_run';
                 const isWinner = match.is_winner == 1;
-                const resultClass = isWave ? 'wave' : (isWinner ? 'win' : 'loss');
-                const resultText = isWave
-                    ? `Wave ${match.waves_survived != null ? match.waves_survived : '?'}`
-                    : (isWinner ? 'Victory' : 'Defeat');
                 const timeAgo = getTimeAgo(new Date(match.ended_at));
 
-                let statsHtml = `<span class="match-stats-pvp">${match.pvp_kills || 0} PvP Kills / ${match.pvp_deaths || 0} Deaths</span>`;
-                if ((match.pve_kills || 0) > 0 || (match.pve_deaths || 0) > 0) {
-                    statsHtml += `<span class="match-stats-pve">${match.pve_kills || 0} PvE Kills / ${match.pve_deaths || 0} Deaths</span>`;
+                let resultClass, resultText, statsHtml;
+
+                if (isSpeedRun) {
+                    let isPb = false;
+                    let checkpointsReached = null;
+                    if (match.json_data) {
+                        try {
+                            const jd = typeof match.json_data === 'string' ? JSON.parse(match.json_data) : match.json_data;
+                            isPb = jd.is_new_pb || false;
+                            checkpointsReached = jd.checkpoints_reached;
+                        } catch (e) {}
+                    }
+
+                    if (match.finish_time_ms) {
+                        resultClass = isPb ? 'win' : 'speedrun';
+                        resultText = formatSpeedRunTime(match.finish_time_ms);
+                    } else {
+                        resultClass = 'loss';
+                        resultText = 'DNF';
+                    }
+
+                    statsHtml = checkpointsReached != null
+                        ? `<span class="match-stats-pvp">Checkpoints: ${checkpointsReached}</span>`
+                        : '';
+                } else if (isWave) {
+                    resultClass = 'wave';
+                    resultText = `Wave ${match.waves_survived != null ? match.waves_survived : '?'}`;
+                    statsHtml = '';
+                } else {
+                    resultClass = isWinner ? 'win' : 'loss';
+                    resultText = isWinner ? 'Victory' : 'Defeat';
+                    statsHtml = '';
+                }
+
+                if (!isSpeedRun) {
+                    statsHtml = `<span class="match-stats-pvp">${match.pvp_kills || 0} PvP Kills / ${match.pvp_deaths || 0} Deaths</span>`;
+                    if ((match.pve_kills || 0) > 0 || (match.pve_deaths || 0) > 0) {
+                        statsHtml += `<span class="match-stats-pve">${match.pve_kills || 0} PvE Kills / ${match.pve_deaths || 0} Deaths</span>`;
+                    }
                 }
 
                 const matchBgSrc = match.arena_icon
@@ -315,6 +369,12 @@ async function loadPlayerSeasonHistory(playerUuid) {
                                 <span class="value">${season.matches_played || 0}</span>
                                 <span class="label">Games</span>
                             </div>
+                            ${season.ranking_mode === 'best_time' ? `
+                            <div class="season-history-stat">
+                                <span class="value">${season.best_time_ms != null ? formatSpeedRunTime(season.best_time_ms) : '--:--.---'}</span>
+                                <span class="label">Best Time</span>
+                            </div>
+                            ` : `
                             <div class="season-history-stat">
                                 <span class="value">${season.matches_won || 0}</span>
                                 <span class="label">Wins</span>
@@ -323,6 +383,7 @@ async function loadPlayerSeasonHistory(playerUuid) {
                                 <span class="value">${season.pvp_kills || 0}</span>
                                 <span class="label">Kills</span>
                             </div>
+                            `}
                         </div>
                         <div class="season-history-dates">${startDate} - ${endDate}</div>
                     </a>
@@ -349,6 +410,15 @@ function formatNumber(num) {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toLocaleString('en-US');
+}
+
+function formatSpeedRunTime(ms) {
+    if (ms == null || ms <= 0) return '--:--.---';
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const millis = ms % 1000;
+    return `${minutes}:${String(seconds).padStart(2, '0')}.${String(millis).padStart(3, '0')}`;
 }
 
 function getTimeAgo(date) {

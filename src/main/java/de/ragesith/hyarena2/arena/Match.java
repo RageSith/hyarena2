@@ -400,6 +400,13 @@ public class Match {
     }
 
     /**
+     * Gets the HUD manager.
+     */
+    public de.ragesith.hyarena2.ui.hud.HudManager getHudManager() {
+        return hudManager;
+    }
+
+    /**
      * Sets the match manager for untracking eliminated players.
      */
     public void setMatchManager(MatchManager matchManager) {
@@ -534,8 +541,10 @@ public class Match {
         // Unfreeze all players - fight begins!
         unfreezeAllParticipants();
 
-        // Show MatchHud to all player participants
-        showMatchHudToAllPlayers();
+        // Show MatchHud to all player participants (unless game mode has custom HUD)
+        if (gameMode.usesDefaultMatchHud()) {
+            showMatchHudToAllPlayers();
+        }
 
         // Notify game mode
         gameMode.onGameplayBegin(arena.getConfig(), getParticipants());
@@ -583,8 +592,13 @@ public class Match {
         // Get winner name for VictoryHud
         String winnerName = winnerParticipants.isEmpty() ? null : winnerParticipants.get(0).getName();
 
-        // Show VictoryHud to all player participants (replaces MatchHud)
-        showVictoryHudToAllPlayers(winnerName);
+        // Let game mode handle custom ending UI
+        gameMode.onMatchEnding(this, winners);
+
+        // Show VictoryHud to all player participants (replaces MatchHud) unless game mode has custom results
+        if (gameMode.usesDefaultVictoryHud()) {
+            showVictoryHudToAllPlayers(winnerName);
+        }
 
         // Broadcast victory
         broadcast(victoryMessage);
@@ -638,8 +652,13 @@ public class Match {
 
         String winnerName = winnerParticipants.isEmpty() ? null : winnerParticipants.get(0).getName();
 
-        // Show VictoryHud to all player participants
-        showVictoryHudToAllPlayers(winnerName);
+        // Let game mode handle custom ending UI
+        gameMode.onMatchEnding(this, winners);
+
+        // Show VictoryHud to all player participants unless game mode has custom results
+        if (gameMode.usesDefaultVictoryHud()) {
+            showVictoryHudToAllPlayers(winnerName);
+        }
 
         // Broadcast victory
         broadcast(victoryMessage);

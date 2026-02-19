@@ -173,6 +173,11 @@ public class HyArena2 extends JavaPlugin {
         this.matchManager.setBotManager(botManager);
         System.out.println("[HyArena2] BotManager initialized");
 
+        // Initialize SpeedRun PB manager
+        de.ragesith.hyarena2.gamemode.SpeedRunPBManager pbManager =
+            new de.ragesith.hyarena2.gamemode.SpeedRunPBManager(configManager.getConfigRoot());
+        this.matchManager.setSpeedRunPBManager(pbManager);
+
         // Initialize kill detection system
         // Registered via EntityStoreRegistry which should be global
         // We also track worlds and log when they're first seen for debugging

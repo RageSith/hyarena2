@@ -122,7 +122,9 @@ function updateTableHeaders(rankingMode) {
     if (!headerRow) return;
 
     let headers;
-    if (rankingMode === 'points') {
+    if (rankingMode === 'best_time') {
+        headers = ['Rank', 'Player', 'Best Time', 'Games', 'Completions'];
+    } else if (rankingMode === 'points') {
         headers = ['Rank', 'Player', 'Points', 'Wins', 'PvP Kills', 'PvP K/D', 'Games'];
     } else {
         headers = ['Rank', 'Player', 'Wins', 'PvP Kills', 'PvP K/D', 'Win Rate', 'Games'];
@@ -142,9 +144,11 @@ async function loadLeaderboard() {
     const tbody = document.getElementById('season-leaderboard-body');
     if (!tbody) return;
 
+    const colCount = seasonData && seasonData.ranking_mode === 'best_time' ? 5 : 7;
+
     tbody.innerHTML = `
         <tr>
-            <td colspan="7">
+            <td colspan="${colCount}">
                 <div class="table-loading">
                     <div class="spinner"></div>
                     <span>Loading rankings...</span>
@@ -168,7 +172,7 @@ async function loadLeaderboard() {
             } else {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7">
+                        <td colspan="${colCount}">
                             <div class="table-empty">
                                 <p>No ranked players yet${data.data.min_matches > 0 ? ` (minimum ${data.data.min_matches} matches required)` : ''}.</p>
                             </div>
@@ -183,7 +187,7 @@ async function loadLeaderboard() {
         console.error('Failed to load season leaderboard:', e);
         tbody.innerHTML = `
             <tr>
-                <td colspan="7">
+                <td colspan="${colCount}">
                     <div class="table-error"><p>Failed to load rankings</p></div>
                 </td>
             </tr>
@@ -194,6 +198,7 @@ async function loadLeaderboard() {
 function renderLeaderboard(entries, rankingMode) {
     const tbody = document.getElementById('season-leaderboard-body');
     const isPoints = rankingMode === 'points';
+    const isBestTime = rankingMode === 'best_time';
 
     tbody.innerHTML = entries.map(entry => {
         const rank = entry.rank_position;
@@ -203,7 +208,15 @@ function renderLeaderboard(entries, rankingMode) {
         const points = parseFloat(entry.ranking_points || 0).toFixed(1);
 
         let statCells;
-        if (isPoints) {
+        if (isBestTime) {
+            const timeDisplay = entry.best_time_ms != null ? formatSpeedRunTime(entry.best_time_ms) : 'DNF';
+            const completions = entry.matches_won || 0;
+            statCells = `
+                <td class="col-stat season-time ${entry.best_time_ms == null ? 'dnf-text' : ''}">${timeDisplay}</td>
+                <td class="col-stat">${formatNumber(entry.matches_played || 0)}</td>
+                <td class="col-stat">${formatNumber(completions)}</td>
+            `;
+        } else if (isPoints) {
             statCells = `
                 <td class="col-stat season-points">${points}</td>
                 <td class="col-stat">${formatNumber(entry.matches_won || 0)}</td>
@@ -280,6 +293,7 @@ function formatRankingMode(mode) {
         'pvp_kills': 'Ranked by PvP Kills',
         'pvp_kd_ratio': 'Ranked by K/D Ratio',
         'points': 'Ranked by Points',
+        'best_time': 'Ranked by Best Time',
     };
     return labels[mode] || mode;
 }
@@ -314,4 +328,13 @@ function formatNumber(num) {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toLocaleString('en-US');
+}
+
+function formatSpeedRunTime(ms) {
+    if (ms == null || ms <= 0) return '--:--.---';
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const millis = ms % 1000;
+    return `${minutes}:${String(seconds).padStart(2, '0')}.${String(millis).padStart(3, '0')}`;
 }

@@ -13,11 +13,11 @@ class ParticipantRepository
             INSERT INTO match_participants
                 (match_id, player_uuid, is_bot, bot_name, bot_difficulty, kit_id,
                  pvp_kills, pvp_deaths, pve_kills, pve_deaths,
-                 damage_dealt, damage_taken, is_winner, waves_survived)
+                 damage_dealt, damage_taken, is_winner, waves_survived, json_data, finish_time_ms)
             VALUES
                 (:match_id, :player_uuid, :is_bot, :bot_name, :bot_difficulty, :kit_id,
                  :pvp_kills, :pvp_deaths, :pve_kills, :pve_deaths,
-                 :damage_dealt, :damage_taken, :is_winner, :waves_survived)
+                 :damage_dealt, :damage_taken, :is_winner, :waves_survived, :json_data, :finish_time_ms)
         ');
         $stmt->execute([
             'match_id' => $data['match_id'],
@@ -34,6 +34,8 @@ class ParticipantRepository
             'damage_taken' => $data['damage_taken'] ?? 0,
             'is_winner' => $data['is_winner'] ? 1 : 0,
             'waves_survived' => $data['waves_survived'] ?? null,
+            'json_data' => $data['json_data'] ?? null,
+            'finish_time_ms' => $data['finish_time_ms'] ?? null,
         ]);
     }
 }

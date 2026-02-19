@@ -94,6 +94,8 @@ CREATE TABLE IF NOT EXISTS `match_participants` (
     `damage_taken` DOUBLE NOT NULL DEFAULT 0,
     `is_winner` TINYINT(1) NOT NULL DEFAULT 0,
     `waves_survived` SMALLINT UNSIGNED DEFAULT NULL COMMENT 'Wave defense: highest wave reached',
+    `json_data` TEXT DEFAULT NULL COMMENT 'Game-mode-specific JSON data',
+    `finish_time_ms` INT UNSIGNED DEFAULT NULL COMMENT 'SpeedRun: finish time in milliseconds (NULL = DNF)',
     PRIMARY KEY (`id`),
     INDEX `idx_match` (`match_id`),
     INDEX `idx_player` (`player_uuid`),
@@ -118,6 +120,7 @@ CREATE TABLE IF NOT EXISTS `player_stats` (
     `damage_taken` DOUBLE NOT NULL DEFAULT 0,
     `total_time_played` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'seconds',
     `best_waves_survived` SMALLINT UNSIGNED DEFAULT NULL COMMENT 'Wave defense: personal best wave',
+    `best_time_ms` INT UNSIGNED DEFAULT NULL COMMENT 'SpeedRun: personal best time in milliseconds',
     `pvp_kd_ratio` DOUBLE GENERATED ALWAYS AS (
         CASE WHEN `pvp_deaths` = 0 THEN `pvp_kills` ELSE ROUND(`pvp_kills` / `pvp_deaths`, 2) END
     ) STORED,
@@ -177,10 +180,10 @@ SELECT
     SUM(ps.`total_time_played`) AS `total_time_played`,
     CASE WHEN SUM(ps.`pvp_deaths`) = 0 THEN SUM(ps.`pvp_kills`)
          ELSE ROUND(SUM(ps.`pvp_kills`) / SUM(ps.`pvp_deaths`), 2) END AS `pvp_kd_ratio`,
-    CASE WHEN SUM(CASE WHEN a.`game_mode` != 'wave_defense' THEN ps.`matches_played` ELSE 0 END) = 0 THEN 0
+    CASE WHEN SUM(CASE WHEN a.`game_mode` NOT IN ('wave_defense', 'speed_run') THEN ps.`matches_played` ELSE 0 END) = 0 THEN 0
          ELSE ROUND(
             SUM(ps.`matches_won`) /
-            SUM(CASE WHEN a.`game_mode` != 'wave_defense' THEN ps.`matches_played` ELSE 0 END) * 100, 1
+            SUM(CASE WHEN a.`game_mode` NOT IN ('wave_defense', 'speed_run') THEN ps.`matches_played` ELSE 0 END) * 100, 1
          ) END AS `win_rate`
 FROM `player_stats` ps
 JOIN `arenas` a ON ps.`arena_id` = a.`id`

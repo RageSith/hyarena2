@@ -14,7 +14,9 @@ import de.ragesith.hyarena2.queue.QueueManager;
 import de.ragesith.hyarena2.ui.hyml.HyMLDocument;
 import de.ragesith.hyarena2.ui.hyml.HyMLPage;
 import de.ragesith.hyarena2.ui.hyml.HyMLParser;
+import de.ragesith.hyarena2.gamemode.SpeedRunGameMode;
 import de.ragesith.hyarena2.ui.page.CloseablePage;
+import de.ragesith.hyarena2.ui.page.SpeedRunResultsPage;
 
 import java.nio.file.Path;
 import java.util.Map;
@@ -43,6 +45,7 @@ public class HudManager {
     private final Map<UUID, LobbyHud> lobbyHuds = new ConcurrentHashMap<>();
     private final Map<UUID, MatchHud> matchHuds = new ConcurrentHashMap<>();
     private final Map<UUID, VictoryHud> victoryHuds = new ConcurrentHashMap<>();
+    private final Map<UUID, SpeedRunHud> speedRunHuds = new ConcurrentHashMap<>();
 
     // Active pages per player (for cleanup on disconnect or page replacement)
     private final Map<UUID, CloseablePage> activePages = new ConcurrentHashMap<>();
@@ -262,6 +265,86 @@ public class HudManager {
     }
 
     /**
+     * Shows the SpeedRunHud for a player in a speed run match.
+     */
+    public void showSpeedRunHud(UUID playerUuid, Match match,
+                                Consumer<Runnable> worldThreadExecutor, SpeedRunGameMode gameMode) {
+        SpeedRunHud oldHud = speedRunHuds.remove(playerUuid);
+        if (oldHud != null) {
+            oldHud.shutdown();
+        }
+
+        hideLobbyHud(playerUuid);
+
+        PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
+        if (playerRef == null) return;
+
+        Player player = getPlayer(playerRef);
+        if (player == null) return;
+
+        SpeedRunHud hud = new SpeedRunHud(playerRef, playerUuid, match,
+            worldThreadExecutor, gameMode, scheduler);
+        speedRunHuds.put(playerUuid, hud);
+
+        try {
+            player.getHudManager().setCustomHud(playerRef, hud);
+            System.out.println("[HudManager] Showed SpeedRunHud for " + playerUuid);
+        } catch (Exception e) {
+            System.err.println("[HudManager] Failed to show SpeedRunHud: " + e.getMessage());
+            speedRunHuds.remove(playerUuid);
+        }
+    }
+
+    /**
+     * Hides the SpeedRunHud for a player.
+     */
+    public void hideSpeedRunHud(UUID playerUuid) {
+        SpeedRunHud hud = speedRunHuds.remove(playerUuid);
+        if (hud != null) {
+            hud.shutdown();
+            System.out.println("[HudManager] Hid SpeedRunHud for " + playerUuid);
+        }
+
+        PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
+        if (playerRef != null) {
+            Player player = getPlayer(playerRef);
+            if (player != null) {
+                try {
+                    player.getHudManager().setCustomHud(playerRef, new EmptyHud(playerRef));
+                } catch (Exception e) {
+                    // Player might have disconnected
+                }
+            }
+        }
+    }
+
+    /**
+     * Shows the SpeedRun results page for a player.
+     */
+    public void showSpeedRunResults(UUID playerUuid, Match match, SpeedRunGameMode gameMode) {
+        PlayerRef playerRef = Universe.get().getPlayer(playerUuid);
+        if (playerRef == null) return;
+
+        Ref<EntityStore> ref = playerRef.getReference();
+        if (ref == null) return;
+
+        Store<EntityStore> store = ref.getStore();
+        if (store == null) return;
+
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) return;
+
+        SpeedRunResultsPage page = new SpeedRunResultsPage(playerRef, playerUuid, match, gameMode, this);
+
+        try {
+            player.getPageManager().openCustomPage(ref, store, page);
+            System.out.println("[HudManager] Showed SpeedRunResultsPage for " + playerUuid);
+        } catch (Exception e) {
+            System.err.println("[HudManager] Failed to show SpeedRunResultsPage: " + e.getMessage());
+        }
+    }
+
+    /**
      * Registers an active page for a player.
      * If there's an existing page, it will be shut down first.
      * @param playerUuid the player's UUID
@@ -432,6 +515,11 @@ public class HudManager {
         if (victoryHud != null) {
             victoryHud.shutdown();
         }
+
+        SpeedRunHud speedRunHud = speedRunHuds.remove(playerUuid);
+        if (speedRunHud != null) {
+            speedRunHud.shutdown();
+        }
     }
 
     /**
@@ -458,6 +546,11 @@ public class HudManager {
             hud.shutdown();
         }
         victoryHuds.clear();
+
+        for (SpeedRunHud hud : speedRunHuds.values()) {
+            hud.shutdown();
+        }
+        speedRunHuds.clear();
 
         System.out.println("[HudManager] Shutdown complete");
     }

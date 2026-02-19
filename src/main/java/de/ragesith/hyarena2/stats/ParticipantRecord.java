@@ -32,6 +32,9 @@ public class ParticipantRecord {
     // Wave defense: last wave fully cleared while alive (-1 = N/A)
     private int wavesSurvived = -1;
 
+    // Game-mode-specific JSON data (e.g., speedrun splits)
+    private String jsonData;
+
     public ParticipantRecord(UUID uuid, String username, boolean isBot, BotDifficulty botDifficulty, String kitId) {
         this.uuid = uuid;
         this.username = username;
@@ -78,4 +81,6 @@ public class ParticipantRecord {
     public void setHonorRank(String honorRank) { this.honorRank = honorRank; }
     public int getWavesSurvived() { return wavesSurvived; }
     public void setWavesSurvived(int wavesSurvived) { this.wavesSurvived = wavesSurvived; }
+    public String getJsonData() { return jsonData; }
+    public void setJsonData(String jsonData) { this.jsonData = jsonData; }
 }

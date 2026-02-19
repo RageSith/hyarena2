@@ -35,6 +35,13 @@ public class ArenaConfig {
     private int waveBonusSecondsPerKill = 2; // Bonus seconds added per wave mob killed
     private int waveBonusSecondsPerWaveClear = 60; // Bonus seconds added per wave cleared
 
+    // SpeedRun fields
+    private CaptureZone startZone;
+    private CaptureZone finishZone;
+    private List<CaptureZone> checkpoints;
+    private double killPlaneY = -64;
+    private int maxRespawns = 3;
+
     // Getters
     public String getId() { return id; }
     public String getDisplayName() { return displayName; }
@@ -64,6 +71,11 @@ public class ArenaConfig {
     public List<SpawnPoint> getNavWaypoints() { return navWaypoints; }
     public int getWaveBonusSecondsPerKill() { return waveBonusSecondsPerKill; }
     public int getWaveBonusSecondsPerWaveClear() { return waveBonusSecondsPerWaveClear; }
+    public CaptureZone getStartZone() { return startZone; }
+    public CaptureZone getFinishZone() { return finishZone; }
+    public List<CaptureZone> getCheckpoints() { return checkpoints; }
+    public double getKillPlaneY() { return killPlaneY; }
+    public int getMaxRespawns() { return maxRespawns; }
 
     // Setters
     public void setId(String id) { this.id = id; }
@@ -94,6 +106,11 @@ public class ArenaConfig {
     public void setNavWaypoints(List<SpawnPoint> navWaypoints) { this.navWaypoints = navWaypoints; }
     public void setWaveBonusSecondsPerKill(int waveBonusSecondsPerKill) { this.waveBonusSecondsPerKill = waveBonusSecondsPerKill; }
     public void setWaveBonusSecondsPerWaveClear(int waveBonusSecondsPerWaveClear) { this.waveBonusSecondsPerWaveClear = waveBonusSecondsPerWaveClear; }
+    public void setStartZone(CaptureZone startZone) { this.startZone = startZone; }
+    public void setFinishZone(CaptureZone finishZone) { this.finishZone = finishZone; }
+    public void setCheckpoints(List<CaptureZone> checkpoints) { this.checkpoints = checkpoints; }
+    public void setKillPlaneY(double killPlaneY) { this.killPlaneY = killPlaneY; }
+    public void setMaxRespawns(int maxRespawns) { this.maxRespawns = maxRespawns; }
 
     /**
      * Validates the arena configuration
@@ -107,8 +124,15 @@ public class ArenaConfig {
         if (minPlayers <= 0 || maxPlayers <= 0) return false;
         if (minPlayers > maxPlayers) return false;
         if (waitTimeSeconds < 0) return false;
-        // Wave defense only needs spawn points for players (bots use waveSpawnPoints)
-        int requiredSpawnPoints = "wave_defense".equals(gameMode) ? minPlayers : maxPlayers;
+        // Speed run only needs 1 spawn point; wave defense needs minPlayers; others need maxPlayers
+        int requiredSpawnPoints;
+        if ("speed_run".equals(gameMode)) {
+            requiredSpawnPoints = 1;
+        } else if ("wave_defense".equals(gameMode)) {
+            requiredSpawnPoints = minPlayers;
+        } else {
+            requiredSpawnPoints = maxPlayers;
+        }
         if (spawnPoints == null || spawnPoints.size() < requiredSpawnPoints) return false;
         if (bounds == null) return false;
 
@@ -130,7 +154,32 @@ public class ArenaConfig {
             }
         }
 
+        // Speed run validation
+        if ("speed_run".equals(gameMode)) {
+            if (startZone == null || finishZone == null) return false;
+            // Normalize speedrun zones
+            normalizeZone(startZone);
+            normalizeZone(finishZone);
+            if (checkpoints != null) {
+                for (CaptureZone cp : checkpoints) {
+                    normalizeZone(cp);
+                }
+            }
+        }
+
         return true;
+    }
+
+    private static void normalizeZone(CaptureZone zone) {
+        double tmpMinX = Math.min(zone.getMinX(), zone.getMaxX());
+        double tmpMaxX = Math.max(zone.getMinX(), zone.getMaxX());
+        double tmpMinY = Math.min(zone.getMinY(), zone.getMaxY());
+        double tmpMaxY = Math.max(zone.getMinY(), zone.getMaxY());
+        double tmpMinZ = Math.min(zone.getMinZ(), zone.getMaxZ());
+        double tmpMaxZ = Math.max(zone.getMinZ(), zone.getMaxZ());
+        zone.setMinX(tmpMinX); zone.setMaxX(tmpMaxX);
+        zone.setMinY(tmpMinY); zone.setMaxY(tmpMaxY);
+        zone.setMinZ(tmpMinZ); zone.setMaxZ(tmpMaxZ);
     }
 
     /**

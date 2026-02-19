@@ -18,11 +18,11 @@ class StatsRepository
             INSERT INTO player_stats
                 (player_uuid, arena_id, matches_played, matches_won, matches_lost,
                  pvp_kills, pvp_deaths, pve_kills, pve_deaths,
-                 damage_dealt, damage_taken, total_time_played, best_waves_survived)
+                 damage_dealt, damage_taken, total_time_played, best_waves_survived, best_time_ms)
             VALUES
                 (:uuid, :arena_id, :played, :won, :lost,
                  :pvp_kills, :pvp_deaths, :pve_kills, :pve_deaths,
-                 :dmg_dealt, :dmg_taken, :time_played, :waves)
+                 :dmg_dealt, :dmg_taken, :time_played, :waves, :best_time_ms)
             ON DUPLICATE KEY UPDATE
                 matches_played = matches_played + VALUES(matches_played),
                 matches_won = matches_won + VALUES(matches_won),
@@ -34,7 +34,12 @@ class StatsRepository
                 damage_dealt = damage_dealt + VALUES(damage_dealt),
                 damage_taken = damage_taken + VALUES(damage_taken),
                 total_time_played = total_time_played + VALUES(total_time_played),
-                best_waves_survived = GREATEST(COALESCE(best_waves_survived, 0), COALESCE(VALUES(best_waves_survived), 0))
+                best_waves_survived = GREATEST(COALESCE(best_waves_survived, 0), COALESCE(VALUES(best_waves_survived), 0)),
+                best_time_ms = CASE
+                    WHEN VALUES(best_time_ms) IS NULL THEN best_time_ms
+                    WHEN best_time_ms IS NULL THEN VALUES(best_time_ms)
+                    ELSE LEAST(best_time_ms, VALUES(best_time_ms))
+                END
         ');
         $stmt->execute([
             'uuid' => $playerUuid,
@@ -50,6 +55,7 @@ class StatsRepository
             'dmg_taken' => $data['damage_taken'] ?? 0,
             'time_played' => $data['time_played'] ?? 0,
             'waves' => $data['waves_survived'] ?? null,
+            'best_time_ms' => $data['best_time_ms'] ?? null,
         ]);
     }
 
@@ -138,7 +144,7 @@ class StatsRepository
 
     public function getLeaderboard(string $sort = 'pvp_kills', string $order = 'DESC', int $limit = 25, int $offset = 0, ?string $arenaId = null): array
     {
-        $allowedSorts = ['pvp_kills', 'matches_won', 'pvp_kd_ratio', 'win_rate', 'pve_kills', 'matches_played', 'best_waves_survived'];
+        $allowedSorts = ['pvp_kills', 'matches_won', 'pvp_kd_ratio', 'win_rate', 'pve_kills', 'matches_played', 'best_waves_survived', 'best_time_ms'];
         if (!in_array($sort, $allowedSorts)) {
             $sort = 'pvp_kills';
         }
@@ -198,7 +204,7 @@ class StatsRepository
 
     public function getLeaderboardByGameMode(string $gameMode, string $sort = 'pvp_kills', string $order = 'DESC', int $limit = 25, int $offset = 0): array
     {
-        $allowedSorts = ['pvp_kills', 'matches_won', 'pvp_kd_ratio', 'win_rate', 'pve_kills', 'matches_played', 'best_waves_survived'];
+        $allowedSorts = ['pvp_kills', 'matches_won', 'pvp_kd_ratio', 'win_rate', 'pve_kills', 'matches_played', 'best_waves_survived', 'best_time_ms'];
         if (!in_array($sort, $allowedSorts)) {
             $sort = 'pvp_kills';
         }
@@ -224,6 +230,7 @@ class StatsRepository
                 SUM(ps.pve_kills) AS pve_kills,
                 SUM(ps.pve_deaths) AS pve_deaths,
                 MAX(ps.best_waves_survived) AS best_waves_survived,
+                MIN(ps.best_time_ms) AS best_time_ms,
                 SUM(ps.matches_played) AS matches_played,
                 ROW_NUMBER() OVER (ORDER BY {$sort} {$order}) AS rank_position
             FROM player_stats ps

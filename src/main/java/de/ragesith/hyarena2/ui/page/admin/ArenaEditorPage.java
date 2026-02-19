@@ -87,6 +87,13 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
     private List<ArenaConfig.SpawnPoint> formWaveSpawnPoints;
     private List<ArenaConfig.SpawnPoint> formNavWaypoints;
 
+    // SpeedRun form state
+    private ArenaConfig.CaptureZone formStartZone;
+    private ArenaConfig.CaptureZone formFinishZone;
+    private List<ArenaConfig.CaptureZone> formCheckpoints;
+    private double formKillPlaneY;
+    private int formMaxRespawns;
+
     private List<String> gameModeIds;
     private static final String[] BOT_DIFFICULTIES = {"EASY", "MEDIUM", "HARD", "EXTREME", "EASY_TANK", "MEDIUM_TANK", "HARD_TANK", "EXTREME_TANK"};
 
@@ -153,6 +160,21 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             formCaptureZones = existingConfig.getCaptureZones() != null ? new ArrayList<>(existingConfig.getCaptureZones()) : new ArrayList<>();
             formWaveSpawnPoints = existingConfig.getWaveSpawnPoints() != null ? new ArrayList<>(existingConfig.getWaveSpawnPoints()) : new ArrayList<>();
             formNavWaypoints = existingConfig.getNavWaypoints() != null ? new ArrayList<>(existingConfig.getNavWaypoints()) : new ArrayList<>();
+
+            // SpeedRun
+            formStartZone = existingConfig.getStartZone() != null
+                ? new ArenaConfig.CaptureZone(existingConfig.getStartZone().getDisplayName(),
+                    existingConfig.getStartZone().getMinX(), existingConfig.getStartZone().getMinY(), existingConfig.getStartZone().getMinZ(),
+                    existingConfig.getStartZone().getMaxX(), existingConfig.getStartZone().getMaxY(), existingConfig.getStartZone().getMaxZ())
+                : new ArenaConfig.CaptureZone("Start", 0, 0, 0, 0, 0, 0);
+            formFinishZone = existingConfig.getFinishZone() != null
+                ? new ArenaConfig.CaptureZone(existingConfig.getFinishZone().getDisplayName(),
+                    existingConfig.getFinishZone().getMinX(), existingConfig.getFinishZone().getMinY(), existingConfig.getFinishZone().getMinZ(),
+                    existingConfig.getFinishZone().getMaxX(), existingConfig.getFinishZone().getMaxY(), existingConfig.getFinishZone().getMaxZ())
+                : new ArenaConfig.CaptureZone("Finish", 0, 0, 0, 0, 0, 0);
+            formCheckpoints = existingConfig.getCheckpoints() != null ? new ArrayList<>(existingConfig.getCheckpoints()) : new ArrayList<>();
+            formKillPlaneY = existingConfig.getKillPlaneY();
+            formMaxRespawns = existingConfig.getMaxRespawns();
         } else {
             formId = "";
             formDisplayName = "";
@@ -183,6 +205,13 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             formCaptureZones = new ArrayList<>();
             formWaveSpawnPoints = new ArrayList<>();
             formNavWaypoints = new ArrayList<>();
+
+            // SpeedRun defaults
+            formStartZone = new ArenaConfig.CaptureZone("Start", 0, 0, 0, 0, 0, 0);
+            formFinishZone = new ArenaConfig.CaptureZone("Finish", 0, 0, 0, 0, 0, 0);
+            formCheckpoints = new ArrayList<>();
+            formKillPlaneY = -64;
+            formMaxRespawns = 3;
         }
     }
 
@@ -221,6 +250,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
         boolean showRandomKitPool = "kit_roulette".equals(formGameMode);
         boolean showCaptureZones = "koth".equals(formGameMode);
         boolean showWaveSpawnPoints = "wave_defense".equals(formGameMode);
+        boolean showSpeedRun = "speed_run".equals(formGameMode);
 
         cmd.set("#KillTargetRow.Visible", showKillTarget);
         cmd.set("#RespawnDelayRow.Visible", showRespawn);
@@ -229,6 +259,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
         cmd.set("#RandomKitPoolSection.Visible", showRandomKitPool);
         cmd.set("#CaptureZonesSection.Visible", showCaptureZones);
         cmd.set("#WaveSpawnPointsSection.Visible", showWaveSpawnPoints);
+        cmd.set("#SpeedRunSection.Visible", showSpeedRun);
 
         cmd.set("#KillTargetField.Value", formKillTarget);
         cmd.set("#RespawnDelayField.Value", formRespawnDelay);
@@ -377,6 +408,58 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             }
         }
 
+        // SpeedRun zones
+        if (showSpeedRun) {
+            cmd.set("#KillPlaneYField.Value", formatCoord(formKillPlaneY));
+            cmd.set("#MaxRespawnsField.Value", formMaxRespawns);
+
+            // Start zone
+            cmd.set("#StartZoneMinXField.Value", formatCoord(formStartZone.getMinX()));
+            cmd.set("#StartZoneMinYField.Value", formatCoord(formStartZone.getMinY()));
+            cmd.set("#StartZoneMinZField.Value", formatCoord(formStartZone.getMinZ()));
+            cmd.set("#StartZoneMaxXField.Value", formatCoord(formStartZone.getMaxX()));
+            cmd.set("#StartZoneMaxYField.Value", formatCoord(formStartZone.getMaxY()));
+            cmd.set("#StartZoneMaxZField.Value", formatCoord(formStartZone.getMaxZ()));
+
+            // Finish zone
+            cmd.set("#FinishZoneMinXField.Value", formatCoord(formFinishZone.getMinX()));
+            cmd.set("#FinishZoneMinYField.Value", formatCoord(formFinishZone.getMinY()));
+            cmd.set("#FinishZoneMinZField.Value", formatCoord(formFinishZone.getMinZ()));
+            cmd.set("#FinishZoneMaxXField.Value", formatCoord(formFinishZone.getMaxX()));
+            cmd.set("#FinishZoneMaxYField.Value", formatCoord(formFinishZone.getMaxY()));
+            cmd.set("#FinishZoneMaxZField.Value", formatCoord(formFinishZone.getMaxZ()));
+
+            // Checkpoints list
+            for (int i = 0; i < formCheckpoints.size(); i++) {
+                ArenaConfig.CaptureZone cp = formCheckpoints.get(i);
+                cmd.append("#CheckpointsList", "Pages/AdminZoneRow.ui");
+                String row = "#CheckpointsList[" + i + "]";
+
+                cmd.set(row + " #ZoneNameField.Value", cp.getDisplayName() != null ? cp.getDisplayName() : "");
+                cmd.set(row + " #ZoneMinXField.Value", formatCoord(cp.getMinX()));
+                cmd.set(row + " #ZoneMinYField.Value", formatCoord(cp.getMinY()));
+                cmd.set(row + " #ZoneMinZField.Value", formatCoord(cp.getMinZ()));
+                cmd.set(row + " #ZoneMaxXField.Value", formatCoord(cp.getMaxX()));
+                cmd.set(row + " #ZoneMaxYField.Value", formatCoord(cp.getMaxY()));
+                cmd.set(row + " #ZoneMaxZField.Value", formatCoord(cp.getMaxZ()));
+
+                bindTextField(events, row + " #ZoneNameField", "cpName", String.valueOf(i));
+                bindTextField(events, row + " #ZoneMinXField", "cpMinX", String.valueOf(i));
+                bindTextField(events, row + " #ZoneMinYField", "cpMinY", String.valueOf(i));
+                bindTextField(events, row + " #ZoneMinZField", "cpMinZ", String.valueOf(i));
+                bindTextField(events, row + " #ZoneMaxXField", "cpMaxX", String.valueOf(i));
+                bindTextField(events, row + " #ZoneMaxYField", "cpMaxY", String.valueOf(i));
+                bindTextField(events, row + " #ZoneMaxZField", "cpMaxZ", String.valueOf(i));
+
+                events.addEventBinding(CustomUIEventBindingType.Activating, row + " #ZoneRemoveBtn",
+                    EventData.of("Action", "removeCp").append("Index", String.valueOf(i)), false);
+                events.addEventBinding(CustomUIEventBindingType.Activating, row + " #ZoneSetMinBtn",
+                    EventData.of("Action", "setCpMin").append("Index", String.valueOf(i)), false);
+                events.addEventBinding(CustomUIEventBindingType.Activating, row + " #ZoneSetMaxBtn",
+                    EventData.of("Action", "setCpMax").append("Index", String.valueOf(i)), false);
+            }
+        }
+
         // Nav waypoints (always visible)
         for (int i = 0; i < formNavWaypoints.size(); i++) {
             ArenaConfig.SpawnPoint sp = formNavWaypoints.get(i);
@@ -430,6 +513,22 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
         bindTextField(events, "#BoundsMaxYField", "boundsMaxY", null);
         bindTextField(events, "#BoundsMaxZField", "boundsMaxZ", null);
 
+        // Bind speed run zone fields
+        bindTextField(events, "#StartZoneMinXField", "startMinX", null);
+        bindTextField(events, "#StartZoneMinYField", "startMinY", null);
+        bindTextField(events, "#StartZoneMinZField", "startMinZ", null);
+        bindTextField(events, "#StartZoneMaxXField", "startMaxX", null);
+        bindTextField(events, "#StartZoneMaxYField", "startMaxY", null);
+        bindTextField(events, "#StartZoneMaxZField", "startMaxZ", null);
+        bindTextField(events, "#FinishZoneMinXField", "finishMinX", null);
+        bindTextField(events, "#FinishZoneMinYField", "finishMinY", null);
+        bindTextField(events, "#FinishZoneMinZField", "finishMinZ", null);
+        bindTextField(events, "#FinishZoneMaxXField", "finishMaxX", null);
+        bindTextField(events, "#FinishZoneMaxYField", "finishMaxY", null);
+        bindTextField(events, "#FinishZoneMaxZField", "finishMaxZ", null);
+        bindTextField(events, "#KillPlaneYField", "killPlaneY", null);
+        bindNumberField(events, "#MaxRespawnsField", "maxRespawns");
+
         // Bind dropdown events
         events.addEventBinding(CustomUIEventBindingType.ValueChanged, "#GameModeDropdown",
             EventData.of("Action", "field").append("Field", "gameMode")
@@ -472,6 +571,18 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             EventData.of("Action", "addNavWp"), false);
         events.addEventBinding(CustomUIEventBindingType.Activating, "#AddNavWaypointHereBtn",
             EventData.of("Action", "addNavWpHere"), false);
+
+        // SpeedRun buttons
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#SetStartMinBtn",
+            EventData.of("Action", "setStartMin"), false);
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#SetStartMaxBtn",
+            EventData.of("Action", "setStartMax"), false);
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#SetFinishMinBtn",
+            EventData.of("Action", "setFinishMin"), false);
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#SetFinishMaxBtn",
+            EventData.of("Action", "setFinishMax"), false);
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#AddCheckpointBtn",
+            EventData.of("Action", "addCp"), false);
 
         events.addEventBinding(CustomUIEventBindingType.Activating, "#SaveBtn",
             EventData.of("Action", "save"), false);
@@ -631,6 +742,43 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
                     rebuild();
                     break;
 
+                // SpeedRun actions
+                case "setStartMin":
+                    setSpeedRunZoneFromPosition(formStartZone, true);
+                    break;
+
+                case "setStartMax":
+                    setSpeedRunZoneFromPosition(formStartZone, false);
+                    break;
+
+                case "setFinishMin":
+                    setSpeedRunZoneFromPosition(formFinishZone, true);
+                    break;
+
+                case "setFinishMax":
+                    setSpeedRunZoneFromPosition(formFinishZone, false);
+                    break;
+
+                case "addCp":
+                    formCheckpoints.add(new ArenaConfig.CaptureZone("CP " + (formCheckpoints.size() + 1), 0, 0, 0, 0, 0, 0));
+                    active = true;
+                    rebuild();
+                    break;
+
+                case "removeCp":
+                    removeCpAtIndex(data.index);
+                    active = true;
+                    rebuild();
+                    break;
+
+                case "setCpMin":
+                    setCpBoundsFromPosition(data.index, true);
+                    break;
+
+                case "setCpMax":
+                    setCpBoundsFromPosition(data.index, false);
+                    break;
+
                 case "save":
                     handleSave();
                     break;
@@ -769,6 +917,43 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             case "zoneMaxZ":
                 if (idx >= 0 && idx < formCaptureZones.size()) formCaptureZones.get(idx).setMaxZ(parseDoubleSafe(data.value, 0));
                 break;
+
+            // SpeedRun fields
+            case "startMinX": formStartZone.setMinX(parseDoubleSafe(data.value, 0)); break;
+            case "startMinY": formStartZone.setMinY(parseDoubleSafe(data.value, 0)); break;
+            case "startMinZ": formStartZone.setMinZ(parseDoubleSafe(data.value, 0)); break;
+            case "startMaxX": formStartZone.setMaxX(parseDoubleSafe(data.value, 0)); break;
+            case "startMaxY": formStartZone.setMaxY(parseDoubleSafe(data.value, 0)); break;
+            case "startMaxZ": formStartZone.setMaxZ(parseDoubleSafe(data.value, 0)); break;
+            case "finishMinX": formFinishZone.setMinX(parseDoubleSafe(data.value, 0)); break;
+            case "finishMinY": formFinishZone.setMinY(parseDoubleSafe(data.value, 0)); break;
+            case "finishMinZ": formFinishZone.setMinZ(parseDoubleSafe(data.value, 0)); break;
+            case "finishMaxX": formFinishZone.setMaxX(parseDoubleSafe(data.value, 0)); break;
+            case "finishMaxY": formFinishZone.setMaxY(parseDoubleSafe(data.value, 0)); break;
+            case "finishMaxZ": formFinishZone.setMaxZ(parseDoubleSafe(data.value, 0)); break;
+            case "killPlaneY": formKillPlaneY = parseDoubleSafe(data.value, -64); break;
+            case "maxRespawns": formMaxRespawns = data.intValue != null ? data.intValue : formMaxRespawns; break;
+            case "cpName":
+                if (idx >= 0 && idx < formCheckpoints.size()) formCheckpoints.get(idx).setDisplayName(data.value);
+                break;
+            case "cpMinX":
+                if (idx >= 0 && idx < formCheckpoints.size()) formCheckpoints.get(idx).setMinX(parseDoubleSafe(data.value, 0));
+                break;
+            case "cpMinY":
+                if (idx >= 0 && idx < formCheckpoints.size()) formCheckpoints.get(idx).setMinY(parseDoubleSafe(data.value, 0));
+                break;
+            case "cpMinZ":
+                if (idx >= 0 && idx < formCheckpoints.size()) formCheckpoints.get(idx).setMinZ(parseDoubleSafe(data.value, 0));
+                break;
+            case "cpMaxX":
+                if (idx >= 0 && idx < formCheckpoints.size()) formCheckpoints.get(idx).setMaxX(parseDoubleSafe(data.value, 0));
+                break;
+            case "cpMaxY":
+                if (idx >= 0 && idx < formCheckpoints.size()) formCheckpoints.get(idx).setMaxY(parseDoubleSafe(data.value, 0));
+                break;
+            case "cpMaxZ":
+                if (idx >= 0 && idx < formCheckpoints.size()) formCheckpoints.get(idx).setMaxZ(parseDoubleSafe(data.value, 0));
+                break;
         }
     }
 
@@ -790,7 +975,8 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             showStatus("Invalid player count", "#e74c3c");
             return;
         }
-        int requiredSpawns = "wave_defense".equals(formGameMode) ? formMinPlayers : formMaxPlayers;
+        int requiredSpawns = "wave_defense".equals(formGameMode) ? formMinPlayers
+            : "speed_run".equals(formGameMode) ? 1 : formMaxPlayers;
         if (formSpawnPoints.size() < requiredSpawns) {
             showStatus("Need at least " + requiredSpawns + " spawn points (have " + formSpawnPoints.size() + ")", "#e74c3c");
             return;
@@ -847,6 +1033,15 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
         config.setNavWaypoints(formNavWaypoints.isEmpty() ? null : new ArrayList<>(formNavWaypoints));
         config.setWaveBonusSecondsPerKill(formWaveBonusPerKill);
         config.setWaveBonusSecondsPerWaveClear(formWaveBonusPerWave);
+
+        // SpeedRun fields
+        if ("speed_run".equals(formGameMode)) {
+            config.setStartZone(formStartZone);
+            config.setFinishZone(formFinishZone);
+            config.setCheckpoints(formCheckpoints.isEmpty() ? null : new ArrayList<>(formCheckpoints));
+            config.setKillPlaneY(formKillPlaneY);
+            config.setMaxRespawns(formMaxRespawns);
+        }
 
         if (matchManager.saveArena(config)) {
             HyArena2.getInstance().triggerWebSync();
@@ -1056,6 +1251,36 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
     private void removeNavWpAtIndex(String indexStr) {
         int idx = parseIndex(indexStr);
         if (idx >= 0 && idx < formNavWaypoints.size()) formNavWaypoints.remove(idx);
+    }
+
+    private void setSpeedRunZoneFromPosition(ArenaConfig.CaptureZone zone, boolean isMin) {
+        double[] pos = getAdminPosition();
+        if (pos == null) {
+            showStatus("Could not read position", "#e74c3c");
+            return;
+        }
+        if (isMin) {
+            zone.setMinX(pos[0]);
+            zone.setMinY(pos[1]);
+            zone.setMinZ(pos[2]);
+        } else {
+            zone.setMaxX(pos[0]);
+            zone.setMaxY(pos[1]);
+            zone.setMaxZ(pos[2]);
+        }
+        active = true;
+        rebuild();
+    }
+
+    private void setCpBoundsFromPosition(String indexStr, boolean isMin) {
+        int idx = parseIndex(indexStr);
+        if (idx < 0 || idx >= formCheckpoints.size()) return;
+        setSpeedRunZoneFromPosition(formCheckpoints.get(idx), isMin);
+    }
+
+    private void removeCpAtIndex(String indexStr) {
+        int idx = parseIndex(indexStr);
+        if (idx >= 0 && idx < formCheckpoints.size()) formCheckpoints.remove(idx);
     }
 
     private int parseIndex(String s) {

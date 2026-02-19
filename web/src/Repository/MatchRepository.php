@@ -45,7 +45,8 @@ class MatchRepository
                    (wp.pvp_kills + wp.pve_kills) AS winner_kills,
                    wp.is_bot AS winner_is_bot,
                    wp.bot_name AS winner_bot_name,
-                   (SELECT MAX(mp2.waves_survived) FROM match_participants mp2 WHERE mp2.match_id = m.id) AS max_waves_survived
+                   (SELECT MAX(mp2.waves_survived) FROM match_participants mp2 WHERE mp2.match_id = m.id) AS max_waves_survived,
+                   (SELECT mp3.finish_time_ms FROM match_participants mp3 WHERE mp3.match_id = m.id AND mp3.is_winner = 1 LIMIT 1) AS winner_finish_time_ms
             FROM matches m
             JOIN arenas a ON m.arena_id = a.id
             LEFT JOIN players p ON m.winner_uuid = p.uuid

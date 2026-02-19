@@ -42,6 +42,8 @@ class SeasonService
         }
 
         $isWave = $gameMode === 'wave_defense';
+        $isSpeedRun = $gameMode === 'speed_run';
+        $noWinLoss = $isWave || $isSpeedRun;
 
         foreach ($seasons as $season) {
             $seasonId = (int) $season['id'];
@@ -71,10 +73,19 @@ class SeasonService
                 $isWinner = $playerUuid === $winnerUuid;
                 $rankingPoints = $this->calculateRankingPoints($rankingConfig, $p, $isWinner);
 
+                // Extract best_time_ms for speedrun
+                $bestTimeMs = null;
+                if ($isSpeedRun && !empty($p['json_data'])) {
+                    $json = json_decode($p['json_data'], true);
+                    if ($json && !($json['is_dnf'] ?? true)) {
+                        $bestTimeMs = (int) round(($json['finish_time_nanos'] ?? 0) / 1_000_000);
+                    }
+                }
+
                 $statsData = [
                     'matches_played' => 1,
-                    'matches_won' => $isWave ? 0 : ($isWinner ? 1 : 0),
-                    'matches_lost' => $isWave ? 0 : ($isWinner ? 0 : 1),
+                    'matches_won' => $noWinLoss ? 0 : ($isWinner ? 1 : 0),
+                    'matches_lost' => $noWinLoss ? 0 : ($isWinner ? 0 : 1),
                     'pvp_kills' => $p['pvp_kills'] ?? 0,
                     'pvp_deaths' => $p['pvp_deaths'] ?? 0,
                     'pve_kills' => $p['pve_kills'] ?? 0,
@@ -83,6 +94,7 @@ class SeasonService
                     'damage_taken' => $p['damage_taken'] ?? 0,
                     'time_played' => $durationSeconds,
                     'waves_survived' => $p['waves_survived'] ?? null,
+                    'best_time_ms' => $bestTimeMs,
                     'ranking_points' => $rankingPoints,
                 ];
 

@@ -15,6 +15,7 @@ import de.ragesith.hyarena2.gamemode.GameMode;
 import de.ragesith.hyarena2.gamemode.KingOfTheHillGameMode;
 import de.ragesith.hyarena2.gamemode.KitRouletteGameMode;
 import de.ragesith.hyarena2.gamemode.LastManStandingGameMode;
+import de.ragesith.hyarena2.gamemode.SpeedRunGameMode;
 import de.ragesith.hyarena2.gamemode.WaveDefenseGameMode;
 import de.ragesith.hyarena2.boundary.BoundaryManager;
 import de.ragesith.hyarena2.hub.HubManager;
@@ -71,6 +72,7 @@ public class MatchManager {
         registerGameMode(new KingOfTheHillGameMode());
         registerGameMode(new KitRouletteGameMode());
         registerGameMode(new WaveDefenseGameMode());
+        registerGameMode(new SpeedRunGameMode());
     }
 
     /**
@@ -106,6 +108,17 @@ public class MatchManager {
      */
     public void setHudManager(de.ragesith.hyarena2.ui.hud.HudManager hudManager) {
         this.hudManager = hudManager;
+    }
+
+    /**
+     * Wires the SpeedRun PB manager into the SpeedRunGameMode.
+     */
+    public void setSpeedRunPBManager(de.ragesith.hyarena2.gamemode.SpeedRunPBManager pbManager) {
+        GameMode speedRun = gameModes.get("speed_run");
+        if (speedRun instanceof SpeedRunGameMode srMode) {
+            srMode.setPBManager(pbManager);
+            System.out.println("[MatchManager] Wired SpeedRunPBManager to SpeedRunGameMode");
+        }
     }
 
     /**

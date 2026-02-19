@@ -413,11 +413,11 @@ class SeasonRepository
             INSERT INTO season_player_stats
                 (season_id, player_uuid, arena_id, matches_played, matches_won, matches_lost,
                  pvp_kills, pvp_deaths, pve_kills, pve_deaths,
-                 damage_dealt, damage_taken, total_time_played, best_waves_survived, ranking_points)
+                 damage_dealt, damage_taken, total_time_played, best_waves_survived, best_time_ms, ranking_points)
             VALUES
                 (:sid, :uuid, :arena_id, :played, :won, :lost,
                  :pvp_kills, :pvp_deaths, :pve_kills, :pve_deaths,
-                 :dmg_dealt, :dmg_taken, :time_played, :waves, :points)
+                 :dmg_dealt, :dmg_taken, :time_played, :waves, :best_time_ms, :points)
             ON DUPLICATE KEY UPDATE
                 matches_played = matches_played + VALUES(matches_played),
                 matches_won = matches_won + VALUES(matches_won),
@@ -430,6 +430,11 @@ class SeasonRepository
                 damage_taken = damage_taken + VALUES(damage_taken),
                 total_time_played = total_time_played + VALUES(total_time_played),
                 best_waves_survived = GREATEST(COALESCE(best_waves_survived, 0), COALESCE(VALUES(best_waves_survived), 0)),
+                best_time_ms = CASE
+                    WHEN VALUES(best_time_ms) IS NULL THEN best_time_ms
+                    WHEN best_time_ms IS NULL THEN VALUES(best_time_ms)
+                    ELSE LEAST(best_time_ms, VALUES(best_time_ms))
+                END,
                 ranking_points = ranking_points + VALUES(ranking_points)
         ');
         $stmt->execute([
@@ -447,6 +452,7 @@ class SeasonRepository
             'dmg_taken' => $data['damage_taken'] ?? 0,
             'time_played' => $data['time_played'] ?? 0,
             'waves' => $data['waves_survived'] ?? null,
+            'best_time_ms' => $data['best_time_ms'] ?? null,
             'points' => $data['ranking_points'] ?? 0,
         ]);
     }
@@ -457,20 +463,36 @@ class SeasonRepository
 
     public function getSeasonLeaderboard(int $seasonId, string $rankingMode, string $order = 'DESC', int $limit = 25, int $offset = 0, int $minMatches = 0): array
     {
-        $allowedSorts = ['wins' => 'matches_won', 'win_rate' => 'win_rate', 'pvp_kills' => 'pvp_kills', 'pvp_kd_ratio' => 'pvp_kd_ratio', 'points' => 'ranking_points'];
+        $allowedSorts = ['wins' => 'matches_won', 'win_rate' => 'win_rate', 'pvp_kills' => 'pvp_kills', 'pvp_kd_ratio' => 'pvp_kd_ratio', 'points' => 'ranking_points', 'best_time' => 'best_time_ms'];
         $sortCol = $allowedSorts[$rankingMode] ?? 'matches_won';
-        $order = strtoupper($order) === 'ASC' ? 'ASC' : 'DESC';
+
+        // best_time sorts ASC (lower = better), with NULLs last
+        $isBestTime = $rankingMode === 'best_time';
+        $order = $isBestTime ? 'ASC' : (strtoupper($order) === 'ASC' ? 'ASC' : 'DESC');
 
         $db = Database::getConnection();
-        $sql = "
-            SELECT sg.*, p.username,
-                   ROW_NUMBER() OVER (ORDER BY sg.{$sortCol} {$order}) AS rank_position
-            FROM season_player_global_stats sg
-            JOIN players p ON sg.player_uuid = p.uuid
-            WHERE sg.season_id = :sid AND sg.matches_played >= :min_matches
-            ORDER BY sg.{$sortCol} {$order}
-            LIMIT :limit OFFSET :offset
-        ";
+
+        if ($isBestTime) {
+            $sql = "
+                SELECT sg.*, p.username,
+                       ROW_NUMBER() OVER (ORDER BY CASE WHEN sg.best_time_ms IS NULL THEN 1 ELSE 0 END ASC, sg.best_time_ms ASC) AS rank_position
+                FROM season_player_global_stats sg
+                JOIN players p ON sg.player_uuid = p.uuid
+                WHERE sg.season_id = :sid AND sg.matches_played >= :min_matches
+                ORDER BY CASE WHEN sg.best_time_ms IS NULL THEN 1 ELSE 0 END ASC, sg.best_time_ms ASC
+                LIMIT :limit OFFSET :offset
+            ";
+        } else {
+            $sql = "
+                SELECT sg.*, p.username,
+                       ROW_NUMBER() OVER (ORDER BY sg.{$sortCol} {$order}) AS rank_position
+                FROM season_player_global_stats sg
+                JOIN players p ON sg.player_uuid = p.uuid
+                WHERE sg.season_id = :sid AND sg.matches_played >= :min_matches
+                ORDER BY sg.{$sortCol} {$order}
+                LIMIT :limit OFFSET :offset
+            ";
+        }
         $stmt = $db->prepare($sql);
         $stmt->bindValue('sid', $seasonId, PDO::PARAM_INT);
         $stmt->bindValue('min_matches', $minMatches, PDO::PARAM_INT);
@@ -499,8 +521,9 @@ class SeasonRepository
 
     public function freezeRankings(int $seasonId, string $rankingMode): void
     {
-        $allowedSorts = ['wins' => 'matches_won', 'win_rate' => 'win_rate', 'pvp_kills' => 'pvp_kills', 'pvp_kd_ratio' => 'pvp_kd_ratio', 'points' => 'ranking_points'];
+        $allowedSorts = ['wins' => 'matches_won', 'win_rate' => 'win_rate', 'pvp_kills' => 'pvp_kills', 'pvp_kd_ratio' => 'pvp_kd_ratio', 'points' => 'ranking_points', 'best_time' => 'best_time_ms'];
         $sortCol = $allowedSorts[$rankingMode] ?? 'matches_won';
+        $isBestTime = $rankingMode === 'best_time';
 
         $db = Database::getConnection();
 
@@ -509,21 +532,28 @@ class SeasonRepository
         $stmt->execute(['sid' => $seasonId]);
 
         // Insert from the global stats view, ordered by ranking mode
+        if ($isBestTime) {
+            $orderClause = 'CASE WHEN sg.best_time_ms IS NULL THEN 1 ELSE 0 END ASC, sg.best_time_ms ASC';
+        } else {
+            $orderClause = "sg.{$sortCol} DESC";
+        }
+
         $sql = "
             INSERT INTO season_rankings
                 (season_id, player_uuid, rank_position, matches_played, matches_won, matches_lost,
                  pvp_kills, pvp_deaths, pve_kills, pve_deaths, pvp_kd_ratio, win_rate,
-                 ranking_points, ranking_value)
+                 ranking_points, best_waves_survived, best_time_ms, ranking_value)
             SELECT
                 sg.season_id, sg.player_uuid,
-                ROW_NUMBER() OVER (ORDER BY sg.{$sortCol} DESC),
+                ROW_NUMBER() OVER (ORDER BY {$orderClause}),
                 sg.matches_played, sg.matches_won, sg.matches_lost,
                 sg.pvp_kills, sg.pvp_deaths, sg.pve_kills, sg.pve_deaths,
                 sg.pvp_kd_ratio, sg.win_rate, sg.ranking_points,
+                sg.best_waves_survived, sg.best_time_ms,
                 sg.{$sortCol}
             FROM season_player_global_stats sg
             WHERE sg.season_id = :sid AND sg.matches_played > 0
-            ORDER BY sg.{$sortCol} DESC
+            ORDER BY {$orderClause}
         ";
         $stmt = $db->prepare($sql);
         $stmt->execute(['sid' => $seasonId]);
@@ -569,7 +599,7 @@ class SeasonRepository
         $stmt = $db->prepare('
             SELECT s.id, s.name, s.slug, s.status, s.starts_at, s.ends_at, s.ranking_mode,
                    sr.rank_position, sr.matches_played, sr.matches_won, sr.pvp_kills,
-                   sr.pvp_kd_ratio, sr.win_rate, sr.ranking_points, sr.ranking_value,
+                   sr.pvp_kd_ratio, sr.win_rate, sr.ranking_points, sr.ranking_value, sr.best_time_ms,
                    (SELECT COUNT(*) FROM season_rankings sr2 WHERE sr2.season_id = s.id) AS total_participants
             FROM season_rankings sr
             JOIN seasons s ON sr.season_id = s.id
@@ -583,7 +613,7 @@ class SeasonRepository
         $stmt2 = $db->prepare('
             SELECT s.id, s.name, s.slug, s.status, s.starts_at, s.ends_at, s.ranking_mode,
                    sg.matches_played, sg.matches_won, sg.pvp_kills,
-                   sg.pvp_kd_ratio, sg.win_rate, sg.ranking_points,
+                   sg.pvp_kd_ratio, sg.win_rate, sg.ranking_points, sg.best_time_ms,
                    (SELECT COUNT(*) FROM season_participants sp2 WHERE sp2.season_id = s.id) AS total_participants
             FROM season_participants sp
             JOIN seasons s ON sp.season_id = s.id

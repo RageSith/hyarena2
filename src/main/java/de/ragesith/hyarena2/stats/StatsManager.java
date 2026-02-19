@@ -12,6 +12,7 @@ import de.ragesith.hyarena2.arena.MatchManager;
 import de.ragesith.hyarena2.bot.BotDifficulty;
 import de.ragesith.hyarena2.bot.BotParticipant;
 import de.ragesith.hyarena2.gamemode.GameMode;
+import de.ragesith.hyarena2.gamemode.SpeedRunGameMode;
 import de.ragesith.hyarena2.gamemode.WaveDefenseGameMode;
 import de.ragesith.hyarena2.economy.EconomyManager;
 import de.ragesith.hyarena2.economy.HonorManager;
@@ -224,6 +225,18 @@ public class StatsManager {
                 int waves = gameMode.getParticipantWavesSurvived(event.getMatchId(), entry.getKey());
                 if (waves >= 0) {
                     entry.getValue().setWavesSurvived(waves);
+                }
+            }
+
+            // SpeedRun: capture per-player JSON data (splits, finish time, PB info)
+            if (gameMode instanceof SpeedRunGameMode srMode) {
+                for (Map.Entry<UUID, ParticipantRecord> entry : record.getParticipants().entrySet()) {
+                    if (!entry.getValue().isBot()) {
+                        String jsonData = srMode.getSpeedRunJsonData(event.getMatchId(), entry.getKey());
+                        if (jsonData != null) {
+                            entry.getValue().setJsonData(jsonData);
+                        }
+                    }
                 }
             }
 

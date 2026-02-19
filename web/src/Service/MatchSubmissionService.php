@@ -55,6 +55,15 @@ class MatchSubmissionService
                 $isBot = $p['is_bot'] ?? false;
                 $isWinner = $p['is_winner'] ?? false;
 
+                // Extract finish_time_ms for speedrun participants
+                $finishTimeMs = null;
+                if (($data['game_mode'] ?? '') === 'speed_run' && !empty($p['json_data'])) {
+                    $jsonData = json_decode($p['json_data'], true);
+                    if ($jsonData && !($jsonData['is_dnf'] ?? true)) {
+                        $finishTimeMs = (int) round(($jsonData['finish_time_nanos'] ?? 0) / 1_000_000);
+                    }
+                }
+
                 $this->participantRepo->create([
                     'match_id' => $matchId,
                     'player_uuid' => $isBot ? null : ($p['uuid'] ?? null),
@@ -70,15 +79,19 @@ class MatchSubmissionService
                     'damage_taken' => $p['damage_taken'] ?? 0,
                     'is_winner' => $isWinner,
                     'waves_survived' => $p['waves_survived'] ?? null,
+                    'json_data' => $p['json_data'] ?? null,
+                    'finish_time_ms' => $finishTimeMs,
                 ]);
 
                 // Update player stats (skip bots)
                 if (!$isBot && !empty($p['uuid'])) {
                     $isWave = ($data['game_mode'] ?? '') === 'wave_defense';
+                    $isSpeedRun = ($data['game_mode'] ?? '') === 'speed_run';
+                    $noWinLoss = $isWave || $isSpeedRun;
                     $statsData = [
                         'matches_played' => 1,
-                        'matches_won' => $isWave ? 0 : ($isWinner ? 1 : 0),
-                        'matches_lost' => $isWave ? 0 : ($isWinner ? 0 : 1),
+                        'matches_won' => $noWinLoss ? 0 : ($isWinner ? 1 : 0),
+                        'matches_lost' => $noWinLoss ? 0 : ($isWinner ? 0 : 1),
                         'pvp_kills' => $p['pvp_kills'] ?? 0,
                         'pvp_deaths' => $p['pvp_deaths'] ?? 0,
                         'pve_kills' => $p['pve_kills'] ?? 0,
@@ -87,6 +100,7 @@ class MatchSubmissionService
                         'damage_taken' => $p['damage_taken'] ?? 0,
                         'time_played' => $data['duration_seconds'] ?? 0,
                         'waves_survived' => $p['waves_survived'] ?? null,
+                        'best_time_ms' => $finishTimeMs,
                     ];
 
                     // Update per-arena stats (global stats derived from view)

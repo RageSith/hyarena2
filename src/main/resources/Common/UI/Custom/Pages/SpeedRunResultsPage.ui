@@ -1,0 +1,252 @@
+$C = "../Common.ui";
+
+Group #SpeedRunResults {
+    $C.@PageOverlay {}
+
+    // Centered panel
+    Group #Container {
+        Anchor: (Width: 420, Height: 440);
+
+        $C.@Panel {
+            Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+            Padding: (Full: 20);
+            LayoutMode: Top;
+
+            // Result Title (FINISHED! or DID NOT FINISH)
+            Label #ResultTitle {
+                Text: "FINISHED!";
+                Anchor: (Height: 44);
+                Style: (FontSize: 32, TextColor: #f1c40f, Alignment: Center, RenderBold: true, RenderUppercase: true);
+            }
+
+            // New PB banner (hidden by default)
+            Label #NewPBBanner {
+                Text: "NEW PERSONAL BEST!";
+                Anchor: (Height: 24, Top: 4);
+                Visible: false;
+                Style: (FontSize: 16, TextColor: #f1c40f, Alignment: Center, RenderBold: true);
+            }
+
+            // Final time
+            Label #FinalTime {
+                Text: "0:00.000";
+                Anchor: (Height: 36, Top: 4);
+                Style: (FontSize: 28, TextColor: #b7cedd, Alignment: Center, RenderBold: true);
+            }
+
+            // PB delta
+            Label #PBDelta {
+                Text: "";
+                Anchor: (Height: 20, Top: 2);
+                Style: (FontSize: 14, TextColor: #96a9be, Alignment: Center);
+            }
+
+            $C.@ContentSeparator {
+                @Anchor = (Top: 10);
+            }
+
+            // Stats rows
+            Group #StatsSection {
+                Anchor: (Top: 8);
+                LayoutMode: Top;
+
+                // Lives Used
+                Group #LivesRow {
+                    Anchor: (Height: 22);
+                    LayoutMode: Left;
+
+                    Label {
+                        Text: "Lives Used";
+                        Anchor: (Width: 140);
+                        Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center);
+                    }
+                    Label #LivesUsedValue {
+                        Text: "0";
+                        FlexWeight: 1;
+                        Style: (FontSize: 14, TextColor: #f39c12, VerticalAlignment: Center, Alignment: End, RenderBold: true);
+                    }
+                }
+
+                // Checkpoints
+                Group #CheckpointsRow {
+                    Anchor: (Height: 22, Top: 2);
+                    LayoutMode: Left;
+
+                    Label {
+                        Text: "Checkpoints";
+                        Anchor: (Width: 140);
+                        Style: (FontSize: 13, TextColor: #96a9be, VerticalAlignment: Center);
+                    }
+                    Label #CheckpointsValue {
+                        Text: "0/0";
+                        FlexWeight: 1;
+                        Style: (FontSize: 14, TextColor: #2ecc71, VerticalAlignment: Center, Alignment: End, RenderBold: true);
+                    }
+                }
+            }
+
+            $C.@ContentSeparator {
+                @Anchor = (Top: 8);
+            }
+
+            // Splits header
+            Label #SplitsHeader {
+                Text: "Splits";
+                Anchor: (Height: 20, Top: 6);
+                Style: (FontSize: 12, TextColor: #96a9be, RenderUppercase: true, RenderBold: true);
+            }
+
+            // Splits section (scrollable)
+            Group #SplitsContainer {
+                Anchor: (Top: 4);
+                FlexWeight: 1;
+                LayoutMode: TopScrolling;
+                ScrollbarStyle: $C.@TranslucentScrollbarStyle;
+
+                // Split rows (max 6: 5 checkpoints + finish)
+                Group #Split0 {
+                    Anchor: (Height: 20);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #SplitName0 {
+                        Text: "CP 1";
+                        FlexWeight: 2;
+                        Style: (FontSize: 11, TextColor: #b7cedd);
+                    }
+                    Label #SplitTime0 {
+                        Text: "--:--.---";
+                        Anchor: (Width: 80);
+                        Style: (FontSize: 11, TextColor: #96a9be, Alignment: End);
+                    }
+                    Label #SplitDelta0 {
+                        Text: "";
+                        Anchor: (Width: 70);
+                        Style: (FontSize: 10, TextColor: #96a9be, Alignment: End);
+                    }
+                }
+
+                Group #Split1 {
+                    Anchor: (Height: 20);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #SplitName1 {
+                        Text: "CP 2";
+                        FlexWeight: 2;
+                        Style: (FontSize: 11, TextColor: #b7cedd);
+                    }
+                    Label #SplitTime1 {
+                        Text: "--:--.---";
+                        Anchor: (Width: 80);
+                        Style: (FontSize: 11, TextColor: #96a9be, Alignment: End);
+                    }
+                    Label #SplitDelta1 {
+                        Text: "";
+                        Anchor: (Width: 70);
+                        Style: (FontSize: 10, TextColor: #96a9be, Alignment: End);
+                    }
+                }
+
+                Group #Split2 {
+                    Anchor: (Height: 20);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #SplitName2 {
+                        Text: "CP 3";
+                        FlexWeight: 2;
+                        Style: (FontSize: 11, TextColor: #b7cedd);
+                    }
+                    Label #SplitTime2 {
+                        Text: "--:--.---";
+                        Anchor: (Width: 80);
+                        Style: (FontSize: 11, TextColor: #96a9be, Alignment: End);
+                    }
+                    Label #SplitDelta2 {
+                        Text: "";
+                        Anchor: (Width: 70);
+                        Style: (FontSize: 10, TextColor: #96a9be, Alignment: End);
+                    }
+                }
+
+                Group #Split3 {
+                    Anchor: (Height: 20);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #SplitName3 {
+                        Text: "CP 4";
+                        FlexWeight: 2;
+                        Style: (FontSize: 11, TextColor: #b7cedd);
+                    }
+                    Label #SplitTime3 {
+                        Text: "--:--.---";
+                        Anchor: (Width: 80);
+                        Style: (FontSize: 11, TextColor: #96a9be, Alignment: End);
+                    }
+                    Label #SplitDelta3 {
+                        Text: "";
+                        Anchor: (Width: 70);
+                        Style: (FontSize: 10, TextColor: #96a9be, Alignment: End);
+                    }
+                }
+
+                Group #Split4 {
+                    Anchor: (Height: 20);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #SplitName4 {
+                        Text: "CP 5";
+                        FlexWeight: 2;
+                        Style: (FontSize: 11, TextColor: #b7cedd);
+                    }
+                    Label #SplitTime4 {
+                        Text: "--:--.---";
+                        Anchor: (Width: 80);
+                        Style: (FontSize: 11, TextColor: #96a9be, Alignment: End);
+                    }
+                    Label #SplitDelta4 {
+                        Text: "";
+                        Anchor: (Width: 70);
+                        Style: (FontSize: 10, TextColor: #96a9be, Alignment: End);
+                    }
+                }
+
+                // Finish split row
+                Group #Split5 {
+                    Anchor: (Height: 20);
+                    Visible: false;
+                    LayoutMode: Left;
+
+                    Label #SplitName5 {
+                        Text: "Finish";
+                        FlexWeight: 2;
+                        Style: (FontSize: 11, TextColor: #f1c40f, RenderBold: true);
+                    }
+                    Label #SplitTime5 {
+                        Text: "--:--.---";
+                        Anchor: (Width: 80);
+                        Style: (FontSize: 11, TextColor: #f1c40f, Alignment: End, RenderBold: true);
+                    }
+                    Label #SplitDelta5 {
+                        Text: "";
+                        Anchor: (Width: 70);
+                        Style: (FontSize: 10, TextColor: #96a9be, Alignment: End);
+                    }
+                }
+            }
+
+            $C.@ContentSeparator {
+                @Anchor = (Top: 8);
+            }
+
+            // Close button
+            $C.@TextButton #CloseButton {
+                @Text = "Continue";
+                @Anchor = (Height: 40, Top: 8);
+            }
+        }
+    }
+}

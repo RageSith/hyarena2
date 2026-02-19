@@ -1,0 +1,195 @@
+$C = "../Common.ui";
+
+Group #SpeedRunHud {
+    Anchor: (Width: 240, Height: 260, Top: 10, Right: 10);
+
+    // Background panel
+    $C.@Panel {
+        Anchor: (Left: 0, Right: 0, Top: 0, Bottom: 0);
+        Padding: (Full: 12);
+        LayoutMode: Top;
+
+        // Arena Name Header
+        Label #ArenaName {
+            Text: "Speed Run";
+            Anchor: (Height: 22, Top: 0);
+            Style: (FontSize: 14, TextColor: #e8c872, Alignment: Center, RenderBold: true);
+        }
+
+        // Main Timer
+        Label #Timer {
+            Text: "0:00.000";
+            Anchor: (Height: 32, Top: 4);
+            Style: (FontSize: 24, TextColor: #f1c40f, Alignment: Center, RenderBold: true);
+        }
+
+        // PB Reference
+        Label #PBTime {
+            Text: "PB: --:--.---";
+            Anchor: (Height: 16, Top: 2);
+            Style: (FontSize: 11, TextColor: #96a9be, Alignment: Center);
+        }
+
+        $C.@ContentSeparator {
+            @Anchor = (Top: 6);
+        }
+
+        // Lives counter
+        Group #LivesRow {
+            Anchor: (Height: 18, Top: 6);
+            LayoutMode: Left;
+
+            Label {
+                Text: "Lives:";
+                Anchor: (Width: 40);
+                Style: (FontSize: 11, TextColor: #96a9be);
+            }
+            Label #Lives {
+                Text: "3";
+                FlexWeight: 1;
+                Style: (FontSize: 12, TextColor: #e74c3c, RenderBold: true);
+            }
+        }
+
+        // Checkpoint progress header
+        Label #CheckpointHeader {
+            Text: "Checkpoints";
+            Anchor: (Height: 18, Top: 8);
+            Style: (FontSize: 11, TextColor: #96a9be, RenderUppercase: true, RenderBold: true);
+        }
+
+        // Checkpoint rows (max 5)
+        Group #CP0 {
+            Anchor: (Height: 18, Top: 2);
+            Visible: false;
+            LayoutMode: Left;
+
+            Label #CPName0 {
+                Text: "CP 1";
+                FlexWeight: 2;
+                Style: (FontSize: 11, TextColor: #b7cedd);
+            }
+            Label #CPSplit0 {
+                Text: "--:--.---";
+                Anchor: (Width: 70);
+                Style: (FontSize: 11, TextColor: #96a9be, Alignment: End);
+            }
+            Label #CPDelta0 {
+                Text: "";
+                Anchor: (Width: 60);
+                Style: (FontSize: 10, TextColor: #96a9be, Alignment: End);
+            }
+        }
+
+        Group #CP1 {
+            Anchor: (Height: 18, Top: 2);
+            Visible: false;
+            LayoutMode: Left;
+
+            Label #CPName1 {
+                Text: "CP 2";
+                FlexWeight: 2;
+                Style: (FontSize: 11, TextColor: #b7cedd);
+            }
+            Label #CPSplit1 {
+                Text: "--:--.---";
+                Anchor: (Width: 70);
+                Style: (FontSize: 11, TextColor: #96a9be, Alignment: End);
+            }
+            Label #CPDelta1 {
+                Text: "";
+                Anchor: (Width: 60);
+                Style: (FontSize: 10, TextColor: #96a9be, Alignment: End);
+            }
+        }
+
+        Group #CP2 {
+            Anchor: (Height: 18, Top: 2);
+            Visible: false;
+            LayoutMode: Left;
+
+            Label #CPName2 {
+                Text: "CP 3";
+                FlexWeight: 2;
+                Style: (FontSize: 11, TextColor: #b7cedd);
+            }
+            Label #CPSplit2 {
+                Text: "--:--.---";
+                Anchor: (Width: 70);
+                Style: (FontSize: 11, TextColor: #96a9be, Alignment: End);
+            }
+            Label #CPDelta2 {
+                Text: "";
+                Anchor: (Width: 60);
+                Style: (FontSize: 10, TextColor: #96a9be, Alignment: End);
+            }
+        }
+
+        Group #CP3 {
+            Anchor: (Height: 18, Top: 2);
+            Visible: false;
+            LayoutMode: Left;
+
+            Label #CPName3 {
+                Text: "CP 4";
+                FlexWeight: 2;
+                Style: (FontSize: 11, TextColor: #b7cedd);
+            }
+            Label #CPSplit3 {
+                Text: "--:--.---";
+                Anchor: (Width: 70);
+                Style: (FontSize: 11, TextColor: #96a9be, Alignment: End);
+            }
+            Label #CPDelta3 {
+                Text: "";
+                Anchor: (Width: 60);
+                Style: (FontSize: 10, TextColor: #96a9be, Alignment: End);
+            }
+        }
+
+        Group #CP4 {
+            Anchor: (Height: 18, Top: 2);
+            Visible: false;
+            LayoutMode: Left;
+
+            Label #CPName4 {
+                Text: "CP 5";
+                FlexWeight: 2;
+                Style: (FontSize: 11, TextColor: #b7cedd);
+            }
+            Label #CPSplit4 {
+                Text: "--:--.---";
+                Anchor: (Width: 70);
+                Style: (FontSize: 11, TextColor: #96a9be, Alignment: End);
+            }
+            Label #CPDelta4 {
+                Text: "";
+                Anchor: (Width: 60);
+                Style: (FontSize: 10, TextColor: #96a9be, Alignment: End);
+            }
+        }
+
+        // Finish row
+        Group #FinishRow {
+            Anchor: (Height: 18, Top: 4);
+            Visible: false;
+            LayoutMode: Left;
+
+            Label {
+                Text: "Finish";
+                FlexWeight: 2;
+                Style: (FontSize: 11, TextColor: #f1c40f, RenderBold: true);
+            }
+            Label #FinishTime {
+                Text: "--:--.---";
+                Anchor: (Width: 70);
+                Style: (FontSize: 11, TextColor: #f1c40f, Alignment: End, RenderBold: true);
+            }
+            Label #FinishDelta {
+                Text: "";
+                Anchor: (Width: 60);
+                Style: (FontSize: 10, TextColor: #96a9be, Alignment: End);
+            }
+        }
+    }
+}
