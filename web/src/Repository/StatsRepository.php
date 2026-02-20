@@ -152,15 +152,22 @@ class StatsRepository
 
         $db = Database::getConnection();
 
+        $isBestTime = ($sort === 'best_time_ms');
+        if ($isBestTime) {
+            $orderExpr = "CASE WHEN ps.{$sort} IS NULL OR ps.{$sort} = 0 THEN 1 ELSE 0 END, ps.{$sort} {$order}";
+        } else {
+            $orderExpr = "ps.{$sort} {$order}";
+        }
+
         if ($arenaId !== null) {
             // Per-arena leaderboard from the table
             $sql = "
                 SELECT ps.*, p.username,
-                       ROW_NUMBER() OVER (ORDER BY ps.{$sort} {$order}) AS rank_position
+                       ROW_NUMBER() OVER (ORDER BY {$orderExpr}) AS rank_position
                 FROM player_stats ps
                 JOIN players p ON ps.player_uuid = p.uuid
                 WHERE ps.arena_id = :arena_id AND ps.matches_played > 0
-                ORDER BY ps.{$sort} {$order}
+                ORDER BY {$orderExpr}
                 LIMIT :limit OFFSET :offset
             ";
             $stmt = $db->prepare($sql);
@@ -169,11 +176,11 @@ class StatsRepository
             // Global leaderboard from the view
             $sql = "
                 SELECT ps.*, p.username,
-                       ROW_NUMBER() OVER (ORDER BY ps.{$sort} {$order}) AS rank_position
+                       ROW_NUMBER() OVER (ORDER BY {$orderExpr}) AS rank_position
                 FROM player_global_stats ps
                 JOIN players p ON ps.player_uuid = p.uuid
                 WHERE ps.matches_played > 0
-                ORDER BY ps.{$sort} {$order}
+                ORDER BY {$orderExpr}
                 LIMIT :limit OFFSET :offset
             ";
             $stmt = $db->prepare($sql);
@@ -212,6 +219,13 @@ class StatsRepository
 
         $db = Database::getConnection();
 
+        $isBestTime = ($sort === 'best_time_ms');
+        if ($isBestTime) {
+            $orderExpr = "CASE WHEN {$sort} IS NULL OR {$sort} = 0 THEN 1 ELSE 0 END, {$sort} {$order}";
+        } else {
+            $orderExpr = "{$sort} {$order}";
+        }
+
         $sql = "
             SELECT
                 p.username,
@@ -232,13 +246,13 @@ class StatsRepository
                 MAX(ps.best_waves_survived) AS best_waves_survived,
                 MIN(ps.best_time_ms) AS best_time_ms,
                 SUM(ps.matches_played) AS matches_played,
-                ROW_NUMBER() OVER (ORDER BY {$sort} {$order}) AS rank_position
+                ROW_NUMBER() OVER (ORDER BY {$orderExpr}) AS rank_position
             FROM player_stats ps
             JOIN arenas a ON ps.arena_id = a.id
             JOIN players p ON ps.player_uuid = p.uuid
             WHERE a.game_mode = :game_mode AND ps.matches_played > 0
             GROUP BY ps.player_uuid, p.username
-            ORDER BY {$sort} {$order}
+            ORDER BY {$orderExpr}
             LIMIT :limit OFFSET :offset
         ";
         $stmt = $db->prepare($sql);

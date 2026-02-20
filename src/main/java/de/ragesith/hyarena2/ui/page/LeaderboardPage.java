@@ -66,6 +66,12 @@ public class LeaderboardPage extends InteractiveCustomUIPage<LeaderboardPage.Pag
         new ColumnDef("Matches", "matches_played"),
     };
 
+    private static final ColumnDef[] SPEEDRUN_COLUMNS = {
+        new ColumnDef("Best Time", "best_time_ms"),
+        new ColumnDef("Matches", "matches_played"),
+        new ColumnDef("Wins", "matches_won"),
+    };
+
     public LeaderboardPage(PlayerRef playerRef, UUID playerUuid,
                            StatsManager statsManager, MatchManager matchManager,
                            HudManager hudManager, ScheduledExecutorService scheduler) {
@@ -225,8 +231,18 @@ public class LeaderboardPage extends InteractiveCustomUIPage<LeaderboardPage.Pag
             case "pve_deaths" -> String.valueOf(entry.getPveDeaths());
             case "best_waves_survived" -> String.valueOf(entry.getBestWavesSurvived());
             case "matches_played" -> String.valueOf(entry.getMatchesPlayed());
+            case "best_time_ms" -> formatTimeMs(entry.getBestTimeMs());
             default -> "0";
         };
+    }
+
+    private String formatTimeMs(int ms) {
+        if (ms <= 0) return "-";
+        int totalSeconds = ms / 1000;
+        int minutes = totalSeconds / 60;
+        int seconds = totalSeconds % 60;
+        int millis = ms % 1000;
+        return String.format("%d:%02d.%03d", minutes, seconds, millis);
     }
 
     private String formatDouble(double value) {
@@ -242,6 +258,9 @@ public class LeaderboardPage extends InteractiveCustomUIPage<LeaderboardPage.Pag
             if ("wave_defense".equals(scopeId)) {
                 return WAVE_COLUMNS;
             }
+            if ("speed_run".equals(scopeId)) {
+                return SPEEDRUN_COLUMNS;
+            }
         }
         return PVP_COLUMNS;
     }
@@ -251,6 +270,9 @@ public class LeaderboardPage extends InteractiveCustomUIPage<LeaderboardPage.Pag
             String scopeId = scopeEntries.get(selectedScopeIndex).id;
             if ("wave_defense".equals(scopeId)) {
                 return "best_waves_survived";
+            }
+            if ("speed_run".equals(scopeId)) {
+                return "best_time_ms";
             }
         }
         return "pvp_kills";

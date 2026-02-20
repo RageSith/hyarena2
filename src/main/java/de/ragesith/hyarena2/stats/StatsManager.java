@@ -582,7 +582,8 @@ public class StatsManager {
                     getIntOr(e, "pve_kills", 0),
                     getIntOr(e, "pve_deaths", 0),
                     getIntOr(e, "best_waves_survived", 0),
-                    getIntOr(e, "matches_played", 0)
+                    getIntOr(e, "matches_played", 0),
+                    getIntOr(e, "best_time_ms", 0)
                 ));
             }
 

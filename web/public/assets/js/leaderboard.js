@@ -35,6 +35,12 @@ const waveDefenseHeaders = [
     { label: 'Games', sort: 'matches_played' },
 ];
 
+const speedRunHeaders = [
+    { label: 'Best Time', sort: 'best_time_ms' },
+    { label: 'Matches', sort: 'matches_played' },
+    { label: 'Wins', sort: 'matches_won' },
+];
+
 document.addEventListener('DOMContentLoaded', () => {
     initArenaList();
     loadArenas();
@@ -104,10 +110,14 @@ function selectArena(arenaId) {
     const gameMode = arenaId === 'global' ? null : arenaGameModes[arenaId];
     if (gameMode === 'wave_defense') {
         currentSort = 'best_waves_survived';
+        sortDirection = 'desc';
+    } else if (gameMode === 'speed_run') {
+        currentSort = 'best_time_ms';
+        sortDirection = 'asc';
     } else {
         currentSort = 'pvp_kills';
+        sortDirection = 'desc';
     }
-    sortDirection = 'desc';
 
     document.querySelectorAll('.arena-list-item').forEach(item => {
         item.classList.toggle('active', item.dataset.arena === arenaId);
@@ -186,8 +196,12 @@ function isWaveDefense() {
     return currentGameMode === 'wave_defense';
 }
 
+function isSpeedRun() {
+    return currentGameMode === 'speed_run';
+}
+
 function updateTableHeaders() {
-    const headers = isWaveDefense() ? waveDefenseHeaders : defaultHeaders;
+    const headers = isSpeedRun() ? speedRunHeaders : isWaveDefense() ? waveDefenseHeaders : defaultHeaders;
     const headerRow = document.querySelector('.leaderboard-table thead tr');
     if (!headerRow) return;
 
@@ -214,7 +228,7 @@ function updateTableHeaders() {
                     sortDirection = sortDirection === 'desc' ? 'asc' : 'desc';
                 } else {
                     currentSort = h.sort;
-                    sortDirection = 'desc';
+                    sortDirection = h.sort === 'best_time_ms' ? 'asc' : 'desc';
                 }
                 headerRow.querySelectorAll('.sortable').forEach(el => {
                     el.classList.remove('active', 'asc', 'desc');
@@ -232,13 +246,21 @@ function renderLeaderboard(entries) {
     const tbody = document.getElementById('leaderboard-body');
     const waveMode = isWaveDefense();
 
+    const speedMode = isSpeedRun();
+
     tbody.innerHTML = entries.map(entry => {
         const rank = entry.rank_position;
         const rankClass = rank <= 3 ? `rank-${rank}` : '';
         const pvpKd = parseFloat(entry.pvp_kd_ratio || 0).toFixed(2);
 
         let statCells;
-        if (waveMode) {
+        if (speedMode) {
+            statCells = `
+                <td class="col-stat best-time">${formatSpeedRunTime(entry.best_time_ms)}</td>
+                <td class="col-stat">${formatNumber(entry.matches_played || 0)}</td>
+                <td class="col-stat">${formatNumber(entry.matches_won || 0)}</td>
+            `;
+        } else if (waveMode) {
             const bestWave = entry.best_waves_survived != null ? entry.best_waves_survived : '-';
             statCells = `
                 <td class="col-stat best-wave">${bestWave}</td>
@@ -318,4 +340,13 @@ function formatNumber(num) {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toLocaleString('en-US');
+}
+
+function formatSpeedRunTime(ms) {
+    if (ms == null || ms <= 0) return '--:--.---';
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const millis = ms % 1000;
+    return `${minutes}:${String(seconds).padStart(2, '0')}.${String(millis).padStart(3, '0')}`;
 }

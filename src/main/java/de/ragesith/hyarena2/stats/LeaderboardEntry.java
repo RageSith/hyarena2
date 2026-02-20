@@ -16,12 +16,14 @@ public class LeaderboardEntry {
     private final int pveDeaths;
     private final int bestWavesSurvived;
     private final int matchesPlayed;
+    private final int bestTimeMs;
 
     public LeaderboardEntry(int rank, String username, String playerUuid,
                             int pvpKills, int pvpDeaths, double kdRatio,
                             int matchesWon, double winRate,
                             int pveKills, int pveDeaths,
-                            int bestWavesSurvived, int matchesPlayed) {
+                            int bestWavesSurvived, int matchesPlayed,
+                            int bestTimeMs) {
         this.rank = rank;
         this.username = username;
         this.playerUuid = playerUuid;
@@ -34,6 +36,7 @@ public class LeaderboardEntry {
         this.pveDeaths = pveDeaths;
         this.bestWavesSurvived = bestWavesSurvived;
         this.matchesPlayed = matchesPlayed;
+        this.bestTimeMs = bestTimeMs;
     }
 
     public int getRank() { return rank; }
@@ -48,4 +51,5 @@ public class LeaderboardEntry {
     public int getPveDeaths() { return pveDeaths; }
     public int getBestWavesSurvived() { return bestWavesSurvived; }
     public int getMatchesPlayed() { return matchesPlayed; }
+    public int getBestTimeMs() { return bestTimeMs; }
 }
