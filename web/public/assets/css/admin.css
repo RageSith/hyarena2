@@ -720,6 +720,119 @@ a:hover { text-decoration: underline; }
 .hw-console-body::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 4px; }
 .hw-console-body::-webkit-scrollbar-thumb:hover { background: #3a3a4e; }
 
+/* Data Management - Danger Zone */
+.danger-zone {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.danger-card {
+    background: var(--admin-bg-card);
+    border: 1px solid rgba(248, 113, 113, 0.25);
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.danger-card h3 {
+    font-size: 1rem;
+    color: var(--admin-error);
+    margin-bottom: 0.5rem;
+}
+
+.danger-card p {
+    font-size: 0.85rem;
+    color: var(--admin-text-muted);
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+details.danger-toggle summary {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    background: rgba(248, 113, 113, 0.15);
+    color: var(--admin-error);
+    border: none;
+    list-style: none;
+}
+
+details.danger-toggle summary::-webkit-details-marker { display: none; }
+details.danger-toggle summary::marker { display: none; content: ''; }
+
+details.danger-toggle summary:hover {
+    background: rgba(248, 113, 113, 0.25);
+}
+
+.danger-confirm-form {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--admin-border);
+}
+
+.danger-confirm-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--admin-text-muted);
+    font-weight: 500;
+}
+
+.danger-confirm-form input[type="text"] {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: var(--admin-bg);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    border-radius: 6px;
+    color: var(--admin-text);
+    font-size: 0.9rem;
+    font-family: monospace;
+    margin-bottom: 0.75rem;
+}
+
+.danger-confirm-form input[type="text"]:focus {
+    outline: none;
+    border-color: var(--admin-error);
+}
+
+.danger-warning {
+    font-size: 0.75rem;
+    color: var(--admin-error);
+    margin-bottom: 0.5rem;
+    opacity: 0.8;
+}
+
+.orphan-section {
+    margin-bottom: 2.5rem;
+}
+
+.orphan-section h2 {
+    font-size: 1.15rem;
+    margin-bottom: 1rem;
+}
+
+.orphan-note {
+    font-size: 0.8rem;
+    color: var(--admin-text-muted);
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
+.orphan-bulk {
+    margin-top: 0.75rem;
+}
+
+.section-divider {
+    border: none;
+    border-top: 1px solid var(--admin-border);
+    margin: 2rem 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .admin-sidebar {
@@ -736,6 +849,10 @@ a:hover { text-decoration: underline; }
     }
 
     .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .danger-zone {
         grid-template-columns: 1fr;
     }
 }

@@ -24,6 +24,7 @@
                 {% if admin.role == 'super_admin' %}
                 <li><a href="/admin/webhooks" class="{% if active_page is defined and active_page == 'webhooks' %}active{% endif %}">Webhooks</a></li>
                 <li><a href="/admin/users" class="{% if active_page is defined and active_page == 'admin_users' %}active{% endif %}">Admin Users</a></li>
+                <li><a href="/admin/data-management" class="{% if active_page is defined and active_page == 'data_management' %}active{% endif %}">Data Management</a></li>
                 {% endif %}
             </ul>
             <div class="admin-user">

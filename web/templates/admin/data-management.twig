@@ -1,0 +1,222 @@
+{% extends "admin/layout.twig" %}
+{% block title %}Data Management{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <h1>Data Management</h1>
+
+    {% if success == 'stats_reset' %}
+        <div class="alert alert-success">All player stats and kit stats have been reset.</div>
+    {% elseif success == 'full_purge' %}
+        <div class="alert alert-success">Full data purge complete. All matches, participants, and stats have been deleted.</div>
+    {% elseif success == 'arena_deleted' %}
+        <div class="alert alert-success">Orphaned arena deleted (cascade: matches, participants, stats).</div>
+    {% elseif success == 'arenas_deleted' %}
+        <div class="alert alert-success">All orphaned arenas deleted.</div>
+    {% elseif success == 'kit_deleted' %}
+        <div class="alert alert-success">Orphaned kit deleted (cascade: kit stats).</div>
+    {% elseif success == 'kits_deleted' %}
+        <div class="alert alert-success">All orphaned kits deleted.</div>
+    {% elseif success == 'gamemode_deleted' %}
+        <div class="alert alert-success">Orphaned game mode deleted.</div>
+    {% elseif success == 'gamemodes_deleted' %}
+        <div class="alert alert-success">All orphaned game modes deleted.</div>
+    {% endif %}
+
+    {# --- Summary Stats --- #}
+    <div class="admin-stats-grid">
+        <div class="admin-stat-card">
+            <span class="admin-stat-value">{{ counts.total_matches|number_format }}</span>
+            <span class="admin-stat-label">Matches</span>
+        </div>
+        <div class="admin-stat-card">
+            <span class="admin-stat-value">{{ counts.total_participants|number_format }}</span>
+            <span class="admin-stat-label">Participants</span>
+        </div>
+        <div class="admin-stat-card">
+            <span class="admin-stat-value">{{ counts.total_player_stats|number_format }}</span>
+            <span class="admin-stat-label">Player Stats Rows</span>
+        </div>
+        <div class="admin-stat-card">
+            <span class="admin-stat-value">{{ counts.total_kit_stats|number_format }}</span>
+            <span class="admin-stat-label">Kit Stats Rows</span>
+        </div>
+    </div>
+
+    {# --- Global Reset --- #}
+    <hr class="section-divider">
+    <div class="orphan-section">
+        <h2>Global Reset</h2>
+        <div class="danger-zone">
+            <div class="danger-card">
+                <h3>Reset All Stats</h3>
+                <p>Truncates <strong>player_stats</strong> and <strong>player_kit_stats</strong>. Match history is preserved. Season data and player economy are not affected.</p>
+                <details class="danger-toggle">
+                    <summary>Reset Stats</summary>
+                    <form class="danger-confirm-form" method="post" action="/admin/data-management/reset-stats">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                        <p class="danger-warning">This action cannot be undone.</p>
+                        <label>Type <strong>RESET</strong> to confirm:</label>
+                        <input type="text" name="confirmation" autocomplete="off" spellcheck="false" placeholder="RESET">
+                        <button type="submit" class="btn btn-danger">Reset All Stats</button>
+                    </form>
+                </details>
+            </div>
+            <div class="danger-card">
+                <h3>Full Data Purge</h3>
+                <p>Truncates <strong>matches</strong>, <strong>match_participants</strong>, <strong>player_stats</strong>, and <strong>player_kit_stats</strong>. Season data and player economy are not affected.</p>
+                <details class="danger-toggle">
+                    <summary>Purge All Data</summary>
+                    <form class="danger-confirm-form" method="post" action="/admin/data-management/full-purge">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                        <p class="danger-warning">This action cannot be undone. All match history will be permanently deleted.</p>
+                        <label>Type <strong>PURGE ALL DATA</strong> to confirm:</label>
+                        <input type="text" name="confirmation" autocomplete="off" spellcheck="false" placeholder="PURGE ALL DATA">
+                        <button type="submit" class="btn btn-danger">Full Data Purge</button>
+                    </form>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    {# --- Orphaned Arenas --- #}
+    <hr class="section-divider">
+    <div class="orphan-section">
+        <h2>Orphaned Arenas <span class="text-muted">({{ orphaned_arenas|length }})</span></h2>
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Game Mode</th>
+                        <th>Matches</th>
+                        <th>Stats Rows</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if orphaned_arenas is empty %}
+                        <tr><td colspan="6" class="empty">No orphaned arenas</td></tr>
+                    {% else %}
+                        {% for arena in orphaned_arenas %}
+                        <tr>
+                            <td><code>{{ arena.id }}</code></td>
+                            <td>{{ arena.display_name }}</td>
+                            <td>{{ arena.game_mode }}</td>
+                            <td>{{ arena.match_count }}</td>
+                            <td>{{ arena.stats_count }}</td>
+                            <td class="actions">
+                                <form method="post" action="/admin/data-management/arena/{{ arena.id }}/delete" style="display:inline" onsubmit="return confirm('Delete arena &quot;{{ arena.display_name }}&quot; and all associated data?')">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        {% if orphaned_arenas|length > 1 %}
+        <div class="orphan-bulk">
+            <form method="post" action="/admin/data-management/arenas/delete-all" style="display:inline" onsubmit="return confirm('Delete ALL {{ orphaned_arenas|length }} orphaned arenas and their associated data?')">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-danger btn-sm">Delete All Orphaned Arenas</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    {# --- Orphaned Kits --- #}
+    <hr class="section-divider">
+    <div class="orphan-section">
+        <h2>Orphaned Kits <span class="text-muted">({{ orphaned_kits|length }})</span></h2>
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Kit Stats Rows</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if orphaned_kits is empty %}
+                        <tr><td colspan="4" class="empty">No orphaned kits</td></tr>
+                    {% else %}
+                        {% for kit in orphaned_kits %}
+                        <tr>
+                            <td><code>{{ kit.id }}</code></td>
+                            <td>{{ kit.display_name }}</td>
+                            <td>{{ kit.kit_stats_count }}</td>
+                            <td class="actions">
+                                <form method="post" action="/admin/data-management/kit/{{ kit.id }}/delete" style="display:inline" onsubmit="return confirm('Delete kit &quot;{{ kit.display_name }}&quot; and its stats?')">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        {% if orphaned_kits|length > 1 %}
+        <div class="orphan-bulk">
+            <form method="post" action="/admin/data-management/kits/delete-all" style="display:inline" onsubmit="return confirm('Delete ALL {{ orphaned_kits|length }} orphaned kits and their stats?')">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-danger btn-sm">Delete All Orphaned Kits</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    {# --- Orphaned Game Modes --- #}
+    <hr class="section-divider">
+    <div class="orphan-section">
+        <h2>Orphaned Game Modes <span class="text-muted">({{ orphaned_game_modes|length }})</span></h2>
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Matches (ref)</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if orphaned_game_modes is empty %}
+                        <tr><td colspan="4" class="empty">No orphaned game modes</td></tr>
+                    {% else %}
+                        {% for gm in orphaned_game_modes %}
+                        <tr>
+                            <td><code>{{ gm.id }}</code></td>
+                            <td>{{ gm.display_name }}</td>
+                            <td>{{ gm.match_count }}</td>
+                            <td class="actions">
+                                <form method="post" action="/admin/data-management/gamemode/{{ gm.id }}/delete" style="display:inline" onsubmit="return confirm('Delete game mode &quot;{{ gm.display_name }}&quot;?')">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        <p class="orphan-note">Game mode deletion only removes display metadata. Existing matches referencing this game mode are not affected (no foreign key).</p>
+        {% if orphaned_game_modes|length > 1 %}
+        <div class="orphan-bulk">
+            <form method="post" action="/admin/data-management/gamemodes/delete-all" style="display:inline" onsubmit="return confirm('Delete ALL {{ orphaned_game_modes|length }} orphaned game modes?')">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-danger btn-sm">Delete All Orphaned Game Modes</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -9,6 +9,7 @@ use App\Controller\LinkController;
 use App\Controller\PlayerManagementController;
 use App\Controller\SeasonApiController;
 use App\Controller\SeasonAdminController;
+use App\Controller\DataManagementController;
 use App\Controller\ServerManagerController;
 use App\Middleware\ApiKeyMiddleware;
 use App\Middleware\RateLimitMiddleware;
@@ -154,5 +155,18 @@ return function (App $app) {
             $inner->post('/api/hywarden/servers/{id}/stop', [ServerManagerController::class, 'apiStop']);
             $inner->post('/api/hywarden/servers/{id}/kill', [ServerManagerController::class, 'apiKill']);
         })->add(new AdminRoleMiddleware('servers'));
+
+        // Data Management (super_admin only)
+        $group->group('', function (RouteCollectorProxy $inner) {
+            $inner->get('/data-management', [DataManagementController::class, 'index']);
+            $inner->post('/data-management/reset-stats', [DataManagementController::class, 'resetStats']);
+            $inner->post('/data-management/full-purge', [DataManagementController::class, 'fullPurge']);
+            $inner->post('/data-management/arena/{id}/delete', [DataManagementController::class, 'deleteArena']);
+            $inner->post('/data-management/arenas/delete-all', [DataManagementController::class, 'deleteAllArenas']);
+            $inner->post('/data-management/kit/{id}/delete', [DataManagementController::class, 'deleteKit']);
+            $inner->post('/data-management/kits/delete-all', [DataManagementController::class, 'deleteAllKits']);
+            $inner->post('/data-management/gamemode/{id}/delete', [DataManagementController::class, 'deleteGameMode']);
+            $inner->post('/data-management/gamemodes/delete-all', [DataManagementController::class, 'deleteAllGameModes']);
+        })->add(new AdminRoleMiddleware('data_management'));
     })->add(new CsrfMiddleware())->add(new AdminAuthMiddleware());
 };
