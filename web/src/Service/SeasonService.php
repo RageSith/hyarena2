@@ -78,7 +78,10 @@ class SeasonService
                 if ($isSpeedRun && !empty($p['json_data'])) {
                     $json = json_decode($p['json_data'], true);
                     if ($json && !($json['is_dnf'] ?? true)) {
-                        $bestTimeMs = (int) round(($json['finish_time_nanos'] ?? 0) / 1_000_000);
+                        $ms = (int) round(($json['finish_time_nanos'] ?? 0) / 1_000_000);
+                        if ($ms > 0) {
+                            $bestTimeMs = $ms;
+                        }
                     }
                 }
 

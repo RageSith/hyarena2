@@ -60,7 +60,10 @@ class MatchSubmissionService
                 if (($data['game_mode'] ?? '') === 'speed_run' && !empty($p['json_data'])) {
                     $jsonData = json_decode($p['json_data'], true);
                     if ($jsonData && !($jsonData['is_dnf'] ?? true)) {
-                        $finishTimeMs = (int) round(($jsonData['finish_time_nanos'] ?? 0) / 1_000_000);
+                        $ms = (int) round(($jsonData['finish_time_nanos'] ?? 0) / 1_000_000);
+                        if ($ms > 0) {
+                            $finishTimeMs = $ms;
+                        }
                     }
                 }
 

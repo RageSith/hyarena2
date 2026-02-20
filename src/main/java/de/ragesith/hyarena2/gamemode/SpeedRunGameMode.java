@@ -101,6 +101,7 @@ public class SpeedRunGameMode implements GameMode {
         int checkpointCount = config.getCheckpoints() != null ? config.getCheckpoints().size() : 0;
         state.checkpointSplitNanos = new long[checkpointCount];
         state.livesRemaining = config.getMaxRespawns();
+        state.initialLives = config.getMaxRespawns();
         state.playerUuid = player.getUniqueId();
         state.inZone = true; // Start in start zone, timer paused
 
@@ -474,13 +475,14 @@ public class SpeedRunGameMode implements GameMode {
         SpeedRunState state = matchStates.get(matchId);
         if (state == null) return null;
 
+        // If the match ended without finishing or explicit DNF (i.e. timeout), treat as DNF
+        boolean isDnf = state.isDNF || !state.finished;
+
         JsonObject json = new JsonObject();
-        json.addProperty("finish_time_nanos", state.finishTimeNanos);
-        json.addProperty("is_dnf", state.isDNF);
-        json.addProperty("lives_used", (state.personalBest != null ? 0 : 0) + // placeholder
-            (getInitialLives(matchId) - state.livesRemaining));
+        json.addProperty("finish_time_nanos", state.finished ? state.finishTimeNanos : 0);
+        json.addProperty("is_dnf", isDnf);
+        json.addProperty("lives_used", state.initialLives - state.livesRemaining);
         json.addProperty("checkpoints_reached", state.lastCheckpointReached + 1);
-        json.addProperty("is_new_pb", state.isNewPB);
 
         if (state.checkpointSplitNanos != null) {
             com.google.gson.JsonArray splits = new com.google.gson.JsonArray();
@@ -491,12 +493,6 @@ public class SpeedRunGameMode implements GameMode {
         }
 
         return json.toString();
-    }
-
-    private int getInitialLives(UUID matchId) {
-        // Not stored separately, but we can look up from config via match
-        // For simplicity, return maxRespawns default
-        return 3;
     }
 
     // Zone helpers
@@ -605,5 +601,6 @@ public class SpeedRunGameMode implements GameMode {
         public boolean isNewPB;
         public SpeedRunPB personalBest;
         public int killPlaneGraceTicks;
+        public int initialLives;
     }
 }
