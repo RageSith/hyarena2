@@ -117,7 +117,19 @@ class ApiController
         try {
             $statsRepo = new StatsRepository();
 
-            if ($gameMode !== null) {
+            if ($gameMode === 'speed_run') {
+                // Per-arena records: one row per speed_run map with the record holder
+                $records = $statsRepo->getSpeedRunRecords();
+                $result = [
+                    'entries' => $records,
+                    'total' => count($records),
+                    'page' => 1,
+                    'per_page' => count($records),
+                    'total_pages' => 1,
+                    'game_mode' => 'speed_run',
+                    'type' => 'records',
+                ];
+            } elseif ($gameMode !== null) {
                 // Per-game-mode aggregation
                 $entries = $statsRepo->getLeaderboardByGameMode($gameMode, $sort, $order, $perPage, $offset);
                 $total = $statsRepo->getLeaderboardCountByGameMode($gameMode);

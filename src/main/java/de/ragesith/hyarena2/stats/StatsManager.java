@@ -526,6 +526,52 @@ public class StatsManager {
         return future;
     }
 
+    /**
+     * Fetches per-arena speed run records (one record holder per map).
+     */
+    public CompletableFuture<List<SpeedRunRecord>> fetchSpeedRunRecords() {
+        return apiClient.getAsync("/api/leaderboard?game_mode=speed_run")
+            .thenApply(response -> {
+                if (response == null || response.statusCode() != 200) {
+                    return List.<SpeedRunRecord>of();
+                }
+                return parseSpeedRunRecords(response.body());
+            })
+            .exceptionally(ex -> {
+                System.err.println("[StatsManager] Speed run records fetch error: " + ex.getMessage());
+                return List.of();
+            });
+    }
+
+    private List<SpeedRunRecord> parseSpeedRunRecords(String json) {
+        try {
+            JsonObject root = gson.fromJson(json, JsonObject.class);
+            if (!root.has("success") || !root.get("success").getAsBoolean()) {
+                return List.of();
+            }
+
+            JsonObject data = root.getAsJsonObject("data");
+            JsonArray entriesArr = data.getAsJsonArray("entries");
+            List<SpeedRunRecord> records = new ArrayList<>();
+
+            for (JsonElement el : entriesArr) {
+                JsonObject e = el.getAsJsonObject();
+                records.add(new SpeedRunRecord(
+                    getStringOr(e, "arena_id", ""),
+                    getStringOr(e, "arena_name", "Unknown"),
+                    getStringOr(e, "player_uuid", null),
+                    getStringOr(e, "username", null),
+                    getIntOr(e, "best_time_ms", 0)
+                ));
+            }
+
+            return records;
+        } catch (Exception e) {
+            System.err.println("[StatsManager] Failed to parse speed run records: " + e.getMessage());
+            return List.of();
+        }
+    }
+
     private CompletableFuture<LeaderboardResult> doFetchLeaderboard(String scope, String sort, int page) {
         StringBuilder path = new StringBuilder("/api/leaderboard?");
         if ("global".equals(scope)) {

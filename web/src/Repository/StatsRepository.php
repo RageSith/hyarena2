@@ -278,6 +278,40 @@ class StatsRepository
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Returns one row per active speed_run arena: the record holder and their best time.
+     * Arenas with no completions are included with NULL player/time.
+     */
+    public function getSpeedRunRecords(): array
+    {
+        $db = Database::getConnection();
+        $sql = "
+            SELECT
+                a.id AS arena_id,
+                COALESCE(a.display_name, a.id) AS arena_name,
+                ranked.player_uuid,
+                ranked.username,
+                ranked.best_time_ms
+            FROM arenas a
+            LEFT JOIN (
+                SELECT
+                    ps.arena_id,
+                    ps.player_uuid,
+                    p.username,
+                    ps.best_time_ms,
+                    ROW_NUMBER() OVER (PARTITION BY ps.arena_id ORDER BY ps.best_time_ms ASC) AS rn
+                FROM player_stats ps
+                JOIN players p ON ps.player_uuid = p.uuid
+                WHERE ps.best_time_ms IS NOT NULL AND ps.best_time_ms > 0
+            ) ranked ON ranked.arena_id = a.id AND ranked.rn = 1
+            WHERE a.game_mode = 'speed_run'
+              AND a.is_visible = 1
+              AND a.shown = 1
+            ORDER BY a.display_name
+        ";
+        return $db->query($sql)->fetchAll();
+    }
+
     public function getPlayerRecentMatches(string $playerUuid, int $limit = 10): array
     {
         $db = Database::getConnection();

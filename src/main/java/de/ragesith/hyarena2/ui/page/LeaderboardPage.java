@@ -19,6 +19,7 @@ import de.ragesith.hyarena2.arena.MatchManager;
 import de.ragesith.hyarena2.gamemode.GameMode;
 import de.ragesith.hyarena2.stats.LeaderboardEntry;
 import de.ragesith.hyarena2.stats.LeaderboardResult;
+import de.ragesith.hyarena2.stats.SpeedRunRecord;
 import de.ragesith.hyarena2.stats.StatsManager;
 import de.ragesith.hyarena2.ui.hud.HudManager;
 
@@ -64,12 +65,6 @@ public class LeaderboardPage extends InteractiveCustomUIPage<LeaderboardPage.Pag
         new ColumnDef("PvE Kills", "pve_kills"),
         new ColumnDef("PvE Deaths", "pve_deaths"),
         new ColumnDef("Matches", "matches_played"),
-    };
-
-    private static final ColumnDef[] SPEEDRUN_COLUMNS = {
-        new ColumnDef("Best Time", "best_time_ms"),
-        new ColumnDef("Matches", "matches_played"),
-        new ColumnDef("Wins", "matches_won"),
     };
 
     public LeaderboardPage(PlayerRef playerRef, UUID playerUuid,
@@ -135,13 +130,22 @@ public class LeaderboardPage extends InteractiveCustomUIPage<LeaderboardPage.Pag
         }
 
         // Header
+        String scopeId = scopeEntries.get(selectedScopeIndex).id;
         cmd.set("#ScopeName.Text", scopeEntries.get(selectedScopeIndex).displayName);
 
+        boolean isSpeedRun = "speed_run".equals(scopeId);
+
         // Column headers
-        ColumnDef[] columns = getColumnsForScope();
-        for (int c = 0; c < MAX_COLUMNS; c++) {
-            if (c < columns.length) {
-                cmd.set("#HdrStat" + c + ".Text", columns[c].displayName);
+        if (isSpeedRun) {
+            cmd.set("#HdrName.Text", "Map");
+            cmd.set("#HdrStat0.Text", "Record Holder");
+            cmd.set("#HdrStat1.Text", "Best Time");
+        } else {
+            ColumnDef[] columns = getColumnsForScope();
+            for (int c = 0; c < MAX_COLUMNS; c++) {
+                if (c < columns.length) {
+                    cmd.set("#HdrStat" + c + ".Text", columns[c].displayName);
+                }
             }
         }
 
@@ -159,17 +163,28 @@ public class LeaderboardPage extends InteractiveCustomUIPage<LeaderboardPage.Pag
         hudManager.registerPage(playerUuid, this);
 
         // Fetch data
-        String scope = scopeEntries.get(selectedScopeIndex).id;
-        ColumnDef[] fetchColumns = columns;
-        statsManager.fetchLeaderboard(scope, currentSort, currentPage)
-            .thenAccept(result -> {
-                if (!active) return;
-                try {
-                    populateResults(result, fetchColumns);
-                } catch (Exception e) {
-                    System.err.println("[LeaderboardPage] Error populating: " + e.getMessage());
-                }
-            });
+        if (isSpeedRun) {
+            statsManager.fetchSpeedRunRecords()
+                .thenAccept(records -> {
+                    if (!active) return;
+                    try {
+                        populateSpeedRunRecords(records);
+                    } catch (Exception e) {
+                        System.err.println("[LeaderboardPage] Error populating speed run records: " + e.getMessage());
+                    }
+                });
+        } else {
+            ColumnDef[] fetchColumns = getColumnsForScope();
+            statsManager.fetchLeaderboard(scopeId, currentSort, currentPage)
+                .thenAccept(result -> {
+                    if (!active) return;
+                    try {
+                        populateResults(result, fetchColumns);
+                    } catch (Exception e) {
+                        System.err.println("[LeaderboardPage] Error populating: " + e.getMessage());
+                    }
+                });
+        }
     }
 
     private void populateResults(LeaderboardResult result, ColumnDef[] columns) {
@@ -220,6 +235,43 @@ public class LeaderboardPage extends InteractiveCustomUIPage<LeaderboardPage.Pag
         safeSendUpdate(cmd);
     }
 
+    private void populateSpeedRunRecords(List<SpeedRunRecord> records) {
+        UICommandBuilder cmd = new UICommandBuilder();
+
+        cmd.set("#LoadingLabel.Visible", false);
+
+        if (records.isEmpty()) {
+            cmd.set("#EmptyNotice.Visible", true);
+            safeSendUpdate(cmd);
+            return;
+        }
+
+        cmd.set("#TotalPlayers.Text", records.size() + " maps");
+
+        for (int i = 0; i < records.size(); i++) {
+            SpeedRunRecord rec = records.get(i);
+
+            cmd.append("#EntryList", "Pages/LeaderboardRow.ui");
+            String row = "#EntryList[" + i + "]";
+
+            cmd.set(row + " #Rank.Text", String.valueOf(i + 1));
+
+            cmd.set(row + " #PlayerName.Text", rec.getArenaName());
+            cmd.set(row + " #PlayerName.Style.TextColor", "#e8c872");
+
+            String holder = rec.getUsername() != null ? rec.getUsername() : "-";
+            cmd.set(row + " #Stat0.Text", holder);
+
+            String time = rec.getBestTimeMs() > 0 ? formatTimeMs(rec.getBestTimeMs()) : "-";
+            cmd.set(row + " #Stat1.Text", time);
+            if (rec.getBestTimeMs() > 0) {
+                cmd.set(row + " #Stat1.Style.TextColor", "#7dcea0");
+            }
+        }
+
+        safeSendUpdate(cmd);
+    }
+
     private String getStatValue(LeaderboardEntry entry, String field) {
         return switch (field) {
             case "pvp_kills" -> String.valueOf(entry.getPvpKills());
@@ -258,9 +310,6 @@ public class LeaderboardPage extends InteractiveCustomUIPage<LeaderboardPage.Pag
             if ("wave_defense".equals(scopeId)) {
                 return WAVE_COLUMNS;
             }
-            if ("speed_run".equals(scopeId)) {
-                return SPEEDRUN_COLUMNS;
-            }
         }
         return PVP_COLUMNS;
     }
@@ -270,9 +319,6 @@ public class LeaderboardPage extends InteractiveCustomUIPage<LeaderboardPage.Pag
             String scopeId = scopeEntries.get(selectedScopeIndex).id;
             if ("wave_defense".equals(scopeId)) {
                 return "best_waves_survived";
-            }
-            if ("speed_run".equals(scopeId)) {
-                return "best_time_ms";
             }
         }
         return "pvp_kills";
