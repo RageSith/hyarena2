@@ -163,8 +163,8 @@ async function loadRecentMatches() {
                 }
 
                 const bgSrc = match.arena_icon
-                    ? `/assets/images/maps/${encodeURIComponent(match.arena_icon)}`
-                    : '/assets/images/maps/noimage.png';
+                    ? `/uploads/arenas/${encodeURIComponent(match.arena_icon)}`
+                    : '/uploads/arenas/noimage.png';
 
                 return `
                     <div class="battle-entry clickable" onclick="showMatchDetails(${match.id})" title="Click for details" style="background-image: url('${bgSrc}')">
@@ -382,8 +382,8 @@ async function showMatchDetails(matchId) {
         }
 
         const modalThumbSrc = match.arena_icon
-            ? `/assets/images/maps/${encodeURIComponent(match.arena_icon)}`
-            : '/assets/images/maps/noimage.png';
+            ? `/uploads/arenas/${encodeURIComponent(match.arena_icon)}`
+            : '/uploads/arenas/noimage.png';
 
         document.getElementById('match-modal-body').innerHTML = `
             <div class="match-modal-image" style="background-image: url('${modalThumbSrc}')"></div>

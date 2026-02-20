@@ -314,8 +314,8 @@ function displayPlayerProfile(data) {
                 }
 
                 const matchBgSrc = match.arena_icon
-                    ? `/assets/images/maps/${encodeURIComponent(match.arena_icon)}`
-                    : '/assets/images/maps/noimage.png';
+                    ? `/uploads/arenas/${encodeURIComponent(match.arena_icon)}`
+                    : '/uploads/arenas/noimage.png';
 
                 return `
                     <div class="match-card ${resultClass}" style="background-image: url('${matchBgSrc}')">

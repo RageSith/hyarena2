@@ -115,8 +115,8 @@ async function loadArenas() {
                 const gameMode = translateGameMode(arena.game_mode);
 
                 const imageHtml = arena.icon
-                    ? `<div class="arena-card-image" style="background-image: url('/assets/images/maps/${encodeURIComponent(arena.icon)}')"></div>`
-                    : `<div class="arena-card-image" style="background-image: url('/assets/images/maps/noimage.png')"></div>`;
+                    ? `<div class="arena-card-image" style="background-image: url('/uploads/arenas/${encodeURIComponent(arena.icon)}')"></div>`
+                    : `<div class="arena-card-image" style="background-image: url('/uploads/arenas/noimage.png')"></div>`;
 
                 return `
                     <div class="arena-card">

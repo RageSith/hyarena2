@@ -8,11 +8,11 @@ class AdminPermissions
         'super_admin' => [
             'dashboard', 'bug_reports', 'players',
             'notifications', 'seasons', 'webhooks', 'admin_users', 'servers',
-            'data_management',
+            'data_management', 'arenas',
         ],
         'admin' => [
             'dashboard', 'bug_reports', 'players',
-            'notifications', 'seasons', 'servers',
+            'notifications', 'seasons', 'servers', 'arenas',
         ],
         'moderator' => [
             'dashboard', 'bug_reports', 'players',

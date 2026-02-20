@@ -833,6 +833,57 @@ details.danger-toggle summary:hover {
     margin: 2rem 0;
 }
 
+/* Arena Admin */
+.arena-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    object-fit: cover;
+    display: block;
+}
+
+.arena-thumb-empty {
+    background: var(--admin-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--admin-text-muted);
+}
+
+.arena-row-orphaned {
+    opacity: 0.5;
+}
+
+.arena-edit-row td {
+    background: var(--admin-bg-light);
+    padding: 1rem;
+}
+
+.arena-edit-form {
+    max-width: 100%;
+}
+
+.arena-edit-grid {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.arena-edit-grid .form-group {
+    margin-bottom: 0;
+}
+
+.arena-file-input {
+    padding: 0.4rem;
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    color: var(--admin-text);
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .admin-sidebar {

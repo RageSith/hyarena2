@@ -58,4 +58,24 @@ class ArenaRepository
         $db = Database::getConnection();
         return (int) $db->query('SELECT COUNT(*) FROM arenas WHERE is_visible = 1 AND shown = 1')->fetchColumn();
     }
+
+    public function getAllAdmin(): array
+    {
+        $db = Database::getConnection();
+        return $db->query('SELECT * FROM arenas ORDER BY is_visible DESC, display_name')->fetchAll();
+    }
+
+    public function updateIcon(string $id, ?string $icon): void
+    {
+        $db = Database::getConnection();
+        $stmt = $db->prepare('UPDATE arenas SET icon = :icon WHERE id = :id');
+        $stmt->execute(['icon' => $icon, 'id' => $id]);
+    }
+
+    public function updateShown(string $id, bool $shown): void
+    {
+        $db = Database::getConnection();
+        $stmt = $db->prepare('UPDATE arenas SET shown = :shown WHERE id = :id');
+        $stmt->execute(['shown' => $shown ? 1 : 0, 'id' => $id]);
+    }
 }

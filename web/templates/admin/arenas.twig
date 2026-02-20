@@ -1,0 +1,107 @@
+{% extends "admin/layout.twig" %}
+
+{% block title %}Arenas{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-page-header">
+        <h1>Arenas</h1>
+    </div>
+
+    {% if success %}
+    <div class="alert alert-success">{{ success }}</div>
+    {% endif %}
+
+    <div class="admin-table-wrapper">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Image</th>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Game Mode</th>
+                    <th>Players</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for arena in arenas %}
+                <tr class="{% if not arena.is_visible %}arena-row-orphaned{% endif %}">
+                    <td>
+                        {% if arena.icon %}
+                        <img src="/uploads/arenas/{{ arena.icon }}" class="arena-thumb" alt="{{ arena.display_name }}">
+                        {% else %}
+                        <div class="arena-thumb arena-thumb-empty">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <path d="M21 15l-5-5L5 21"/>
+                            </svg>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td><code>{{ arena.id }}</code></td>
+                    <td>{{ arena.display_name }}</td>
+                    <td><span class="badge badge-info">{{ arena.game_mode }}</span></td>
+                    <td>{{ arena.min_players }}-{{ arena.max_players }}</td>
+                    <td>
+                        {% if not arena.is_visible %}
+                        <span class="badge badge-bug-closed">Orphaned</span>
+                        {% elseif arena.shown %}
+                        <span class="badge badge-active">Shown</span>
+                        {% else %}
+                        <span class="badge badge-bug-open">Hidden</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="toggleArenaEdit('{{ arena.id }}')">Edit</button>
+                    </td>
+                </tr>
+                <tr id="edit-{{ arena.id }}" class="arena-edit-row" style="display: none;">
+                    <td colspan="7">
+                        <form method="POST" action="/admin/arenas/{{ arena.id }}" enctype="multipart/form-data" class="arena-edit-form">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                            <div class="arena-edit-grid">
+                                <div class="form-group">
+                                    <label>Upload Image</label>
+                                    <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp" class="arena-file-input">
+                                    <span class="text-muted" style="font-size: 0.75rem;">640x478, caption auto-applied</span>
+                                </div>
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" name="shown" value="1" {% if arena.shown %}checked{% endif %}>
+                                        Shown on website
+                                    </label>
+                                    {% if arena.icon %}
+                                    <label class="checkbox-label" style="margin-top: 0.5rem;">
+                                        <input type="checkbox" name="remove_image" value="1">
+                                        Remove current image
+                                    </label>
+                                    {% endif %}
+                                </div>
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="toggleArenaEdit('{{ arena.id }}')">Cancel</button>
+                                </div>
+                            </div>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="empty">No arenas found. Arenas are synced from the plugin.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function toggleArenaEdit(id) {
+    const row = document.getElementById('edit-' + id);
+    row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+}
+</script>
+{% endblock %}

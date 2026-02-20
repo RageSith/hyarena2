@@ -9,6 +9,7 @@ use App\Controller\LinkController;
 use App\Controller\PlayerManagementController;
 use App\Controller\SeasonApiController;
 use App\Controller\SeasonAdminController;
+use App\Controller\ArenaAdminController;
 use App\Controller\DataManagementController;
 use App\Controller\ServerManagerController;
 use App\Middleware\ApiKeyMiddleware;
@@ -144,6 +145,12 @@ return function (App $app) {
             $inner->post('/users/{id}/edit', [AdminUserController::class, 'edit']);
             $inner->post('/users/{id}/delete', [AdminUserController::class, 'delete']);
         })->add(new AdminRoleMiddleware('admin_users'));
+
+        // Arenas (admin+ only)
+        $group->group('', function (RouteCollectorProxy $inner) {
+            $inner->get('/arenas', [ArenaAdminController::class, 'list']);
+            $inner->post('/arenas/{id}', [ArenaAdminController::class, 'edit']);
+        })->add(new AdminRoleMiddleware('arenas'));
 
         // Hywarden Server Manager (admin+ only)
         $group->group('', function (RouteCollectorProxy $inner) {
