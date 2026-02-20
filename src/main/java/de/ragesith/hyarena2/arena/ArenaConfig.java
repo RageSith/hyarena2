@@ -136,50 +136,12 @@ public class ArenaConfig {
         if (spawnPoints == null || spawnPoints.size() < requiredSpawnPoints) return false;
         if (bounds == null) return false;
 
-        // Normalize bounds so min < max on all axes (Gson may deserialize swapped corners)
-        bounds.normalize();
-
-        // Normalize capture zones too
-        if (captureZones != null) {
-            for (CaptureZone zone : captureZones) {
-                double tmpMinX = Math.min(zone.getMinX(), zone.getMaxX());
-                double tmpMaxX = Math.max(zone.getMinX(), zone.getMaxX());
-                double tmpMinY = Math.min(zone.getMinY(), zone.getMaxY());
-                double tmpMaxY = Math.max(zone.getMinY(), zone.getMaxY());
-                double tmpMinZ = Math.min(zone.getMinZ(), zone.getMaxZ());
-                double tmpMaxZ = Math.max(zone.getMinZ(), zone.getMaxZ());
-                zone.setMinX(tmpMinX); zone.setMaxX(tmpMaxX);
-                zone.setMinY(tmpMinY); zone.setMaxY(tmpMaxY);
-                zone.setMinZ(tmpMinZ); zone.setMaxZ(tmpMaxZ);
-            }
-        }
-
         // Speed run validation
         if ("speed_run".equals(gameMode)) {
             if (startZone == null || finishZone == null) return false;
-            // Normalize speedrun zones
-            normalizeZone(startZone);
-            normalizeZone(finishZone);
-            if (checkpoints != null) {
-                for (CaptureZone cp : checkpoints) {
-                    normalizeZone(cp);
-                }
-            }
         }
 
         return true;
-    }
-
-    private static void normalizeZone(CaptureZone zone) {
-        double tmpMinX = Math.min(zone.getMinX(), zone.getMaxX());
-        double tmpMaxX = Math.max(zone.getMinX(), zone.getMaxX());
-        double tmpMinY = Math.min(zone.getMinY(), zone.getMaxY());
-        double tmpMaxY = Math.max(zone.getMinY(), zone.getMaxY());
-        double tmpMinZ = Math.min(zone.getMinZ(), zone.getMaxZ());
-        double tmpMaxZ = Math.max(zone.getMinZ(), zone.getMaxZ());
-        zone.setMinX(tmpMinX); zone.setMaxX(tmpMaxX);
-        zone.setMinY(tmpMinY); zone.setMaxY(tmpMaxY);
-        zone.setMinZ(tmpMinZ); zone.setMaxZ(tmpMaxZ);
     }
 
     /**
@@ -257,9 +219,12 @@ public class ArenaConfig {
         public void setMaxZ(double maxZ) { this.maxZ = maxZ; }
 
         public boolean contains(double x, double y, double z) {
-            return x >= minX && x <= maxX &&
-                   y >= minY && y <= maxY &&
-                   z >= minZ && z <= maxZ;
+            double loX = Math.min(minX, maxX), hiX = Math.max(minX, maxX);
+            double loY = Math.min(minY, maxY), hiY = Math.max(minY, maxY);
+            double loZ = Math.min(minZ, maxZ), hiZ = Math.max(minZ, maxZ);
+            return x >= loX && x <= hiX &&
+                   y >= loY && y <= hiY &&
+                   z >= loZ && z <= hiZ;
         }
     }
 
@@ -277,25 +242,12 @@ public class ArenaConfig {
         public Bounds() {}
 
         public Bounds(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
-            this.minX = Math.min(minX, maxX);
-            this.minY = Math.min(minY, maxY);
-            this.minZ = Math.min(minZ, maxZ);
-            this.maxX = Math.max(minX, maxX);
-            this.maxY = Math.max(minY, maxY);
-            this.maxZ = Math.max(minZ, maxZ);
-        }
-
-        /**
-         * Normalizes bounds so min &lt; max on all axes.
-         * Called after deserialization (Gson bypasses constructors).
-         */
-        public void normalize() {
-            double tmpMinX = Math.min(minX, maxX), tmpMaxX = Math.max(minX, maxX);
-            double tmpMinY = Math.min(minY, maxY), tmpMaxY = Math.max(minY, maxY);
-            double tmpMinZ = Math.min(minZ, maxZ), tmpMaxZ = Math.max(minZ, maxZ);
-            this.minX = tmpMinX; this.maxX = tmpMaxX;
-            this.minY = tmpMinY; this.maxY = tmpMaxY;
-            this.minZ = tmpMinZ; this.maxZ = tmpMaxZ;
+            this.minX = minX;
+            this.minY = minY;
+            this.minZ = minZ;
+            this.maxX = maxX;
+            this.maxY = maxY;
+            this.maxZ = maxZ;
         }
 
         public double getMinX() { return minX; }
@@ -323,38 +275,47 @@ public class ArenaConfig {
         }
 
         /**
-         * Checks if a position is within the bounds
+         * Checks if a position is within the bounds.
+         * Handles either corner order (min/max are just corner 1/corner 2).
          */
         public boolean contains(double x, double y, double z) {
-            return x >= minX && x <= maxX &&
-                   y >= minY && y <= maxY &&
-                   z >= minZ && z <= maxZ;
+            double loX = Math.min(minX, maxX), hiX = Math.max(minX, maxX);
+            double loY = Math.min(minY, maxY), hiY = Math.max(minY, maxY);
+            double loZ = Math.min(minZ, maxZ), hiZ = Math.max(minZ, maxZ);
+            return x >= loX && x <= hiX &&
+                   y >= loY && y <= hiY &&
+                   z >= loZ && z <= hiZ;
         }
 
         /**
          * Checks if a position is within the bounds shrunk by margin on each side.
+         * Handles either corner order.
          */
         public boolean containsWithMargin(double x, double y, double z, double margin) {
-            return x >= minX + margin && x <= maxX - margin &&
-                   y >= minY + margin && y <= maxY - margin &&
-                   z >= minZ + margin && z <= maxZ - margin;
+            double loX = Math.min(minX, maxX), hiX = Math.max(minX, maxX);
+            double loY = Math.min(minY, maxY), hiY = Math.max(minY, maxY);
+            double loZ = Math.min(minZ, maxZ), hiZ = Math.max(minZ, maxZ);
+            return x >= loX + margin && x <= hiX - margin &&
+                   y >= loY + margin && y <= hiY - margin &&
+                   z >= loZ + margin && z <= hiZ - margin;
         }
 
         /**
          * Clamps a position to be inside the bounds shrunk by margin.
          * Returns a double[3] with {clampedX, clampedY, clampedZ}.
+         * Handles either corner order.
          */
         public double[] clampInside(double x, double y, double z, double margin) {
-            double effectiveMinX = minX + margin;
-            double effectiveMaxX = maxX - margin;
-            double effectiveMinY = minY + margin;
-            double effectiveMaxY = maxY - margin;
-            double effectiveMinZ = minZ + margin;
-            double effectiveMaxZ = maxZ - margin;
+            double loX = Math.min(minX, maxX) + margin;
+            double hiX = Math.max(minX, maxX) - margin;
+            double loY = Math.min(minY, maxY) + margin;
+            double hiY = Math.max(minY, maxY) - margin;
+            double loZ = Math.min(minZ, maxZ) + margin;
+            double hiZ = Math.max(minZ, maxZ) - margin;
             return new double[] {
-                Math.max(effectiveMinX, Math.min(x, effectiveMaxX)),
-                Math.max(effectiveMinY, Math.min(y, effectiveMaxY)),
-                Math.max(effectiveMinZ, Math.min(z, effectiveMaxZ))
+                Math.max(loX, Math.min(x, hiX)),
+                Math.max(loY, Math.min(y, hiY)),
+                Math.max(loZ, Math.min(z, hiZ))
             };
         }
     }

@@ -345,7 +345,7 @@ public class SpeedRunGameMode implements GameMode {
         }
 
         double cx = (zone.getMinX() + zone.getMaxX()) / 2.0;
-        double cy = zone.getMinY() + 1.0; // Slightly above the floor
+        double cy = Math.min(zone.getMinY(), zone.getMaxY()) + 1.0; // Slightly above the floor
         double cz = (zone.getMinZ() + zone.getMaxZ()) / 2.0;
         return new Position(cx, cy, cz, 0, 0);
     }
@@ -721,9 +721,12 @@ public class SpeedRunGameMode implements GameMode {
     private boolean isInZone(ArenaConfig.CaptureZone zone, Vector3d pos) {
         if (zone == null || pos == null) return false;
         double x = pos.getX(), y = pos.getY(), z = pos.getZ();
-        return x >= zone.getMinX() && x <= zone.getMaxX() &&
-               y >= zone.getMinY() - Y_TOLERANCE && y <= zone.getMaxY() + Y_TOLERANCE &&
-               z >= zone.getMinZ() && z <= zone.getMaxZ();
+        double loX = Math.min(zone.getMinX(), zone.getMaxX()), hiX = Math.max(zone.getMinX(), zone.getMaxX());
+        double loY = Math.min(zone.getMinY(), zone.getMaxY()), hiY = Math.max(zone.getMinY(), zone.getMaxY());
+        double loZ = Math.min(zone.getMinZ(), zone.getMaxZ()), hiZ = Math.max(zone.getMinZ(), zone.getMaxZ());
+        return x >= loX && x <= hiX &&
+               y >= loY - Y_TOLERANCE && y <= hiY + Y_TOLERANCE &&
+               z >= loZ && z <= hiZ;
     }
 
     private void maintainPlayerStats(UUID playerUuid) {

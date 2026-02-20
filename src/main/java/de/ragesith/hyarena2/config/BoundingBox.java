@@ -23,13 +23,12 @@ public class BoundingBox {
      * Creates a bounding box from min/max coordinates.
      */
     public BoundingBox(double minX, double minY, double minZ, double maxX, double maxY, double maxZ) {
-        // Ensure min is actually min and max is actually max
-        this.minX = Math.min(minX, maxX);
-        this.minY = Math.min(minY, maxY);
-        this.minZ = Math.min(minZ, maxZ);
-        this.maxX = Math.max(minX, maxX);
-        this.maxY = Math.max(minY, maxY);
-        this.maxZ = Math.max(minZ, maxZ);
+        this.minX = minX;
+        this.minY = minY;
+        this.minZ = minZ;
+        this.maxX = maxX;
+        this.maxY = maxY;
+        this.maxZ = maxZ;
     }
 
     /**
@@ -42,19 +41,26 @@ public class BoundingBox {
 
     /**
      * Checks if a position is inside this bounding box.
+     * Handles either corner order.
      */
     public boolean contains(double x, double y, double z) {
-        return x >= minX && x <= maxX &&
-               y >= minY && y <= maxY &&
-               z >= minZ && z <= maxZ;
+        double loX = Math.min(minX, maxX), hiX = Math.max(minX, maxX);
+        double loY = Math.min(minY, maxY), hiY = Math.max(minY, maxY);
+        double loZ = Math.min(minZ, maxZ), hiZ = Math.max(minZ, maxZ);
+        return x >= loX && x <= hiX &&
+               y >= loY && y <= hiY &&
+               z >= loZ && z <= hiZ;
     }
 
     /**
      * Checks if a position is inside this bounding box (X/Z only, ignores Y).
+     * Handles either corner order.
      */
     public boolean containsXZ(double x, double z) {
-        return x >= minX && x <= maxX &&
-               z >= minZ && z <= maxZ;
+        double loX = Math.min(minX, maxX), hiX = Math.max(minX, maxX);
+        double loZ = Math.min(minZ, maxZ), hiZ = Math.max(minZ, maxZ);
+        return x >= loX && x <= hiX &&
+               z >= loZ && z <= hiZ;
     }
 
     /**
@@ -78,12 +84,16 @@ public class BoundingBox {
     /**
      * Clamps a position to be inside this bounding box.
      * Returns a new Position clamped to the bounds.
+     * Handles either corner order.
      */
     public Position clamp(Position pos) {
+        double loX = Math.min(minX, maxX), hiX = Math.max(minX, maxX);
+        double loY = Math.min(minY, maxY), hiY = Math.max(minY, maxY);
+        double loZ = Math.min(minZ, maxZ), hiZ = Math.max(minZ, maxZ);
         return new Position(
-            Math.max(minX, Math.min(maxX, pos.getX())),
-            Math.max(minY, Math.min(maxY, pos.getY())),
-            Math.max(minZ, Math.min(maxZ, pos.getZ())),
+            Math.max(loX, Math.min(hiX, pos.getX())),
+            Math.max(loY, Math.min(hiY, pos.getY())),
+            Math.max(loZ, Math.min(hiZ, pos.getZ())),
             pos.getYaw(),
             pos.getPitch()
         );
@@ -92,35 +102,29 @@ public class BoundingBox {
     /**
      * Gets the nearest point on the boundary to the given position.
      * Useful for teleporting players back when they go out of bounds.
+     * Handles either corner order.
      */
     public Position getNearestEdge(Position pos) {
+        double loX = Math.min(minX, maxX), hiX = Math.max(minX, maxX);
+        double loY = Math.min(minY, maxY), hiY = Math.max(minY, maxY);
+        double loZ = Math.min(minZ, maxZ), hiZ = Math.max(minZ, maxZ);
+
         double x = pos.getX();
         double y = pos.getY();
         double z = pos.getZ();
 
-        // Find nearest edge for each axis
-        double nearestX = (Math.abs(x - minX) < Math.abs(x - maxX)) ? minX : maxX;
-        double nearestY = (Math.abs(y - minY) < Math.abs(y - maxY)) ? minY : maxY;
-        double nearestZ = (Math.abs(z - minZ) < Math.abs(z - maxZ)) ? minZ : maxZ;
-
-        // Find which axis is closest to an edge
-        double distX = Math.min(Math.abs(x - minX), Math.abs(x - maxX));
-        double distY = Math.min(Math.abs(y - minY), Math.abs(y - maxY));
-        double distZ = Math.min(Math.abs(z - minZ), Math.abs(z - maxZ));
-
-        // Clamp to the boundary while staying close to original position
         double resultX = x;
         double resultY = y;
         double resultZ = z;
 
-        if (x < minX) resultX = minX + 0.5;
-        else if (x > maxX) resultX = maxX - 0.5;
+        if (x < loX) resultX = loX + 0.5;
+        else if (x > hiX) resultX = hiX - 0.5;
 
-        if (y < minY) resultY = minY + 0.5;
-        else if (y > maxY) resultY = maxY - 0.5;
+        if (y < loY) resultY = loY + 0.5;
+        else if (y > hiY) resultY = hiY - 0.5;
 
-        if (z < minZ) resultZ = minZ + 0.5;
-        else if (z > maxZ) resultZ = maxZ - 0.5;
+        if (z < loZ) resultZ = loZ + 0.5;
+        else if (z > hiZ) resultZ = hiZ - 0.5;
 
         return new Position(resultX, resultY, resultZ, pos.getYaw(), pos.getPitch());
     }
@@ -179,7 +183,7 @@ public class BoundingBox {
      * Checks if this bounding box is valid (has non-zero volume).
      */
     public boolean isValid() {
-        return maxX > minX && maxY > minY && maxZ > minZ;
+        return maxX != minX && maxY != minY && maxZ != minZ;
     }
 
     @Override
