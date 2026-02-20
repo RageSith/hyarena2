@@ -1,0 +1,28 @@
+Group #SRRow {
+    Anchor: (Height: 28);
+    LayoutMode: Left;
+
+    Label #Rank {
+        Text: "1";
+        Anchor: (Width: 30);
+        Style: (FontSize: 13, TextColor: #b7cedd, Alignment: Center, VerticalAlignment: Center, RenderBold: true);
+    }
+
+    Label #MapName {
+        Text: "Map";
+        Anchor: (Width: 200);
+        Style: (FontSize: 13, TextColor: #e8c872, VerticalAlignment: Center);
+    }
+
+    Label #RecordHolder {
+        Text: "-";
+        FlexWeight: 1;
+        Style: (FontSize: 12, TextColor: #b7cedd, Alignment: Center, VerticalAlignment: Center);
+    }
+
+    Label #BestTime {
+        Text: "-";
+        FlexWeight: 1;
+        Style: (FontSize: 12, TextColor: #96a9be, Alignment: Center, VerticalAlignment: Center);
+    }
+}

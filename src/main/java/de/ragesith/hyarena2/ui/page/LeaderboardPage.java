@@ -138,8 +138,12 @@ public class LeaderboardPage extends InteractiveCustomUIPage<LeaderboardPage.Pag
         // Column headers
         if (isSpeedRun) {
             cmd.set("#HdrName.Text", "Map");
+            cmd.set("#HdrName.Visible", false);
             cmd.set("#HdrStat0.Text", "Record Holder");
             cmd.set("#HdrStat1.Text", "Best Time");
+            cmd.set("#HdrStat2.Visible", false);
+            cmd.set("#HdrStat3.Visible", false);
+            cmd.set("#HdrStat4.Visible", false);
         } else {
             ColumnDef[] columns = getColumnsForScope();
             for (int c = 0; c < MAX_COLUMNS; c++) {
@@ -251,21 +255,19 @@ public class LeaderboardPage extends InteractiveCustomUIPage<LeaderboardPage.Pag
         for (int i = 0; i < records.size(); i++) {
             SpeedRunRecord rec = records.get(i);
 
-            cmd.append("#EntryList", "Pages/LeaderboardRow.ui");
+            cmd.append("#EntryList", "Pages/SpeedRunRecordRow.ui");
             String row = "#EntryList[" + i + "]";
 
             cmd.set(row + " #Rank.Text", String.valueOf(i + 1));
-
-            cmd.set(row + " #PlayerName.Text", rec.getArenaName());
-            cmd.set(row + " #PlayerName.Style.TextColor", "#e8c872");
+            cmd.set(row + " #MapName.Text", rec.getArenaName());
 
             String holder = rec.getUsername() != null ? rec.getUsername() : "-";
-            cmd.set(row + " #Stat0.Text", holder);
+            cmd.set(row + " #RecordHolder.Text", holder);
 
             String time = rec.getBestTimeMs() > 0 ? formatTimeMs(rec.getBestTimeMs()) : "-";
-            cmd.set(row + " #Stat1.Text", time);
+            cmd.set(row + " #BestTime.Text", time);
             if (rec.getBestTimeMs() > 0) {
-                cmd.set(row + " #Stat1.Style.TextColor", "#7dcea0");
+                cmd.set(row + " #BestTime.Style.TextColor", "#7dcea0");
             }
         }
 
