@@ -1,11 +1,15 @@
 package de.ragesith.hyarena2.gamemode;
 
 import com.google.gson.JsonObject;
+import com.hypixel.hytale.math.matrix.Matrix4d;
 import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.math.vector.Vector3f;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.protocol.DebugShape;
 import com.hypixel.hytale.protocol.packets.interface_.NotificationStyle;
+import com.hypixel.hytale.protocol.packets.player.ClearDebugShapes;
+import com.hypixel.hytale.protocol.packets.player.DisplayDebug;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.modules.entity.EntityModule;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
@@ -16,6 +20,7 @@ import com.hypixel.hytale.server.core.modules.entitystats.EntityStatValue;
 import com.hypixel.hytale.server.core.modules.entitystats.asset.EntityStatType;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.Universe;
+import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.hypixel.hytale.server.core.util.NotificationUtil;
 import de.ragesith.hyarena2.arena.ArenaConfig;
@@ -24,6 +29,7 @@ import de.ragesith.hyarena2.config.Position;
 import de.ragesith.hyarena2.hub.HubManager;
 import de.ragesith.hyarena2.participant.Participant;
 import de.ragesith.hyarena2.participant.ParticipantType;
+import de.ragesith.hyarena2.utils.HologramUtil;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,6 +44,12 @@ public class SpeedRunGameMode implements GameMode {
     private static final double Y_TOLERANCE = 0.5;
     private static final long VERY_LONG_IMMUNITY_MS = 999_999_999L; // Effectively infinite (prevents fall damage)
     private static final int STAT_REFRESH_INTERVAL = 10; // Every 10 ticks (0.5s)
+
+    // Zone visualization colors — uses protocol Vector3f for DisplayDebug packet
+    private static final com.hypixel.hytale.protocol.Vector3f COLOR_CHECKPOINT = new com.hypixel.hytale.protocol.Vector3f(0.2f, 0.6f, 1.0f); // Blue
+    private static final com.hypixel.hytale.protocol.Vector3f COLOR_FINISH = new com.hypixel.hytale.protocol.Vector3f(1.0f, 0.84f, 0.0f); // Gold
+    private static final float SHAPE_DURATION = 1.5f;
+    private static final double EDGE_THICKNESS = 0.03;
 
     private SpeedRunPBManager pbManager;
     private boolean staminaStatValid = true; // Becomes false if "stamina" stat doesn't exist
@@ -104,6 +116,9 @@ public class SpeedRunGameMode implements GameMode {
         state.initialLives = config.getMaxRespawns();
         state.playerUuid = player.getUniqueId();
         state.inZone = true; // Start in start zone, timer paused
+
+        // Store world name for hologram cleanup
+        state.worldName = config.getWorldName();
 
         // Load PB
         if (pbManager != null) {
@@ -268,6 +283,9 @@ public class SpeedRunGameMode implements GameMode {
                 }
             }
         }
+
+        // Update zone visualization (wireframe + hologram for next target)
+        updateZoneVisualization(match, config, state, player);
     }
 
     private void handleKillPlane(Match match, ArenaConfig config, SpeedRunState state, Participant player) {
@@ -435,12 +453,35 @@ public class SpeedRunGameMode implements GameMode {
 
     @Override
     public void onMatchFinished(List<Participant> participants) {
-        // Clean up state for any matches involving these participants
+        // Clear debug shapes for the player
+        for (Participant p : participants) {
+            if (p.getType() != ParticipantType.PLAYER) continue;
+
+            PlayerRef playerRef = Universe.get().getPlayer(p.getUniqueId());
+            if (playerRef == null) continue;
+
+            try {
+                playerRef.getPacketHandler().write(new ClearDebugShapes());
+            } catch (Exception e) {
+                // Silently ignore
+            }
+        }
+
+        // Clean up state (including holograms) for any matches involving these participants
         List<UUID> toRemove = new ArrayList<>();
         for (Map.Entry<UUID, SpeedRunState> entry : matchStates.entrySet()) {
             SpeedRunState state = entry.getValue();
             for (Participant p : participants) {
                 if (p.getUniqueId().equals(state.playerUuid)) {
+                    // Despawn active hologram on the world thread
+                    if (state.activeHologram != null && state.worldName != null) {
+                        World world = Universe.get().getWorld(state.worldName);
+                        if (world != null) {
+                            Ref<EntityStore> hologramRef = state.activeHologram;
+                            world.execute(() -> HologramUtil.despawnHologram(hologramRef));
+                        }
+                        state.activeHologram = null;
+                    }
                     toRemove.add(entry.getKey());
                     break;
                 }
@@ -493,6 +534,186 @@ public class SpeedRunGameMode implements GameMode {
         }
 
         return json.toString();
+    }
+
+    // --- Zone Visualization ---
+
+    /**
+     * Checks if the visualized zone needs to change and updates wireframe + hologram accordingly.
+     * Called every tick from onTick.
+     */
+    private void updateZoneVisualization(Match match, ArenaConfig config, SpeedRunState state, Participant player) {
+        int totalCheckpoints = config.getCheckpoints() != null ? config.getCheckpoints().size() : 0;
+
+        // Determine which zone to visualize: next checkpoint, or finish if all checkpoints done
+        int nextCheckpoint = state.lastCheckpointReached + 1;
+        boolean showFinish = nextCheckpoint >= totalCheckpoints;
+
+        // Use a sentinel: checkpoint index for checkpoints, Integer.MAX_VALUE for finish
+        int targetKey = showFinish ? Integer.MAX_VALUE : nextCheckpoint;
+
+        // If the target changed, swap the hologram
+        if (targetKey != state.lastVisualisedCheckpoint) {
+            despawnActiveHologram(state);
+
+            ArenaConfig.CaptureZone targetZone;
+            String label;
+            if (showFinish) {
+                targetZone = config.getFinishZone();
+                label = "Finish";
+            } else {
+                targetZone = config.getCheckpoints().get(nextCheckpoint);
+                String cpName = targetZone.getDisplayName();
+                label = (cpName != null && !cpName.isEmpty()) ? cpName : "Checkpoint " + (nextCheckpoint + 1);
+            }
+
+            if (targetZone != null) {
+                spawnZoneHologram(match, targetZone, label, state);
+            }
+
+            state.lastVisualisedCheckpoint = targetKey;
+        }
+
+        // Send wireframe shape every tick for the current target zone (auto-expires after SHAPE_DURATION)
+        ArenaConfig.CaptureZone targetZone = showFinish
+            ? config.getFinishZone()
+            : (totalCheckpoints > 0 ? config.getCheckpoints().get(nextCheckpoint) : null);
+        if (targetZone != null) {
+            com.hypixel.hytale.protocol.Vector3f color = showFinish ? COLOR_FINISH : COLOR_CHECKPOINT;
+            sendZoneShape(targetZone, player, color);
+        }
+    }
+
+    /**
+     * Sends a wireframe cube (12 edges + floor pane) for a zone to a single player.
+     * Same geometry as KOTH but simplified to a single color/player.
+     */
+    private void sendZoneShape(ArenaConfig.CaptureZone zone, Participant participant, com.hypixel.hytale.protocol.Vector3f color) {
+        PlayerRef playerRef = Universe.get().getPlayer(participant.getUniqueId());
+        if (playerRef == null) return;
+
+        double x1 = Math.floor(Math.min(zone.getMinX(), zone.getMaxX()));
+        double x2 = Math.ceil(Math.max(zone.getMinX(), zone.getMaxX()));
+        double y1 = Math.floor(Math.min(zone.getMinY(), zone.getMaxY()));
+        double y2 = Math.ceil(Math.max(zone.getMinY(), zone.getMaxY()));
+        double z1 = Math.floor(Math.min(zone.getMinZ(), zone.getMaxZ()));
+        double z2 = Math.ceil(Math.max(zone.getMinZ(), zone.getMaxZ()));
+
+        double centerX = (x1 + x2) / 2.0;
+        double centerY = (y1 + y2) / 2.0;
+        double centerZ = (z1 + z2) / 2.0;
+        double sizeX = x2 - x1;
+        double sizeY = y2 - y1;
+        double sizeZ = z2 - z1;
+        double t = EDGE_THICKNESS;
+
+        // 12 edges + 1 floor pane
+        float[][] edgeMatrices = new float[13][];
+        double extX = sizeX + t;
+        double extZ = sizeZ + t;
+
+        // Bottom edges (y1)
+        Matrix4d m = new Matrix4d().identity();
+        m.translate(centerX, y1, z1); m.scale(extX, t, t);
+        edgeMatrices[0] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(centerX, y1, z2); m.scale(extX, t, t);
+        edgeMatrices[1] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(x1, y1, centerZ); m.scale(t, t, extZ);
+        edgeMatrices[2] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(x2, y1, centerZ); m.scale(t, t, extZ);
+        edgeMatrices[3] = m.asFloatData();
+
+        // Top edges (y2)
+        m = new Matrix4d().identity();
+        m.translate(centerX, y2, z1); m.scale(extX, t, t);
+        edgeMatrices[4] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(centerX, y2, z2); m.scale(extX, t, t);
+        edgeMatrices[5] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(x1, y2, centerZ); m.scale(t, t, extZ);
+        edgeMatrices[6] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(x2, y2, centerZ); m.scale(t, t, extZ);
+        edgeMatrices[7] = m.asFloatData();
+
+        // Vertical edges (4 corners)
+        m = new Matrix4d().identity();
+        m.translate(x1, centerY, z1); m.scale(t, sizeY, t);
+        edgeMatrices[8] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(x2, centerY, z1); m.scale(t, sizeY, t);
+        edgeMatrices[9] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(x1, centerY, z2); m.scale(t, sizeY, t);
+        edgeMatrices[10] = m.asFloatData();
+
+        m = new Matrix4d().identity();
+        m.translate(x2, centerY, z2); m.scale(t, sizeY, t);
+        edgeMatrices[11] = m.asFloatData();
+
+        // Floor pane (thin slab at y1)
+        m = new Matrix4d().identity();
+        m.translate(centerX, y1, centerZ); m.scale(sizeX, t, sizeZ);
+        edgeMatrices[12] = m.asFloatData();
+
+        try {
+            playerRef.getPacketHandler().write(new ClearDebugShapes());
+
+            for (float[] edgeMatrix : edgeMatrices) {
+                DisplayDebug packet = new DisplayDebug();
+                packet.shape = DebugShape.Cube;
+                packet.matrix = edgeMatrix;
+                packet.color = color;
+                packet.time = SHAPE_DURATION;
+                packet.fade = true;
+                packet.frustumProjection = null;
+                playerRef.getPacketHandler().write(packet);
+            }
+        } catch (Exception e) {
+            // Silently ignore — player may have disconnected
+        }
+    }
+
+    /**
+     * Spawns a floating text hologram above a zone. Must be called from a context
+     * where world.execute() will run (onTick runs on the world thread).
+     */
+    private void spawnZoneHologram(Match match, ArenaConfig.CaptureZone zone, String label, SpeedRunState state) {
+        World world = match.getArena().getWorld();
+        if (world == null) return;
+
+        double cx = (Math.min(zone.getMinX(), zone.getMaxX()) + Math.max(zone.getMinX(), zone.getMaxX())) / 2.0;
+        double topY = Math.max(zone.getMinY(), zone.getMaxY()) + 1.5;
+        double cz = (Math.min(zone.getMinZ(), zone.getMaxZ()) + Math.max(zone.getMinZ(), zone.getMaxZ())) / 2.0;
+
+        // onTick already runs on world thread, so we can call directly
+        Ref<EntityStore> ref = HologramUtil.spawnHologram(world, cx, topY, cz, label);
+        if (ref != null) {
+            state.activeHologram = ref;
+        }
+    }
+
+    /**
+     * Despawns the active hologram for a state if one exists.
+     * Must be called on the world thread.
+     */
+    private void despawnActiveHologram(SpeedRunState state) {
+        if (state.activeHologram != null) {
+            HologramUtil.despawnHologram(state.activeHologram);
+            state.activeHologram = null;
+        }
     }
 
     // Zone helpers
@@ -602,5 +823,9 @@ public class SpeedRunGameMode implements GameMode {
         public SpeedRunPB personalBest;
         public int killPlaneGraceTicks;
         public int initialLives;
+        // Zone visualization state
+        public Ref<EntityStore> activeHologram;
+        public String worldName;
+        public int lastVisualisedCheckpoint = -2; // -2 = nothing shown yet (distinct from -1 = start zone)
     }
 }
