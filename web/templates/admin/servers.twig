@@ -6,6 +6,7 @@
 <div class="admin-page">
     <div class="admin-page-header">
         <h1>Servers</h1>
+        <button class="btn btn-sm btn-secondary" onclick="hwReauth()">Reauth</button>
     </div>
 
     {% if hw_error %}
@@ -76,6 +77,7 @@
                             <button class="btn btn-sm btn-primary" onclick="hwAction('start', '{{ server.id }}')">Start</button>
                         {% endif %}
                         <button class="btn btn-sm btn-secondary" onclick="hwOpenConsole('{{ server.id }}', '{{ server.name }}')">Console</button>
+                        <button class="btn btn-sm btn-secondary" onclick="hwOpenPrefabs('{{ server.id }}', '{{ server.name }}')">Prefabs</button>
                     </td>
                 </tr>
                 {% else %}
@@ -95,6 +97,37 @@
             <button class="hw-console-close" onclick="hwCloseConsole()">&times;</button>
         </div>
         <div class="hw-console-body" id="hw-console-body"></div>
+    </div>
+</div>
+
+<div class="hw-prefab-overlay" id="hw-prefab-overlay" onclick="if(event.target===this)hwClosePrefabs()">
+    <div class="hw-prefab-modal">
+        <div class="hw-prefab-header">
+            <h3 id="hw-prefab-title">Prefabs</h3>
+            <button class="hw-console-close" onclick="hwClosePrefabs()">&times;</button>
+        </div>
+        <div class="hw-prefab-body">
+            <div class="hw-prefab-upload">
+                <input type="file" id="hw-prefab-file" accept=".prefab.json,.json">
+                <button class="btn btn-sm btn-primary" onclick="hwUploadPrefab()">Upload</button>
+            </div>
+            <div id="hw-prefab-message" class="hw-prefab-message" style="display:none"></div>
+            <div class="admin-table-wrapper">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Size</th>
+                            <th>Modified</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hw-prefab-list">
+                        <tr><td colspan="4" class="empty">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 

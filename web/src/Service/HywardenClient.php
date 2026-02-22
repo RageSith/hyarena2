@@ -57,6 +57,112 @@ class HywardenClient
         return $this->request('POST', '/api/server-configs/' . urlencode($id) . '/kill');
     }
 
+    public function reauth(): array
+    {
+        $this->token = null;
+        $this->tokenExp = 0;
+        @unlink($this->tokenFile);
+        $this->login();
+        if ($this->token) {
+            return ['ok' => true];
+        }
+        return ['error' => 'Login failed'];
+    }
+
+    // ==========================================
+    // Prefab File Management
+    // ==========================================
+
+    public function listPrefabs(string $serverId): array
+    {
+        $root = urlencode('servers/' . $serverId . '/Server');
+        return $this->request('GET', '/api/files?root=' . $root . '&path=prefabs/');
+    }
+
+    public function uploadPrefab(string $serverId, string $tmpPath, string $filename): array
+    {
+        $this->ensureToken();
+
+        $root = urlencode('servers/' . $serverId . '/Server');
+        $url = $this->baseUrl . '/api/files/upload?root=' . $root . '&path=prefabs/';
+
+        $ch = curl_init($url);
+        $cfile = new \CURLFile($tmpPath, 'application/json', $filename);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => ['files' => $cfile],
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $this->token,
+            ],
+        ]);
+
+        $body = curl_exec($ch);
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            return ['error' => 'Connection failed: ' . $error];
+        }
+        if ($status >= 400) {
+            $data = json_decode($body, true);
+            return ['error' => $data['error'] ?? 'HTTP ' . $status];
+        }
+        return json_decode($body, true) ?? ['ok' => true];
+    }
+
+    public function deletePrefab(string $serverId, string $filename): array
+    {
+        $root = urlencode('servers/' . $serverId . '/Server');
+        $path = urlencode('prefabs/' . $filename);
+        return $this->request('DELETE', '/api/files?root=' . $root . '&path=' . $path);
+    }
+
+    /**
+     * Download a prefab file as raw binary. Returns [headers => [...], body => string] or [error => string].
+     */
+    public function downloadPrefab(string $serverId, string $filename): array
+    {
+        $this->ensureToken();
+
+        $root = urlencode('servers/' . $serverId . '/Server');
+        $path = urlencode('prefabs/' . $filename);
+        $token = urlencode($this->token);
+        $url = $this->baseUrl . '/api/files/download?root=' . $root . '&path=' . $path . '&token=' . $token;
+
+        $ch = curl_init($url);
+        $headers = [];
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HEADERFUNCTION => function ($ch, $header) use (&$headers) {
+                $len = strlen($header);
+                $parts = explode(':', $header, 2);
+                if (count($parts) === 2) {
+                    $headers[strtolower(trim($parts[0]))] = trim($parts[1]);
+                }
+                return $len;
+            },
+        ]);
+
+        $body = curl_exec($ch);
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            return ['error' => 'Connection failed: ' . $error];
+        }
+        if ($status >= 400) {
+            $data = json_decode($body, true);
+            return ['error' => $data['error'] ?? 'HTTP ' . $status];
+        }
+
+        return ['headers' => $headers, 'body' => $body];
+    }
+
     // ==========================================
     // HTTP + Token Lifecycle
     // ==========================================

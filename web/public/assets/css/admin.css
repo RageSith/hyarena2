@@ -720,6 +720,84 @@ a:hover { text-decoration: underline; }
 .hw-console-body::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 4px; }
 .hw-console-body::-webkit-scrollbar-thumb:hover { background: #3a3a4e; }
 
+/* Prefab Overlay */
+.hw-prefab-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.hw-prefab-overlay.show { display: flex; }
+
+.hw-prefab-modal {
+    width: 90%;
+    max-width: 750px;
+    background: var(--admin-bg-card);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+}
+
+.hw-prefab-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.hw-prefab-header h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.hw-prefab-body {
+    padding: 1rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.hw-prefab-upload {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.hw-prefab-upload input[type="file"] {
+    flex: 1;
+    padding: 0.4rem;
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    color: var(--admin-text);
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.hw-prefab-message {
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+}
+
+.hw-prefab-message-success {
+    background: rgba(74, 222, 128, 0.15);
+    color: var(--admin-success);
+}
+
+.hw-prefab-message-error {
+    background: rgba(248, 113, 113, 0.15);
+    color: var(--admin-error);
+}
+
 /* Data Management - Danger Zone */
 .danger-zone {
     display: grid;

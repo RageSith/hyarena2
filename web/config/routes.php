@@ -161,6 +161,11 @@ return function (App $app) {
             $inner->post('/api/hywarden/servers/{id}/start', [ServerManagerController::class, 'apiStart']);
             $inner->post('/api/hywarden/servers/{id}/stop', [ServerManagerController::class, 'apiStop']);
             $inner->post('/api/hywarden/servers/{id}/kill', [ServerManagerController::class, 'apiKill']);
+            $inner->post('/api/hywarden/reauth', [ServerManagerController::class, 'apiReauth']);
+            $inner->get('/api/hywarden/servers/{id}/prefabs', [ServerManagerController::class, 'apiListPrefabs']);
+            $inner->post('/api/hywarden/servers/{id}/prefabs/upload', [ServerManagerController::class, 'apiUploadPrefab']);
+            $inner->post('/api/hywarden/servers/{id}/prefabs/{name}/delete', [ServerManagerController::class, 'apiDeletePrefab']);
+            $inner->get('/api/hywarden/servers/{id}/prefabs/{name}/download', [ServerManagerController::class, 'apiDownloadPrefab']);
         })->add(new AdminRoleMiddleware('servers'));
 
         // Data Management (super_admin only)
