@@ -602,8 +602,9 @@ public class HyArena2 extends JavaPlugin {
             boolean enteringHub = player.getWorld().getName().equals(hubWorldName);
 
             if (enteringHub) {
-                // Entering hub world - clear any arena effects (freeze, etc.)
+                // Entering hub world - clear any arena effects (freeze, inventory, etc.)
                 PlayerMovementControl.enableMovementForPlayer(playerRef, player.getWorld());
+                kitManager.clearKit(player);
                 System.out.println("[HyArena2] Cleared arena effects for " + playerName + " entering hub");
 
                 // Show lobby HUD when entering hub
@@ -645,6 +646,9 @@ public class HyArena2 extends JavaPlugin {
             System.out.println("[HyArena2] Player " + playerName + " is in build world, skipping hub teleport");
             return;
         }
+
+        // Clear any leftover inventory from previous session
+        kitManager.clearKit(player);
 
         // Teleport to hub
         hubManager.teleportToHub(player, () -> {
