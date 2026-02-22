@@ -171,6 +171,11 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
             String gmName = gm != null ? gm.getDisplayName() : arena.getGameMode();
             cmd.set(row + " #PlayerCount.Text", gmName + "  |  " + MatchManager.formatPlayerCount(arena));
 
+            // Bots tag
+            if (arena.getConfig().isAutoFillEnabled()) {
+                cmd.set(row + " #BotsTag.Visible", true);
+            }
+
             // Status tag
             boolean inUse = matchManager.isArenaInUse(arena.getId());
             if (inUse) {

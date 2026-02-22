@@ -18,6 +18,13 @@ Button #ArenaCard {
             Style: (FontSize: 17, TextColor: #b7cedd, RenderBold: true, VerticalAlignment: Center);
         }
 
+        Label #BotsTag {
+            Text: "Bots+";
+            Visible: false;
+            Anchor: (Width: 42, Height: 20);
+            Style: (FontSize: 10, TextColor: #e75b12, Alignment: Center, VerticalAlignment: Center, RenderBold: true);
+        }
+
         Label #StatusTag {
             Text: "AVAILABLE";
             Anchor: (Width: 80, Height: 20);
