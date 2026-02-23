@@ -5,7 +5,7 @@ Group #ArenaMenuPage {
 
     $C.@DecoratedContainer {
         @CloseButton = true;
-        Anchor: (Width: 700, Height: 520);
+        Anchor: (Width: 700, Height: 560);
 
         Group #Title {
             $C.@Title #TitleLabel {
@@ -16,7 +16,7 @@ Group #ArenaMenuPage {
 
         Group #Content {
             Padding: (Full: 20);
-            Anchor: (Top: 35);
+            Anchor: (Top: 35, Bottom: 70);
             LayoutMode: Left;
 
             // Left Column - Game Mode List
@@ -70,6 +70,25 @@ Group #ArenaMenuPage {
                     LayoutMode: TopScrolling;
                     ScrollbarStyle: $C.@DefaultScrollbarStyle;
                 }
+            }
+        }
+
+        // Bottom Button Row (pinned)
+        Group #ButtonRow {
+            Anchor: (Bottom: 16, Height: 44, Left: 20, Right: 20);
+            LayoutMode: Left;
+
+            Group {
+                FlexWeight: 1;
+            }
+
+            $C.@SecondaryTextButton #BackButton {
+                @Text = "Back";
+                @Anchor = (Width: 120);
+            }
+
+            Group {
+                FlexWeight: 1;
             }
         }
     }

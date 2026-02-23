@@ -641,12 +641,13 @@ public class Match {
         // Fire per-player reward events BEFORE VictoryHud (VictoryHud reads lastMatchReward)
         if (!"wave_defense".equals(gameMode.getId())) {
             boolean hasBots = hasBotParticipants();
+            boolean isMinigame = gameMode.getCategory() == GameMode.GameModeCategory.MINIGAME;
             for (Participant participant : getParticipants()) {
                 if (participant.getType() != ParticipantType.PLAYER) continue;
                 boolean isWinner = winners.contains(participant.getUniqueId());
                 eventBus.publish(new PlayerMatchRewardEvent(
                     participant.getUniqueId(), matchId, isWinner,
-                    participant.getKills(), hasBots));
+                    participant.getKills(), hasBots, isMinigame));
             }
         }
 
@@ -956,8 +957,9 @@ public class Match {
             // Fire per-player reward event BEFORE removing from participants (need kills/hasBots data)
             if (!"wave_defense".equals(gameMode.getId())) {
                 boolean hasBots = hasBotParticipants();
+                boolean isMinigame = gameMode.getCategory() == GameMode.GameModeCategory.MINIGAME;
                 eventBus.publish(new PlayerMatchRewardEvent(
-                    deadUuid, matchId, false, victim.getKills(), hasBots));
+                    deadUuid, matchId, false, victim.getKills(), hasBots, isMinigame));
             }
 
             // Send elimination message (still have participant reference)

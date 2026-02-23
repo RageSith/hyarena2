@@ -1,0 +1,101 @@
+$C = "../Common.ui";
+
+Group #ArenaCategoryPage {
+    $C.@PageOverlay {}
+
+    $C.@DecoratedContainer {
+        @CloseButton = true;
+        Anchor: (Width: 500, Height: 340);
+
+        Group #Title {
+            $C.@Title #TitleLabel {
+                @Text = "Arena";
+                Anchor: (Top: 12, Height: 24);
+            }
+        }
+
+        Group #Content {
+            Padding: (Full: 20);
+            Anchor: (Top: 35);
+            LayoutMode: Left;
+
+            // PVP Card
+            Button #PvpCard {
+                FlexWeight: 1;
+                Anchor: (Right: 8);
+                Style: $C.@SecondaryButtonStyle;
+                Padding: (Horizontal: 14, Vertical: 10);
+                LayoutMode: Top;
+
+                Label {
+                    Text: "PVP";
+                    Anchor: (Top: 25, Height: 36);
+                    Style: (FontSize: 28, TextColor: #e8c872, RenderBold: true, Alignment: Center);
+                }
+
+                Label {
+                    Text: "Duels, Deathmatch and more";
+                    Anchor: (Top: 4, Height: 22);
+                    Style: (FontSize: 11, TextColor: #96a9be, Alignment: Center);
+                }
+
+                // Reward info
+                Group {
+                    Anchor: (Top: 22);
+                    LayoutMode: Top;
+
+                    Label {
+                        Text: "Honor Enabled";
+                        Anchor: (Height: 20);
+                        Style: (FontSize: 13, TextColor: #3498db, Alignment: Center, RenderBold: true);
+                    }
+
+                    Label {
+                        Text: "100% AP  /  50% vs Bots";
+                        Anchor: (Height: 20);
+                        Style: (FontSize: 13, TextColor: #f1c40f, Alignment: Center);
+                    }
+                }
+            }
+
+            // MiniGames Card
+            Button #MinigameCard {
+                FlexWeight: 1;
+                Anchor: (Left: 8);
+                Style: $C.@SecondaryButtonStyle;
+                Padding: (Horizontal: 14, Vertical: 10);
+                LayoutMode: Top;
+
+                Label {
+                    Text: "MiniGames";
+                    Anchor: (Top: 25, Height: 36);
+                    Style: (FontSize: 28, TextColor: #e8c872, RenderBold: true, Alignment: Center);
+                }
+
+                Label {
+                    Text: "Wave Defense, Spleef and more";
+                    Anchor: (Top: 4, Height: 22);
+                    Style: (FontSize: 11, TextColor: #96a9be, Alignment: Center);
+                }
+
+                // Reward info
+                Group {
+                    Anchor: (Top: 22);
+                    LayoutMode: Top;
+
+                    Label {
+                        Text: "No Honor";
+                        Anchor: (Height: 20);
+                        Style: (FontSize: 13, TextColor: #e74c3c, Alignment: Center, RenderBold: true);
+                    }
+
+                    Label {
+                        Text: "50% AP";
+                        Anchor: (Height: 20);
+                        Style: (FontSize: 13, TextColor: #f1c40f, Alignment: Center);
+                    }
+                }
+            }
+        }
+    }
+}

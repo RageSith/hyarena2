@@ -112,27 +112,31 @@ public class EconomyManager {
     /**
      * Calculates and applies match rewards for a player.
      * Bot matches (any match with at least 1 bot) earn half AP.
+     * Minigame matches earn half AP and no honor.
      */
-    public MatchRewardResult rewardMatch(UUID uuid, boolean isWinner, int kills, String matchId, boolean hasBots) {
+    public MatchRewardResult rewardMatch(UUID uuid, boolean isWinner, int kills, String matchId, boolean hasBots, boolean minigame) {
         PlayerEconomyData data = playerDataManager.getData(uuid);
         if (data == null) return new MatchRewardResult(0, 0);
 
-        // Calculate AP (halved for bot matches)
+        // Calculate AP (halved for bot matches or minigames)
         int apBase = isWinner ? config.getApWinReward() : config.getApLossReward();
         int apKills = kills * config.getApPerKill();
         int totalAp = apBase + apKills;
-        if (hasBots) {
+        if (hasBots || minigame) {
             totalAp = totalAp / 2;
         }
 
-        // Calculate Honor
-        double totalHonor = isWinner ? config.getHonorWinReward() : config.getHonorLossReward();
+        // Calculate Honor (minigames earn no honor)
+        double totalHonor = 0;
+        if (!minigame) {
+            totalHonor = isWinner ? config.getHonorWinReward() : config.getHonorLossReward();
+        }
 
         // Apply AP
-        addArenaPoints(uuid, totalAp, "Match " + matchId + (isWinner ? " (win)" : " (loss)") + (hasBots ? " (bot)" : ""));
+        addArenaPoints(uuid, totalAp, "Match " + matchId + (isWinner ? " (win)" : " (loss)") + (hasBots ? " (bot)" : "") + (minigame ? " (minigame)" : ""));
 
         // Apply Honor via HonorManager (handles rank checks)
-        if (honorManager != null) {
+        if (honorManager != null && totalHonor > 0) {
             honorManager.addHonor(uuid, totalHonor);
         }
 
@@ -162,13 +166,17 @@ public class EconomyManager {
         UUID playerUuid = event.getPlayerUuid();
 
         MatchRewardResult result = rewardMatch(playerUuid, event.isWinner(), event.getKills(),
-            event.getMatchId().toString().substring(0, 8), event.hasBots());
+            event.getMatchId().toString().substring(0, 8), event.hasBots(), event.isMinigame());
 
         // Send reward message to player
-        String msg = "<color:#f1c40f>+" + result.getApEarned() + " AP</color>"
-            + " <color:#7f8c8d>|</color> "
-            + "<color:#3498db>+" + (int) result.getHonorEarned() + " Honor</color>";
-        if (event.hasBots()) {
+        String msg = "<color:#f1c40f>+" + result.getApEarned() + " AP</color>";
+        if (!event.isMinigame()) {
+            msg += " <color:#7f8c8d>|</color> "
+                + "<color:#3498db>+" + (int) result.getHonorEarned() + " Honor</color>";
+        }
+        if (event.isMinigame()) {
+            msg += " <color:#7f8c8d>(minigame, half AP, no honor)</color>";
+        } else if (event.hasBots()) {
             msg += " <color:#7f8c8d>(bot match, half AP)</color>";
         }
         sendMessageToPlayer(playerUuid, msg);

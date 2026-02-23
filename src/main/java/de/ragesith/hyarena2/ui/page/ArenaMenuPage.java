@@ -19,6 +19,7 @@ import de.ragesith.hyarena2.arena.Arena;
 import de.ragesith.hyarena2.arena.Match;
 import de.ragesith.hyarena2.arena.MatchManager;
 import de.ragesith.hyarena2.gamemode.GameMode;
+import de.ragesith.hyarena2.gamemode.GameMode.GameModeCategory;
 import de.ragesith.hyarena2.kit.KitManager;
 import de.ragesith.hyarena2.queue.QueueManager;
 import de.ragesith.hyarena2.ui.hud.HudManager;
@@ -46,12 +47,13 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
     private final KitManager kitManager;
     private final HudManager hudManager;
     private final ScheduledExecutorService scheduler;
+    private final GameModeCategory category;
 
     // Stored for page transitions
     private Ref<EntityStore> storedRef;
     private Store<EntityStore> storedStore;
 
-    // Game mode entries: index 0 = "All", 1+ = specific game modes
+    // Game mode entries filtered by category
     private List<GameModeEntry> gameModeEntries;
 
     // Current state
@@ -70,14 +72,15 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
     public ArenaMenuPage(PlayerRef playerRef, UUID playerUuid,
                          MatchManager matchManager, QueueManager queueManager,
                          KitManager kitManager, HudManager hudManager,
-                         ScheduledExecutorService scheduler) {
-        this(playerRef, playerUuid, matchManager, queueManager, kitManager, hudManager, scheduler, 0);
+                         ScheduledExecutorService scheduler, GameModeCategory category) {
+        this(playerRef, playerUuid, matchManager, queueManager, kitManager, hudManager, scheduler, category, 0);
     }
 
     public ArenaMenuPage(PlayerRef playerRef, UUID playerUuid,
                          MatchManager matchManager, QueueManager queueManager,
                          KitManager kitManager, HudManager hudManager,
-                         ScheduledExecutorService scheduler, int selectedModeIndex) {
+                         ScheduledExecutorService scheduler, GameModeCategory category,
+                         int selectedModeIndex) {
         super(playerRef, CustomPageLifetime.CantClose, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
@@ -86,12 +89,15 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
         this.kitManager = kitManager;
         this.hudManager = hudManager;
         this.scheduler = scheduler;
+        this.category = category;
         this.selectedModeIndex = selectedModeIndex;
 
-        // Build game mode entries from registered game modes
+        // Build game mode entries filtered by category
         this.gameModeEntries = new ArrayList<>();
         for (GameMode gm : matchManager.getGameModes()) {
-            this.gameModeEntries.add(new GameModeEntry(gm.getId(), gm.getDisplayName()));
+            if (gm.getCategory() == category) {
+                this.gameModeEntries.add(new GameModeEntry(gm.getId(), gm.getDisplayName()));
+            }
         }
 
         // Clamp index
@@ -201,6 +207,14 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
             CustomUIEventBindingType.Activating,
             "#CloseButton",
             EventData.of("Action", "close"),
+            false
+        );
+
+        // Bind back button
+        events.addEventBinding(
+            CustomUIEventBindingType.Activating,
+            "#BackButton",
+            EventData.of("Action", "back"),
             false
         );
 
@@ -355,6 +369,17 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
                     }
                     break;
 
+                case "back":
+                    stopAutoRefresh();
+                    if (player != null) {
+                        ArenaCategoryPage categoryPage = new ArenaCategoryPage(
+                            playerRef, playerUuid, matchManager, queueManager,
+                            kitManager, hudManager, scheduler
+                        );
+                        player.getPageManager().openCustomPage(ref, store, categoryPage);
+                    }
+                    break;
+
                 case "mode":
                     if (data.index != null) {
                         try {
@@ -391,7 +416,7 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
                                                 if (p != null) {
                                                     ArenaMenuPage newPage = new ArenaMenuPage(
                                                         playerRef, playerUuid, matchManager, queueManager,
-                                                        kitManager, hudManager, scheduler, savedModeIndex
+                                                        kitManager, hudManager, scheduler, category, savedModeIndex
                                                     );
                                                     p.getPageManager().openCustomPage(pRef, pStore, newPage);
                                                 }
@@ -442,7 +467,7 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
         if (player != null) {
             ArenaMenuPage newPage = new ArenaMenuPage(
                 playerRef, playerUuid, matchManager, queueManager, kitManager, hudManager,
-                scheduler, selectedModeIndex
+                scheduler, category, selectedModeIndex
             );
             player.getPageManager().openCustomPage(ref, store, newPage);
         }

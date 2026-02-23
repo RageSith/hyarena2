@@ -12,7 +12,7 @@ import com.hypixel.hytale.server.core.modules.interaction.interaction.config.Sim
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import de.ragesith.hyarena2.HyArena2;
-import de.ragesith.hyarena2.ui.page.ArenaMenuPage;
+import de.ragesith.hyarena2.ui.page.ArenaCategoryPage;
 import de.ragesith.hyarena2.ui.page.QueueStatusPage;
 
 import javax.annotation.Nonnull;
@@ -104,9 +104,9 @@ public class OpenMatchmakingInteraction extends SimpleInstantInteraction {
             return;
         }
 
-        // Open the arena selection page
+        // Open the arena category selection page
         try {
-            ArenaMenuPage page = new ArenaMenuPage(
+            ArenaCategoryPage page = new ArenaCategoryPage(
                 playerRef,
                 playerRef.getUuid(),
                 pluginInstance.getMatchManager(),

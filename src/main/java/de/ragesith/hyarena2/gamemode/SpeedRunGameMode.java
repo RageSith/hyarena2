@@ -62,6 +62,9 @@ public class SpeedRunGameMode implements GameMode {
     }
 
     @Override
+    public GameModeCategory getCategory() { return GameModeCategory.MINIGAME; }
+
+    @Override
     public String getId() { return ID; }
 
     @Override

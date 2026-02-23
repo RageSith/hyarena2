@@ -13,6 +13,15 @@ import java.util.UUID;
  * Defines game-specific rules, win conditions, and behavior.
  */
 public interface GameMode {
+
+    enum GameModeCategory { PVP, MINIGAME }
+
+    /**
+     * Returns the category this game mode belongs to.
+     * PVP modes inherit the default; minigame modes override.
+     */
+    default GameModeCategory getCategory() { return GameModeCategory.PVP; }
+
     /**
      * Gets the unique identifier for this game mode (e.g., "duel", "ffa")
      */

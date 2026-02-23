@@ -14,13 +14,19 @@ public class PlayerMatchRewardEvent implements Event {
     private final boolean winner;
     private final int kills;
     private final boolean hasBots;
+    private final boolean minigame;
 
     public PlayerMatchRewardEvent(UUID playerUuid, UUID matchId, boolean winner, int kills, boolean hasBots) {
+        this(playerUuid, matchId, winner, kills, hasBots, false);
+    }
+
+    public PlayerMatchRewardEvent(UUID playerUuid, UUID matchId, boolean winner, int kills, boolean hasBots, boolean minigame) {
         this.playerUuid = playerUuid;
         this.matchId = matchId;
         this.winner = winner;
         this.kills = kills;
         this.hasBots = hasBots;
+        this.minigame = minigame;
     }
 
     public UUID getPlayerUuid() {
@@ -41,5 +47,9 @@ public class PlayerMatchRewardEvent implements Event {
 
     public boolean hasBots() {
         return hasBots;
+    }
+
+    public boolean isMinigame() {
+        return minigame;
     }
 }
