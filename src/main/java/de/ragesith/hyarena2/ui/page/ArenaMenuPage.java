@@ -88,9 +88,8 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
         this.scheduler = scheduler;
         this.selectedModeIndex = selectedModeIndex;
 
-        // Build game mode entries: "All" + each registered game mode
+        // Build game mode entries from registered game modes
         this.gameModeEntries = new ArrayList<>();
-        this.gameModeEntries.add(new GameModeEntry("all", "All"));
         for (GameMode gm : matchManager.getGameModes()) {
             this.gameModeEntries.add(new GameModeEntry(gm.getId(), gm.getDisplayName()));
         }
@@ -131,27 +130,21 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
                 false
             );
 
-            // Show and bind "?" info button for actual game modes (skip "All")
-            if (i > 0) {
-                cmd.set(row + " #GMBtnInfo.Visible", true);
-                events.addEventBinding(
-                    CustomUIEventBindingType.Activating,
-                    row + " #GMBtnInfo",
-                    EventData.of("Action", "gminfo").append("Index", String.valueOf(i)),
-                    false
-                );
-            }
+            // Show and bind "?" info button
+            cmd.set(row + " #GMBtnInfo.Visible", true);
+            events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                row + " #GMBtnInfo",
+                EventData.of("Action", "gminfo").append("Index", String.valueOf(i)),
+                false
+            );
         }
 
         // Filter arenas by selected game mode
         filteredArenas = filterArenas();
 
         // Update header
-        if (selectedModeIndex == 0) {
-            cmd.set("#SelectedModeName.Text", "All Arenas");
-        } else {
-            cmd.set("#SelectedModeName.Text", gameModeEntries.get(selectedModeIndex).displayName);
-        }
+        cmd.set("#SelectedModeName.Text", gameModeEntries.get(selectedModeIndex).displayName);
 
         // Show/hide no arenas notice
         cmd.set("#NoArenasNotice.Visible", filteredArenas.isEmpty());
@@ -220,14 +213,9 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
 
     /**
      * Filters arenas by the currently selected game mode.
-     * Index 0 = all arenas, 1+ = specific game mode.
      */
     private List<Arena> filterArenas() {
         Collection<Arena> allArenas = matchManager.getArenas();
-        if (selectedModeIndex == 0) {
-            return new ArrayList<>(allArenas);
-        }
-
         String modeId = gameModeEntries.get(selectedModeIndex).id;
         List<Arena> filtered = new ArrayList<>();
         for (Arena arena : allArenas) {
@@ -387,7 +375,7 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
                     if (data.index != null) {
                         try {
                             int modeIndex = Integer.parseInt(data.index);
-                            if (modeIndex > 0 && modeIndex < gameModeEntries.size()) {
+                            if (modeIndex >= 0 && modeIndex < gameModeEntries.size()) {
                                 GameMode gm = matchManager.getGameMode(gameModeEntries.get(modeIndex).id);
                                 if (gm != null && player != null) {
                                     stopAutoRefresh();

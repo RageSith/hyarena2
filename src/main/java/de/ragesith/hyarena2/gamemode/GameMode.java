@@ -209,6 +209,22 @@ public interface GameMode {
     default int getParticipantWavesSurvived(UUID matchId, UUID participantId) { return -1; }
 
     /**
+     * Determines if a block break should be allowed in this game mode.
+     * Game modes like Spleef override this to allow breaking specific blocks.
+     * @param config The arena configuration
+     * @param playerUuid The player attempting to break the block
+     * @param x Block X coordinate
+     * @param y Block Y coordinate
+     * @param z Block Z coordinate
+     * @param blockTypeId The block type ID string (e.g. "hytale:snow")
+     * @return true if the break should be allowed
+     */
+    default boolean shouldAllowBlockBreak(ArenaConfig config, UUID playerUuid,
+            int x, int y, int z, String blockTypeId) {
+        return false;
+    }
+
+    /**
      * Determines if a participant should respawn after death
      * @param config The arena configuration
      * @param participant The participant who died

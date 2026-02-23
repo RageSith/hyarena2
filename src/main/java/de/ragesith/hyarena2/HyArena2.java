@@ -188,6 +188,7 @@ public class HyArena2 extends JavaPlugin {
         System.out.println("[HyArena2] KillDetectionSystem registered with EntityStoreRegistry");
 
         // Register block protection systems
+        de.ragesith.hyarena2.protection.BlockBreakProtectionSystem.setMatchManager(matchManager);
         this.getEntityStoreRegistry().registerSystem(new de.ragesith.hyarena2.protection.BlockBreakProtectionSystem());
         this.getEntityStoreRegistry().registerSystem(new de.ragesith.hyarena2.protection.BlockPlaceProtectionSystem());
         System.out.println("[HyArena2] Block protection systems registered");

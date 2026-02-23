@@ -42,6 +42,8 @@ public class DebugViewManager {
     private static final com.hypixel.hytale.protocol.Vector3f COLOR_CHECKPOINT = new com.hypixel.hytale.protocol.Vector3f(0.2f, 0.6f, 1.0f);
     private static final com.hypixel.hytale.protocol.Vector3f COLOR_KILL_PLANE = new com.hypixel.hytale.protocol.Vector3f(1.0f, 0.2f, 0.2f);
     private static final com.hypixel.hytale.protocol.Vector3f COLOR_SPAWN_ZONE = new com.hypixel.hytale.protocol.Vector3f(0.2f, 0.8f, 0.4f);
+    private static final com.hypixel.hytale.protocol.Vector3f COLOR_SPLEEF_FLOOR = new com.hypixel.hytale.protocol.Vector3f(0.4f, 0.9f, 1.0f);
+    private static final com.hypixel.hytale.protocol.Vector3f COLOR_SPLEEF_ELIM = new com.hypixel.hytale.protocol.Vector3f(1.0f, 0.3f, 0.3f);
 
     private static final float EDGE_THICKNESS = 0.05f;
     private static final float SHAPE_DURATION = 2.0f;
@@ -295,6 +297,27 @@ public class DebugViewManager {
                         bounds.getMinX(), kpY, bounds.getMinZ(),
                         bounds.getMaxX(), kpY + 0.1, bounds.getMaxZ(),
                         COLOR_KILL_PLANE);
+                }
+            }
+
+            // Spleef floor regions (light cyan) and elimination plane (red)
+            if ("spleef".equals(config.getGameMode())) {
+                if (config.getSpleefFloors() != null) {
+                    for (ArenaConfig.SpleefFloor floor : config.getSpleefFloors()) {
+                        renderWireframeBox(playerRef,
+                            floor.getMinX(), floor.getMinY(), floor.getMinZ(),
+                            floor.getMaxX(), floor.getMaxY(), floor.getMaxZ(),
+                            COLOR_SPLEEF_FLOOR);
+                    }
+                }
+
+                // Elimination Y plane (red, flat box spanning arena bounds)
+                if (bounds != null) {
+                    double elimY = config.getSpleefEliminationY();
+                    renderWireframeBox(playerRef,
+                        bounds.getMinX(), elimY, bounds.getMinZ(),
+                        bounds.getMaxX(), elimY + 0.1, bounds.getMaxZ(),
+                        COLOR_SPLEEF_ELIM);
                 }
             }
         }

@@ -584,6 +584,53 @@ Group #ArenaEditorPage {
                     }
                 }
 
+                // ===== Spleef Section (spleef only) =====
+                Group #SpleefSection {
+                    Visible: false;
+                    Anchor: (Top: 18);
+                    LayoutMode: Top;
+
+                    $C.@ContentSeparator {}
+
+                    Label {
+                        Text: "SPLEEF";
+                        Anchor: (Height: 20, Top: 12);
+                        Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                    }
+
+                    Label {
+                        Text: "Define floor regions with block types that players can break";
+                        Anchor: (Height: 18, Top: 4);
+                        Style: (FontSize: 11, TextColor: #6b7d8e);
+                    }
+
+                    // Elimination Y
+                    Group #SpleefEliminationYRow {
+                        Anchor: (Height: 38, Top: 10);
+                        LayoutMode: Left;
+                        Label { Text: "Elimination Y"; Anchor: (Width: 140); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                        $C.@TextField #SpleefEliminationYField { @Anchor = (Width: 90); PlaceholderText: "-64"; }
+                        Group { FlexWeight: 1; }
+                    }
+
+                    // Spleef Floors list
+                    Label {
+                        Text: "FLOORS";
+                        Anchor: (Height: 20, Top: 16);
+                        Style: (FontSize: 10, TextColor: #8fa7c0, RenderBold: true, RenderUppercase: true);
+                    }
+
+                    Group #SpleefFloorsList {
+                        Anchor: (Top: 6);
+                        LayoutMode: Top;
+                    }
+
+                    $C.@SecondaryTextButton #AddSpleefFloorBtn {
+                        @Text = "+ Add Floor";
+                        @Anchor = (Height: 32, Top: 10, Width: 150);
+                    }
+                }
+
                 // Status Message
                 Label #StatusMessage {
                     Text: "";

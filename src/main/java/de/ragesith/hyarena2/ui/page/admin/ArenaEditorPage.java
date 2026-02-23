@@ -94,6 +94,10 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
     private double formKillPlaneY;
     private int formMaxRespawns;
 
+    // Spleef form state
+    private List<ArenaConfig.SpleefFloor> formSpleefFloors;
+    private double formSpleefEliminationY;
+
     private List<String> gameModeIds;
     private static final String[] BOT_DIFFICULTIES = {"EASY", "MEDIUM", "HARD", "EXTREME", "EASY_TANK", "MEDIUM_TANK", "HARD_TANK", "EXTREME_TANK"};
 
@@ -175,6 +179,10 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             formCheckpoints = existingConfig.getCheckpoints() != null ? new ArrayList<>(existingConfig.getCheckpoints()) : new ArrayList<>();
             formKillPlaneY = existingConfig.getKillPlaneY();
             formMaxRespawns = existingConfig.getMaxRespawns();
+
+            // Spleef
+            formSpleefFloors = existingConfig.getSpleefFloors() != null ? new ArrayList<>(existingConfig.getSpleefFloors()) : new ArrayList<>();
+            formSpleefEliminationY = existingConfig.getSpleefEliminationY();
         } else {
             formId = "";
             formDisplayName = "";
@@ -212,6 +220,10 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             formCheckpoints = new ArrayList<>();
             formKillPlaneY = -64;
             formMaxRespawns = 3;
+
+            // Spleef defaults
+            formSpleefFloors = new ArrayList<>();
+            formSpleefEliminationY = -64;
         }
     }
 
@@ -251,6 +263,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
         boolean showCaptureZones = "koth".equals(formGameMode);
         boolean showWaveSpawnPoints = "wave_defense".equals(formGameMode);
         boolean showSpeedRun = "speed_run".equals(formGameMode);
+        boolean showSpleef = "spleef".equals(formGameMode);
 
         cmd.set("#KillTargetRow.Visible", showKillTarget);
         cmd.set("#RespawnDelayRow.Visible", showRespawn);
@@ -260,6 +273,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
         cmd.set("#CaptureZonesSection.Visible", showCaptureZones);
         cmd.set("#WaveSpawnPointsSection.Visible", showWaveSpawnPoints);
         cmd.set("#SpeedRunSection.Visible", showSpeedRun);
+        cmd.set("#SpleefSection.Visible", showSpleef);
 
         cmd.set("#KillTargetField.Value", formKillTarget);
         cmd.set("#RespawnDelayField.Value", formRespawnDelay);
@@ -460,6 +474,40 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             }
         }
 
+        // Spleef floors
+        if (showSpleef) {
+            cmd.set("#SpleefEliminationYField.Value", formatCoord(formSpleefEliminationY));
+
+            for (int i = 0; i < formSpleefFloors.size(); i++) {
+                ArenaConfig.SpleefFloor floor = formSpleefFloors.get(i);
+                cmd.append("#SpleefFloorsList", "Pages/AdminSpleefFloorRow.ui");
+                String row = "#SpleefFloorsList[" + i + "]";
+
+                cmd.set(row + " #FloorBlockField.Value", floor.getBlockId() != null ? floor.getBlockId() : "");
+                cmd.set(row + " #FloorMinXField.Value", formatCoord(floor.getMinX()));
+                cmd.set(row + " #FloorMinYField.Value", formatCoord(floor.getMinY()));
+                cmd.set(row + " #FloorMinZField.Value", formatCoord(floor.getMinZ()));
+                cmd.set(row + " #FloorMaxXField.Value", formatCoord(floor.getMaxX()));
+                cmd.set(row + " #FloorMaxYField.Value", formatCoord(floor.getMaxY()));
+                cmd.set(row + " #FloorMaxZField.Value", formatCoord(floor.getMaxZ()));
+
+                bindTextField(events, row + " #FloorBlockField", "floorBlock", String.valueOf(i));
+                bindTextField(events, row + " #FloorMinXField", "floorMinX", String.valueOf(i));
+                bindTextField(events, row + " #FloorMinYField", "floorMinY", String.valueOf(i));
+                bindTextField(events, row + " #FloorMinZField", "floorMinZ", String.valueOf(i));
+                bindTextField(events, row + " #FloorMaxXField", "floorMaxX", String.valueOf(i));
+                bindTextField(events, row + " #FloorMaxYField", "floorMaxY", String.valueOf(i));
+                bindTextField(events, row + " #FloorMaxZField", "floorMaxZ", String.valueOf(i));
+
+                events.addEventBinding(CustomUIEventBindingType.Activating, row + " #FloorRemoveBtn",
+                    EventData.of("Action", "removeFloor").append("Index", String.valueOf(i)), false);
+                events.addEventBinding(CustomUIEventBindingType.Activating, row + " #FloorSetMinBtn",
+                    EventData.of("Action", "setFloorMin").append("Index", String.valueOf(i)), false);
+                events.addEventBinding(CustomUIEventBindingType.Activating, row + " #FloorSetMaxBtn",
+                    EventData.of("Action", "setFloorMax").append("Index", String.valueOf(i)), false);
+            }
+        }
+
         // Nav waypoints (always visible)
         for (int i = 0; i < formNavWaypoints.size(); i++) {
             ArenaConfig.SpawnPoint sp = formNavWaypoints.get(i);
@@ -529,6 +577,9 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
         bindTextField(events, "#KillPlaneYField", "killPlaneY", null);
         bindNumberField(events, "#MaxRespawnsField", "maxRespawns");
 
+        // Spleef fields
+        bindTextField(events, "#SpleefEliminationYField", "spleefElimY", null);
+
         // Bind dropdown events
         events.addEventBinding(CustomUIEventBindingType.ValueChanged, "#GameModeDropdown",
             EventData.of("Action", "field").append("Field", "gameMode")
@@ -583,6 +634,10 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             EventData.of("Action", "setFinishMax"), false);
         events.addEventBinding(CustomUIEventBindingType.Activating, "#AddCheckpointBtn",
             EventData.of("Action", "addCp"), false);
+
+        // Spleef buttons
+        events.addEventBinding(CustomUIEventBindingType.Activating, "#AddSpleefFloorBtn",
+            EventData.of("Action", "addFloor"), false);
 
         events.addEventBinding(CustomUIEventBindingType.Activating, "#SaveBtn",
             EventData.of("Action", "save"), false);
@@ -779,6 +834,27 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
                     setCpBoundsFromPosition(data.index, false);
                     break;
 
+                // Spleef actions
+                case "addFloor":
+                    formSpleefFloors.add(new ArenaConfig.SpleefFloor(0, 0, 0, 0, 0, 0, ""));
+                    active = true;
+                    rebuild();
+                    break;
+
+                case "removeFloor":
+                    removeSpleefFloorAtIndex(data.index);
+                    active = true;
+                    rebuild();
+                    break;
+
+                case "setFloorMin":
+                    setSpleefFloorBoundsFromPosition(data.index, true);
+                    break;
+
+                case "setFloorMax":
+                    setSpleefFloorBoundsFromPosition(data.index, false);
+                    break;
+
                 case "save":
                     handleSave();
                     break;
@@ -954,6 +1030,30 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             case "cpMaxZ":
                 if (idx >= 0 && idx < formCheckpoints.size()) formCheckpoints.get(idx).setMaxZ(parseDoubleSafe(data.value, 0));
                 break;
+
+            // Spleef fields
+            case "spleefElimY": formSpleefEliminationY = parseDoubleSafe(data.value, -64); break;
+            case "floorBlock":
+                if (idx >= 0 && idx < formSpleefFloors.size()) formSpleefFloors.get(idx).setBlockId(data.value);
+                break;
+            case "floorMinX":
+                if (idx >= 0 && idx < formSpleefFloors.size()) formSpleefFloors.get(idx).setMinX(parseDoubleSafe(data.value, 0));
+                break;
+            case "floorMinY":
+                if (idx >= 0 && idx < formSpleefFloors.size()) formSpleefFloors.get(idx).setMinY(parseDoubleSafe(data.value, 0));
+                break;
+            case "floorMinZ":
+                if (idx >= 0 && idx < formSpleefFloors.size()) formSpleefFloors.get(idx).setMinZ(parseDoubleSafe(data.value, 0));
+                break;
+            case "floorMaxX":
+                if (idx >= 0 && idx < formSpleefFloors.size()) formSpleefFloors.get(idx).setMaxX(parseDoubleSafe(data.value, 0));
+                break;
+            case "floorMaxY":
+                if (idx >= 0 && idx < formSpleefFloors.size()) formSpleefFloors.get(idx).setMaxY(parseDoubleSafe(data.value, 0));
+                break;
+            case "floorMaxZ":
+                if (idx >= 0 && idx < formSpleefFloors.size()) formSpleefFloors.get(idx).setMaxZ(parseDoubleSafe(data.value, 0));
+                break;
         }
     }
 
@@ -975,7 +1075,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             showStatus("Invalid player count", "#e74c3c");
             return;
         }
-        int requiredSpawns = "wave_defense".equals(formGameMode) ? formMinPlayers
+        int requiredSpawns = "wave_defense".equals(formGameMode) || "spleef".equals(formGameMode) ? formMinPlayers
             : "speed_run".equals(formGameMode) ? 1 : formMaxPlayers;
         if (formSpawnPoints.size() < requiredSpawns) {
             showStatus("Need at least " + requiredSpawns + " spawn points (have " + formSpawnPoints.size() + ")", "#e74c3c");
@@ -1041,6 +1141,12 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             config.setCheckpoints(formCheckpoints.isEmpty() ? null : new ArrayList<>(formCheckpoints));
             config.setKillPlaneY(formKillPlaneY);
             config.setMaxRespawns(formMaxRespawns);
+        }
+
+        // Spleef fields
+        if ("spleef".equals(formGameMode)) {
+            config.setSpleefFloors(formSpleefFloors.isEmpty() ? null : new ArrayList<>(formSpleefFloors));
+            config.setSpleefEliminationY(formSpleefEliminationY);
         }
 
         if (matchManager.saveArena(config)) {
@@ -1281,6 +1387,35 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
     private void removeCpAtIndex(String indexStr) {
         int idx = parseIndex(indexStr);
         if (idx >= 0 && idx < formCheckpoints.size()) formCheckpoints.remove(idx);
+    }
+
+    private void removeSpleefFloorAtIndex(String indexStr) {
+        int idx = parseIndex(indexStr);
+        if (idx >= 0 && idx < formSpleefFloors.size()) formSpleefFloors.remove(idx);
+    }
+
+    private void setSpleefFloorBoundsFromPosition(String indexStr, boolean isMin) {
+        int idx = parseIndex(indexStr);
+        if (idx < 0 || idx >= formSpleefFloors.size()) return;
+
+        double[] pos = getAdminPosition();
+        if (pos == null) {
+            showStatus("Could not read position", "#e74c3c");
+            return;
+        }
+
+        ArenaConfig.SpleefFloor floor = formSpleefFloors.get(idx);
+        if (isMin) {
+            floor.setMinX(pos[0]);
+            floor.setMinY(pos[1]);
+            floor.setMinZ(pos[2]);
+        } else {
+            floor.setMaxX(pos[0]);
+            floor.setMaxY(pos[1]);
+            floor.setMaxZ(pos[2]);
+        }
+        active = true;
+        rebuild();
     }
 
     private int parseIndex(String s) {

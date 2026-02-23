@@ -15,6 +15,7 @@ import de.ragesith.hyarena2.gamemode.GameMode;
 import de.ragesith.hyarena2.gamemode.KingOfTheHillGameMode;
 import de.ragesith.hyarena2.gamemode.KitRouletteGameMode;
 import de.ragesith.hyarena2.gamemode.LastManStandingGameMode;
+import de.ragesith.hyarena2.gamemode.SpleefGameMode;
 import de.ragesith.hyarena2.gamemode.SpeedRunGameMode;
 import de.ragesith.hyarena2.gamemode.WaveDefenseGameMode;
 import de.ragesith.hyarena2.boundary.BoundaryManager;
@@ -73,6 +74,7 @@ public class MatchManager {
         registerGameMode(new KitRouletteGameMode());
         registerGameMode(new WaveDefenseGameMode());
         registerGameMode(new SpeedRunGameMode());
+        registerGameMode(new SpleefGameMode());
     }
 
     /**

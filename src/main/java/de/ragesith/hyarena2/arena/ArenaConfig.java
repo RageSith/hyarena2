@@ -42,6 +42,10 @@ public class ArenaConfig {
     private double killPlaneY = -64;
     private int maxRespawns = 3;
 
+    // Spleef fields
+    private List<SpleefFloor> spleefFloors;
+    private double spleefEliminationY = -64;
+
     // Getters
     public String getId() { return id; }
     public String getDisplayName() { return displayName; }
@@ -76,6 +80,8 @@ public class ArenaConfig {
     public List<CaptureZone> getCheckpoints() { return checkpoints; }
     public double getKillPlaneY() { return killPlaneY; }
     public int getMaxRespawns() { return maxRespawns; }
+    public List<SpleefFloor> getSpleefFloors() { return spleefFloors; }
+    public double getSpleefEliminationY() { return spleefEliminationY; }
 
     // Setters
     public void setId(String id) { this.id = id; }
@@ -111,6 +117,8 @@ public class ArenaConfig {
     public void setCheckpoints(List<CaptureZone> checkpoints) { this.checkpoints = checkpoints; }
     public void setKillPlaneY(double killPlaneY) { this.killPlaneY = killPlaneY; }
     public void setMaxRespawns(int maxRespawns) { this.maxRespawns = maxRespawns; }
+    public void setSpleefFloors(List<SpleefFloor> spleefFloors) { this.spleefFloors = spleefFloors; }
+    public void setSpleefEliminationY(double spleefEliminationY) { this.spleefEliminationY = spleefEliminationY; }
 
     /**
      * Validates the arena configuration
@@ -124,11 +132,11 @@ public class ArenaConfig {
         if (minPlayers <= 0 || maxPlayers <= 0) return false;
         if (minPlayers > maxPlayers) return false;
         if (waitTimeSeconds < 0) return false;
-        // Speed run only needs 1 spawn point; wave defense needs minPlayers; others need maxPlayers
+        // Speed run only needs 1 spawn point; wave defense/spleef need minPlayers; others need maxPlayers
         int requiredSpawnPoints;
         if ("speed_run".equals(gameMode)) {
             requiredSpawnPoints = 1;
-        } else if ("wave_defense".equals(gameMode)) {
+        } else if ("wave_defense".equals(gameMode) || "spleef".equals(gameMode)) {
             requiredSpawnPoints = minPlayers;
         } else {
             requiredSpawnPoints = maxPlayers;
@@ -317,6 +325,60 @@ public class ArenaConfig {
                 Math.max(loY, Math.min(y, hiY)),
                 Math.max(loZ, Math.min(z, hiZ))
             };
+        }
+    }
+
+    /**
+     * Represents a spleef floor region with a specific block type.
+     * Blocks within this region can be broken during a spleef match
+     * and are regenerated when the match ends.
+     */
+    public static class SpleefFloor {
+        private double minX;
+        private double minY;
+        private double minZ;
+        private double maxX;
+        private double maxY;
+        private double maxZ;
+        private String blockId; // e.g. "hytale:snow"
+
+        public SpleefFloor() {}
+
+        public SpleefFloor(double minX, double minY, double minZ,
+                           double maxX, double maxY, double maxZ, String blockId) {
+            this.minX = minX;
+            this.minY = minY;
+            this.minZ = minZ;
+            this.maxX = maxX;
+            this.maxY = maxY;
+            this.maxZ = maxZ;
+            this.blockId = blockId;
+        }
+
+        public double getMinX() { return minX; }
+        public double getMinY() { return minY; }
+        public double getMinZ() { return minZ; }
+        public double getMaxX() { return maxX; }
+        public double getMaxY() { return maxY; }
+        public double getMaxZ() { return maxZ; }
+        public String getBlockId() { return blockId; }
+
+        public void setMinX(double minX) { this.minX = minX; }
+        public void setMinY(double minY) { this.minY = minY; }
+        public void setMinZ(double minZ) { this.minZ = minZ; }
+        public void setMaxX(double maxX) { this.maxX = maxX; }
+        public void setMaxY(double maxY) { this.maxY = maxY; }
+        public void setMaxZ(double maxZ) { this.maxZ = maxZ; }
+        public void setBlockId(String blockId) { this.blockId = blockId; }
+
+        /** Max-exclusive containment — matches the debug wireframe visual. */
+        public boolean contains(double x, double y, double z) {
+            double loX = Math.min(minX, maxX), hiX = Math.max(minX, maxX);
+            double loY = Math.min(minY, maxY), hiY = Math.max(minY, maxY);
+            double loZ = Math.min(minZ, maxZ), hiZ = Math.max(minZ, maxZ);
+            return x >= loX && x < hiX &&
+                   y >= loY && y < hiY &&
+                   z >= loZ && z < hiZ;
         }
     }
 }
