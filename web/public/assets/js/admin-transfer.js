@@ -19,8 +19,7 @@ document.addEventListener('DOMContentLoaded', function () {
             world: 'World',
             arena: 'Arena Config',
             kit: 'Kit Config',
-            global_config: 'Global Config',
-            hub_config: 'Hub Config',
+            config: 'Config',
             mod_jar: 'Mod JAR'
         };
         return labels[type] || type;
@@ -82,18 +81,7 @@ document.addEventListener('DOMContentLoaded', function () {
         renderGroup('tf-worlds', 'tf-group-worlds', data.worlds || [], 'world');
         renderGroup('tf-arenas', 'tf-group-arenas', data.arenas || [], 'arena');
         renderGroup('tf-kits', 'tf-group-kits', data.kits || [], 'kit');
-
-        // Config files
-        var configHtml = '';
-        if (data.has_global_config) {
-            configHtml += '<label><input type="checkbox" class="tf-check" data-type="global_config"> global.json</label>';
-        }
-        if (data.has_hub_config) {
-            configHtml += '<label><input type="checkbox" class="tf-check" data-type="hub_config"> hub.json</label>';
-        }
-        var configsEl = document.getElementById('tf-configs');
-        configsEl.innerHTML = configHtml || '<span class="text-muted">None available</span>';
-        document.getElementById('tf-group-configs').style.display = configHtml ? '' : 'none';
+        renderGroup('tf-configs', 'tf-group-configs', (data.configs || []).map(function (n) { return n + '.json'; }), 'config');
 
         // Mod JAR
         var modHtml = '';
@@ -123,7 +111,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         var html = '';
         for (var i = 0; i < items.length; i++) {
-            html += '<label><input type="checkbox" class="tf-check" data-type="' + esc(type) + '" data-name="' + esc(items[i]) + '"> ' + esc(items[i]) + '</label>';
+            // For config type, display name is "global.json" but data-name is "global"
+            var displayName = items[i];
+            var dataName = type === 'config' ? items[i].replace(/\.json$/, '') : items[i];
+            html += '<label><input type="checkbox" class="tf-check" data-type="' + esc(type) + '" data-name="' + esc(dataName) + '"> ' + esc(displayName) + '</label>';
         }
         container.innerHTML = html;
         group.style.display = '';
@@ -170,20 +161,18 @@ document.addEventListener('DOMContentLoaded', function () {
         var worlds = [];
         var arenas = [];
         var kits = [];
-        var globalConfig = false;
-        var hubConfig = false;
+        var configs = [];
         var modJar = false;
 
         for (var i = 0; i < checked.length; i++) {
             var cb = checked[i];
-            var type = cb.getAttribute('data-type');
+            var cbType = cb.getAttribute('data-type');
             var name = cb.getAttribute('data-name');
-            if (type === 'world') worlds.push(name);
-            else if (type === 'arena') arenas.push(name);
-            else if (type === 'kit') kits.push(name);
-            else if (type === 'global_config') globalConfig = true;
-            else if (type === 'hub_config') hubConfig = true;
-            else if (type === 'mod_jar') modJar = true;
+            if (cbType === 'world') worlds.push(name);
+            else if (cbType === 'arena') arenas.push(name);
+            else if (cbType === 'kit') kits.push(name);
+            else if (cbType === 'config') configs.push(name);
+            else if (cbType === 'mod_jar') modJar = true;
         }
 
         var sourceName = sourceSelect.options[sourceSelect.selectedIndex].getAttribute('data-name');
@@ -193,8 +182,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (worlds.length > 0) summary.push(worlds.length + ' world(s)');
         if (arenas.length > 0) summary.push(arenas.length + ' arena config(s)');
         if (kits.length > 0) summary.push(kits.length + ' kit config(s)');
-        if (globalConfig) summary.push('global.json');
-        if (hubConfig) summary.push('hub.json');
+        if (configs.length > 0) summary.push(configs.length + ' config file(s)');
         if (modJar) summary.push('mod JAR');
 
         if (!confirm('Transfer ' + summary.join(', ') + ' from "' + sourceName + '" to "' + targetName + '"?\n\nExisting data on the target will be backed up.')) {
@@ -215,8 +203,7 @@ document.addEventListener('DOMContentLoaded', function () {
             worlds: worlds,
             arenas: arenas,
             kits: kits,
-            global_config: globalConfig,
-            hub_config: hubConfig,
+            configs: configs,
             mod_jar: modJar
         };
 
@@ -246,8 +233,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (t.worlds && t.worlds.length > 0) items.push('Worlds: ' + t.worlds.join(', '));
                 if (t.arenas && t.arenas.length > 0) items.push('Arenas: ' + t.arenas.join(', '));
                 if (t.kits && t.kits.length > 0) items.push('Kits: ' + t.kits.join(', '));
-                if (t.global_config) items.push('global.json');
-                if (t.hub_config) items.push('hub.json');
+                if (t.configs && t.configs.length > 0) items.push('Configs: ' + t.configs.map(function (n) { return n + '.json'; }).join(', '));
                 if (t.mod_jar) items.push('Mod JAR');
                 html += 'Transferred: ' + (items.length > 0 ? items.join('; ') : 'none');
 
