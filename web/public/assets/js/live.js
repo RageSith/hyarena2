@@ -71,7 +71,7 @@ async function loadLeaderboard() {
     if (!container) return;
 
     try {
-        const response = await fetch('/api/leaderboard?limit=5');
+        const response = await fetch('/api/leaderboard?per_page=15');
         const data = await response.json();
 
         if (data.success && data.data.entries && data.data.entries.length > 0) {

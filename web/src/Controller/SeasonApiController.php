@@ -147,7 +147,7 @@ class SeasonApiController
                 $total = $service->getFrozenRankingsCount($seasonId);
             } else {
                 $entries = $service->getSeasonLeaderboard($seasonId, $season['ranking_mode'], $order, $perPage, $offset, $minMatches);
-                $total = $service->getSeasonLeaderboardCount($seasonId, $minMatches);
+                $total = $service->getSeasonLeaderboardCount($seasonId, $season['ranking_mode'], $minMatches);
             }
 
             return $this->success($response, [

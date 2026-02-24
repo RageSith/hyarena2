@@ -322,9 +322,9 @@ class SeasonService
         return $this->repo->getSeasonLeaderboard($seasonId, $rankingMode, $order, $limit, $offset, $minMatches);
     }
 
-    public function getSeasonLeaderboardCount(int $seasonId, int $minMatches = 0): int
+    public function getSeasonLeaderboardCount(int $seasonId, string $rankingMode, int $minMatches = 0): int
     {
-        return $this->repo->getSeasonLeaderboardCount($seasonId, $minMatches);
+        return $this->repo->getSeasonLeaderboardCount($seasonId, $rankingMode, $minMatches);
     }
 
     public function getFrozenRankings(int $seasonId, int $limit = 25, int $offset = 0): array
