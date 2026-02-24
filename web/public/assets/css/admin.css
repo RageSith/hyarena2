@@ -1056,6 +1056,89 @@ details.danger-toggle summary:hover {
     color: var(--admin-text-muted);
 }
 
+/* Backup Tree */
+.bk-tree-group {
+    background: var(--admin-bg-light);
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+
+.bk-tree-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+}
+
+.bk-tree-header:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.bk-tree-toggle {
+    font-size: 0.7rem;
+    color: var(--admin-text-muted);
+    width: 1rem;
+    flex-shrink: 0;
+}
+
+.bk-tree-ts {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.bk-tree-count {
+    font-size: 0.8rem;
+    color: var(--admin-text-muted);
+}
+
+.bk-tree-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.bk-tree-items {
+    border-top: 1px solid var(--admin-border);
+}
+
+.bk-tree-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem 0.5rem 2.5rem;
+    border-bottom: 1px solid var(--admin-border);
+    transition: background 0.15s;
+}
+
+.bk-tree-item:last-child {
+    border-bottom: none;
+}
+
+.bk-tree-item:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.bk-tree-name {
+    font-size: 0.85rem;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bk-tree-item-actions {
+    display: flex;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .admin-sidebar {

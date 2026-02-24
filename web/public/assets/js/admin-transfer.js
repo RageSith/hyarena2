@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // ==========================================
-    // Backup Section
+    // Backup Section — Timestamp-Grouped Tree
     // ==========================================
 
     backupSelect.addEventListener('change', function () {
@@ -270,75 +270,143 @@ document.addEventListener('DOMContentLoaded', function () {
         hide(resultEl);
 
         if (!id) {
-            document.getElementById('bk-list').innerHTML = '<tr><td colspan="4" class="empty">Select a server to view backups.</td></tr>';
+            document.getElementById('bk-tree').innerHTML = '<p class="text-muted">Select a server to view backups.</p>';
             return;
         }
         loadBackups(id);
     });
 
     function loadBackups(serverId) {
-        var tbody = document.getElementById('bk-list');
-        tbody.innerHTML = '<tr><td colspan="4" class="empty">Loading...</td></tr>';
+        var tree = document.getElementById('bk-tree');
+        tree.innerHTML = '<p class="text-muted">Loading...</p>';
 
         fetch('/admin/api/transfer/backups/' + encodeURIComponent(serverId))
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (data.error) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="empty">Error: ' + esc(data.error) + '</td></tr>';
+                    tree.innerHTML = '<p class="text-muted">Error: ' + esc(data.error) + '</p>';
                     return;
                 }
 
                 var backups = data.backups || [];
                 if (backups.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="empty">No backups found.</td></tr>';
+                    tree.innerHTML = '<p class="text-muted">No backups found.</p>';
                     return;
                 }
 
-                var html = '';
+                // Group by timestamp, most recent first
+                var groups = {};
+                var order = [];
                 for (var i = 0; i < backups.length; i++) {
-                    var b = backups[i];
-                    html += '<tr>';
-                    html += '<td><span class="badge badge-info">' + esc(typeLabel(b.type)) + '</span></td>';
-                    html += '<td>' + esc(b.original) + '</td>';
-                    html += '<td>' + esc(b.timestamp) + '</td>';
-                    html += '<td class="actions">';
-                    html += '<button class="btn btn-sm btn-primary" onclick="bkAction(\'restore\', \'' + esc(b.type) + '\', \'' + esc(b.name) + '\')">Restore</button> ';
-                    html += '<button class="btn btn-sm btn-danger" onclick="bkAction(\'delete\', \'' + esc(b.type) + '\', \'' + esc(b.name) + '\')">Delete</button>';
-                    html += '</td></tr>';
+                    var ts = backups[i].timestamp;
+                    if (!groups[ts]) {
+                        groups[ts] = [];
+                        order.push(ts);
+                    }
+                    groups[ts].push(backups[i]);
                 }
-                tbody.innerHTML = html;
+                order.sort(function (a, b) { return b.localeCompare(a); });
+
+                renderTree(tree, groups, order);
             })
             .catch(function () {
-                tbody.innerHTML = '<tr><td colspan="4" class="empty">Failed to load backups.</td></tr>';
+                tree.innerHTML = '<p class="text-muted">Failed to load backups.</p>';
             });
     }
 
-    window.bkAction = function (action, type, backupName) {
+    function formatTimestamp(ts) {
+        // "2026-02-24_14-30" → "Feb 24, 2026 at 14:30"
+        var parts = ts.split('_');
+        if (parts.length !== 2) return ts;
+        var dateParts = parts[0].split('-');
+        var timeParts = parts[1].split('-');
+        if (dateParts.length !== 3 || timeParts.length !== 2) return ts;
+        var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        var m = parseInt(dateParts[1], 10);
+        var month = (m >= 1 && m <= 12) ? months[m - 1] : dateParts[1];
+        return month + ' ' + parseInt(dateParts[2], 10) + ', ' + dateParts[0] + ' at ' + timeParts[0] + ':' + timeParts[1];
+    }
+
+    function renderTree(container, groups, order) {
+        var html = '';
+        for (var g = 0; g < order.length; g++) {
+            var ts = order[g];
+            var items = groups[ts];
+            var expanded = g === 0; // most recent expanded by default
+            var groupId = 'bk-group-' + g;
+
+            html += '<div class="bk-tree-group">';
+            html += '<div class="bk-tree-header" data-target="' + groupId + '">';
+            html += '<span class="bk-tree-toggle">' + (expanded ? '&#9660;' : '&#9654;') + '</span>';
+            html += '<span class="bk-tree-ts">' + esc(formatTimestamp(ts)) + '</span>';
+            html += '<span class="bk-tree-count">' + items.length + ' item' + (items.length !== 1 ? 's' : '') + '</span>';
+            html += '<span class="bk-tree-actions">';
+            html += '<button class="btn btn-sm btn-primary bk-batch-btn" data-action="restore" data-ts="' + esc(ts) + '">Restore All</button> ';
+            html += '<button class="btn btn-sm btn-danger bk-batch-btn" data-action="delete" data-ts="' + esc(ts) + '">Delete All</button>';
+            html += '</span>';
+            html += '</div>';
+            html += '<div class="bk-tree-items" id="' + groupId + '"' + (expanded ? '' : ' style="display:none"') + '>';
+
+            for (var i = 0; i < items.length; i++) {
+                var b = items[i];
+                var displayName = b.original;
+                if (b.type === 'config') displayName += '.json';
+                html += '<div class="bk-tree-item">';
+                html += '<span class="badge badge-info">' + esc(typeLabel(b.type)) + '</span>';
+                html += '<span class="bk-tree-name">' + esc(displayName) + '</span>';
+                html += '<span class="bk-tree-item-actions">';
+                html += '<button class="btn btn-sm btn-primary bk-single-btn" data-action="restore" data-type="' + esc(b.type) + '" data-name="' + esc(b.name) + '">Restore</button> ';
+                html += '<button class="btn btn-sm btn-danger bk-single-btn" data-action="delete" data-type="' + esc(b.type) + '" data-name="' + esc(b.name) + '">Delete</button>';
+                html += '</span>';
+                html += '</div>';
+            }
+
+            html += '</div>';
+            html += '</div>';
+        }
+        container.innerHTML = html;
+    }
+
+    // Toggle collapse/expand
+    document.addEventListener('click', function (e) {
+        var header = e.target.closest('.bk-tree-header');
+        if (!header) return;
+        // Ignore clicks on buttons
+        if (e.target.closest('.bk-batch-btn')) return;
+
+        var targetId = header.getAttribute('data-target');
+        var items = document.getElementById(targetId);
+        if (!items) return;
+
+        var toggle = header.querySelector('.bk-tree-toggle');
+        if (items.style.display === 'none') {
+            items.style.display = '';
+            toggle.innerHTML = '&#9660;';
+        } else {
+            items.style.display = 'none';
+            toggle.innerHTML = '&#9654;';
+        }
+    });
+
+    // Single item restore/delete
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.bk-single-btn');
+        if (!btn) return;
+
         var serverId = backupSelect.value;
         if (!serverId) return;
 
+        var action = btn.getAttribute('data-action');
+        var type = btn.getAttribute('data-type');
+        var backupName = btn.getAttribute('data-name');
         var actionLabel = action === 'restore' ? 'Restore' : 'Delete';
+
         if (!confirm(actionLabel + ' backup "' + backupName + '"?')) return;
 
         var resultEl = document.getElementById('bk-result');
         hide(resultEl);
 
-        var payload = {
-            server: serverId,
-            action: action,
-            type: type,
-            backup_name: backupName
-        };
-
-        fetch('/admin/api/transfer/backup', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': window.HW_CSRF_TOKEN
-            },
-            body: JSON.stringify(payload)
-        })
-            .then(function (r) { return r.json(); })
+        bkRequest(serverId, action, type, backupName)
             .then(function (data) {
                 show(resultEl);
                 if (data.error) {
@@ -355,5 +423,92 @@ document.addEventListener('DOMContentLoaded', function () {
                 resultEl.className = 'alert alert-error';
                 resultEl.textContent = actionLabel + ' request failed.';
             });
-    };
+    });
+
+    // Batch restore/delete all items in a timestamp group
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.bk-batch-btn');
+        if (!btn) return;
+
+        var serverId = backupSelect.value;
+        if (!serverId) return;
+
+        var action = btn.getAttribute('data-action');
+        var ts = btn.getAttribute('data-ts');
+        var actionLabel = action === 'restore' ? 'Restore' : 'Delete';
+
+        // Gather all items in this group from the DOM
+        var header = btn.closest('.bk-tree-header');
+        var targetId = header.getAttribute('data-target');
+        var itemsContainer = document.getElementById(targetId);
+        var singleBtns = itemsContainer.querySelectorAll('.bk-single-btn[data-action="' + action + '"]');
+
+        var items = [];
+        for (var i = 0; i < singleBtns.length; i++) {
+            items.push({
+                type: singleBtns[i].getAttribute('data-type'),
+                name: singleBtns[i].getAttribute('data-name')
+            });
+        }
+
+        if (items.length === 0) return;
+        if (!confirm(actionLabel + ' all ' + items.length + ' backup(s) from ' + formatTimestamp(ts) + '?')) return;
+
+        var resultEl = document.getElementById('bk-result');
+        hide(resultEl);
+
+        // Disable batch buttons and show progress
+        var group = btn.closest('.bk-tree-group');
+        var allBtns = group.querySelectorAll('.btn');
+        for (var j = 0; j < allBtns.length; j++) allBtns[j].disabled = true;
+
+        bkBatchSequential(serverId, action, items, 0, [], [])
+            .then(function (result) {
+                show(resultEl);
+                if (result.errors.length === 0) {
+                    resultEl.className = 'alert alert-success';
+                    resultEl.textContent = actionLabel + ' completed: ' + result.ok + ' of ' + items.length + ' item(s) processed.';
+                } else {
+                    resultEl.className = 'alert alert-error';
+                    resultEl.textContent = actionLabel + ' partially failed: ' + result.ok + ' succeeded, ' + result.errors.length + ' failed. Errors: ' + result.errors.join('; ');
+                }
+                loadBackups(serverId);
+            });
+    });
+
+    function bkRequest(serverId, action, type, backupName) {
+        return fetch('/admin/api/transfer/backup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.HW_CSRF_TOKEN
+            },
+            body: JSON.stringify({
+                server: serverId,
+                action: action,
+                type: type,
+                backup_name: backupName
+            })
+        }).then(function (r) { return r.json(); });
+    }
+
+    function bkBatchSequential(serverId, action, items, index, errors, okList) {
+        if (index >= items.length) {
+            return Promise.resolve({ ok: okList.length, errors: errors });
+        }
+        var item = items[index];
+        return bkRequest(serverId, action, item.type, item.name)
+            .then(function (data) {
+                if (data.error) {
+                    errors.push(item.name + ': ' + data.error);
+                } else {
+                    okList.push(item.name);
+                }
+                return bkBatchSequential(serverId, action, items, index + 1, errors, okList);
+            })
+            .catch(function () {
+                errors.push(item.name + ': request failed');
+                return bkBatchSequential(serverId, action, items, index + 1, errors, okList);
+            });
+    }
 });
