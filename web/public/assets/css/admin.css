@@ -962,6 +962,100 @@ details.danger-toggle summary:hover {
     font-size: 0.8rem;
 }
 
+/* Transfer Page */
+.tf-section {
+    background: var(--admin-bg-card);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.tf-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.tf-loading {
+    padding: 0.75rem 0;
+}
+
+.tf-group {
+    background: var(--admin-bg-light);
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.tf-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.tf-group-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--admin-text-muted);
+}
+
+.tf-select-all-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--admin-text-muted);
+    cursor: pointer;
+}
+
+.tf-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.tf-checkboxes label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-border);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.tf-checkboxes label:hover {
+    border-color: var(--admin-primary);
+}
+
+.tf-checkboxes .text-muted {
+    font-size: 0.85rem;
+    padding: 0.25rem 0;
+}
+
+.tf-actions {
+    margin-top: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.tf-spinner {
+    display: none;
+    font-size: 0.85rem;
+    color: var(--admin-text-muted);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .admin-sidebar {

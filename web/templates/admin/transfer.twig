@@ -1,0 +1,125 @@
+{% extends "admin/layout.twig" %}
+
+{% block title %}Transfer{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-page-header">
+        <h1>Game Data Transfer</h1>
+    </div>
+
+    {% if hw_error %}
+    <div class="alert alert-error">Unable to connect to Hywarden: {{ hw_error }}</div>
+    {% endif %}
+
+    {# ==================== Transfer Section ==================== #}
+    <div class="tf-section">
+        <h2 class="tf-section-title">Transfer Data</h2>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Source Server</label>
+                <select id="tf-source">
+                    <option value="">-- Select source --</option>
+                    {% for server in servers %}
+                    <option value="{{ server.id }}" data-name="{{ server.name }}">{{ server.name }}{% if server.running %} (Running){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Target Server</label>
+                <select id="tf-target">
+                    <option value="">-- Select target --</option>
+                    {% for server in servers %}
+                    <option value="{{ server.id }}" data-name="{{ server.name }}">{{ server.name }}{% if server.running %} (Running){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div id="tf-items" style="display:none">
+            <div id="tf-loading" class="text-muted tf-loading">Loading game data...</div>
+            <div id="tf-groups" style="display:none">
+                <div id="tf-group-worlds" class="tf-group">
+                    <div class="tf-group-header">
+                        <span class="tf-group-title">Worlds</span>
+                        <label class="tf-select-all-label"><input type="checkbox" class="tf-select-all" data-group="worlds"> Select All</label>
+                    </div>
+                    <div id="tf-worlds" class="tf-checkboxes"></div>
+                </div>
+                <div id="tf-group-arenas" class="tf-group">
+                    <div class="tf-group-header">
+                        <span class="tf-group-title">Arena Configs</span>
+                        <label class="tf-select-all-label"><input type="checkbox" class="tf-select-all" data-group="arenas"> Select All</label>
+                    </div>
+                    <div id="tf-arenas" class="tf-checkboxes"></div>
+                </div>
+                <div id="tf-group-kits" class="tf-group">
+                    <div class="tf-group-header">
+                        <span class="tf-group-title">Kit Configs</span>
+                        <label class="tf-select-all-label"><input type="checkbox" class="tf-select-all" data-group="kits"> Select All</label>
+                    </div>
+                    <div id="tf-kits" class="tf-checkboxes"></div>
+                </div>
+                <div id="tf-group-configs" class="tf-group">
+                    <div class="tf-group-header">
+                        <span class="tf-group-title">Config Files</span>
+                    </div>
+                    <div id="tf-configs" class="tf-checkboxes"></div>
+                </div>
+                <div id="tf-group-mod" class="tf-group">
+                    <div class="tf-group-header">
+                        <span class="tf-group-title">Mod JAR</span>
+                    </div>
+                    <div id="tf-mod" class="tf-checkboxes"></div>
+                </div>
+            </div>
+
+            <div class="tf-actions">
+                <button id="tf-btn" class="btn btn-primary" disabled onclick="tfExecute()">Transfer Selected Items</button>
+                <span id="tf-spinner" class="tf-spinner">Transferring...</span>
+            </div>
+        </div>
+
+        <div id="tf-result" style="display:none"></div>
+    </div>
+
+    {# ==================== Backup Section ==================== #}
+    <div class="tf-section">
+        <h2 class="tf-section-title">Backup Management</h2>
+
+        <div class="form-group" style="max-width:400px">
+            <label>Server</label>
+            <select id="bk-server">
+                <option value="">-- Select server --</option>
+                {% for server in servers %}
+                <option value="{{ server.id }}" data-name="{{ server.name }}">{{ server.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Original</th>
+                        <th>Timestamp</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="bk-list">
+                    <tr><td colspan="4" class="empty">Select a server to view backups.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="bk-result" style="display:none"></div>
+    </div>
+</div>
+
+<script>
+    window.HW_CSRF_TOKEN = '{{ csrf_token }}';
+</script>
+<script src="/assets/js/admin-transfer.js"></script>
+{% endblock %}

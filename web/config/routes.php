@@ -13,6 +13,7 @@ use App\Controller\ArenaAdminController;
 use App\Controller\DataManagementController;
 use App\Controller\ServerManagerController;
 use App\Controller\TeamAdminController;
+use App\Controller\TransferController;
 use App\Middleware\ApiKeyMiddleware;
 use App\Middleware\RateLimitMiddleware;
 use App\Middleware\CorsMiddleware;
@@ -180,6 +181,15 @@ return function (App $app) {
             $inner->post('/api/hywarden/servers/{id}/prefabs/upload', [ServerManagerController::class, 'apiUploadPrefab']);
             $inner->post('/api/hywarden/servers/{id}/prefabs/{name}/delete', [ServerManagerController::class, 'apiDeletePrefab']);
             $inner->get('/api/hywarden/servers/{id}/prefabs/{name}/download', [ServerManagerController::class, 'apiDownloadPrefab']);
+        })->add(new AdminRoleMiddleware('servers'));
+
+        // Transfer (servers permission — server management operation)
+        $group->group('', function (RouteCollectorProxy $inner) {
+            $inner->get('/transfer', [TransferController::class, 'page']);
+            $inner->get('/api/transfer/game-data/{id}', [TransferController::class, 'apiGameData']);
+            $inner->get('/api/transfer/backups/{id}', [TransferController::class, 'apiBackups']);
+            $inner->post('/api/transfer/execute', [TransferController::class, 'apiTransfer']);
+            $inner->post('/api/transfer/backup', [TransferController::class, 'apiBackupAction']);
         })->add(new AdminRoleMiddleware('servers'));
 
         // Data Management (super_admin only)

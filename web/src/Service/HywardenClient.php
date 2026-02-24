@@ -70,6 +70,30 @@ class HywardenClient
     }
 
     // ==========================================
+    // Transfer / Game Data
+    // ==========================================
+
+    public function getGameData(string $serverId): array
+    {
+        return $this->request('GET', '/api/servers/' . urlencode($serverId) . '/game-data');
+    }
+
+    public function getGameDataBackups(string $serverId): array
+    {
+        return $this->request('GET', '/api/servers/' . urlencode($serverId) . '/game-data/backups');
+    }
+
+    public function transfer(array $payload): array
+    {
+        return $this->requestJson('POST', '/api/transfer', $payload);
+    }
+
+    public function transferBackup(array $payload): array
+    {
+        return $this->requestJson('POST', '/api/transfer/backup', $payload);
+    }
+
+    // ==========================================
     // Prefab File Management
     // ==========================================
 
@@ -166,6 +190,49 @@ class HywardenClient
     // ==========================================
     // HTTP + Token Lifecycle
     // ==========================================
+
+    private function requestJson(string $method, string $path, array $body, bool $retry = true): array
+    {
+        $this->ensureToken();
+
+        $url = $this->baseUrl . $path;
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_CUSTOMREQUEST => $method,
+            CURLOPT_POSTFIELDS => json_encode($body),
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $this->token,
+                'Content-Type: application/json',
+            ],
+        ]);
+
+        $responseBody = curl_exec($ch);
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            return ['error' => 'Connection failed: ' . $error];
+        }
+
+        if ($status === 401 && $retry) {
+            $this->login();
+            return $this->requestJson($method, $path, $body, false);
+        }
+
+        $data = json_decode($responseBody, true);
+        if ($data === null && $responseBody !== 'null') {
+            return ['error' => 'Invalid JSON response (HTTP ' . $status . ')'];
+        }
+
+        if ($status >= 400) {
+            return ['error' => $data['error'] ?? 'HTTP ' . $status];
+        }
+
+        return $data ?? [];
+    }
 
     private function request(string $method, string $path, bool $retry = true): array
     {

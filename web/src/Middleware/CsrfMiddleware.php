@@ -16,6 +16,9 @@ class CsrfMiddleware implements MiddlewareInterface
         if ($request->getMethod() === 'POST') {
             $body = $request->getParsedBody();
             $token = $body['_csrf_token'] ?? '';
+            if ($token === '') {
+                $token = $request->getHeaderLine('X-CSRF-Token');
+            }
 
             if (!AdminAuth::validateCsrfToken($token)) {
                 $response = new SlimResponse();
