@@ -12,6 +12,7 @@ use App\Controller\SeasonAdminController;
 use App\Controller\ArenaAdminController;
 use App\Controller\DataManagementController;
 use App\Controller\ServerManagerController;
+use App\Controller\TeamAdminController;
 use App\Middleware\ApiKeyMiddleware;
 use App\Middleware\RateLimitMiddleware;
 use App\Middleware\CorsMiddleware;
@@ -30,6 +31,7 @@ return function (App $app) {
     $app->get('/arenas', [PageController::class, 'arenas']);
     $app->get('/kits', [PageController::class, 'kits']);
     $app->get('/features', [PageController::class, 'features']);
+    $app->get('/team', [PageController::class, 'team']);
     $app->get('/leaderboard', [PageController::class, 'leaderboard']);
     $app->get('/seasons', [PageController::class, 'seasons']);
     $app->get('/seasons/archive', [PageController::class, 'seasonsArchive']);
@@ -145,6 +147,18 @@ return function (App $app) {
             $inner->post('/users/{id}/edit', [AdminUserController::class, 'edit']);
             $inner->post('/users/{id}/delete', [AdminUserController::class, 'delete']);
         })->add(new AdminRoleMiddleware('admin_users'));
+
+        // Team (admin+ only)
+        $group->group('', function (RouteCollectorProxy $inner) {
+            $inner->get('/team', [TeamAdminController::class, 'list']);
+            $inner->get('/team/create', [TeamAdminController::class, 'form']);
+            $inner->post('/team/create', [TeamAdminController::class, 'create']);
+            $inner->get('/team/{id}/edit', [TeamAdminController::class, 'form']);
+            $inner->post('/team/{id}/edit', [TeamAdminController::class, 'update']);
+            $inner->post('/team/{id}/delete', [TeamAdminController::class, 'delete']);
+            $inner->post('/team/{id}/move-up', [TeamAdminController::class, 'moveUp']);
+            $inner->post('/team/{id}/move-down', [TeamAdminController::class, 'moveDown']);
+        })->add(new AdminRoleMiddleware('team'));
 
         // Arenas (admin+ only)
         $group->group('', function (RouteCollectorProxy $inner) {

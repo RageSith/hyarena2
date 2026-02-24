@@ -5314,3 +5314,82 @@ a.season-item-name:hover {
         grid-template-columns: 1fr;
     }
 }
+
+/* ==========================================
+   Team Page
+   ========================================== */
+
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-lg);
+}
+
+.team-card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    text-align: center;
+    transition: all var(--transition-base);
+}
+
+.team-card:hover {
+    border-color: var(--color-secondary);
+    transform: translateY(-2px);
+}
+
+.team-card-avatar {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin: 0 auto var(--space-md);
+    display: block;
+    border: 3px solid var(--color-border);
+}
+
+.team-card-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-muted);
+}
+
+.team-card h3 {
+    font-size: 1.4rem;
+    margin-bottom: var(--space-xs);
+}
+
+.team-card p {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+@media (max-width: 480px) {
+    .team-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .team-card {
+        padding: var(--space-lg);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .team-card {
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeInUp 0.6s ease forwards;
+    }
+
+    .team-grid .team-card:nth-child(1) { animation-delay: 0.1s; }
+    .team-grid .team-card:nth-child(2) { animation-delay: 0.2s; }
+    .team-grid .team-card:nth-child(3) { animation-delay: 0.3s; }
+    .team-grid .team-card:nth-child(4) { animation-delay: 0.4s; }
+    .team-grid .team-card:nth-child(5) { animation-delay: 0.5s; }
+    .team-grid .team-card:nth-child(6) { animation-delay: 0.6s; }
+}

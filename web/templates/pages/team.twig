@@ -1,0 +1,53 @@
+{% extends "base.twig" %}
+
+{% block title %}{{ site_name }} - Team{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="page-hero">
+    <div class="container">
+        <h1 class="page-hero-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/>
+                <circle cx="19" cy="7" r="3"/>
+                <path d="M21 21v-2a3 3 0 00-2-2.83"/>
+            </svg>
+            Our Team
+        </h1>
+        <p class="page-hero-subtitle">The people behind HyArena.</p>
+    </div>
+</section>
+
+<!-- Team Grid -->
+<section class="section">
+    <div class="container">
+        {% if members|length > 0 %}
+        <div class="team-grid">
+            {% for member in members %}
+            <article class="team-card">
+                {% if member.image_path %}
+                    <img src="/uploads/team/{{ member.image_path }}" alt="{{ member.name }}" class="team-card-avatar">
+                {% else %}
+                    <div class="team-card-avatar team-card-placeholder">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="12" cy="8" r="4"/>
+                            <path d="M6 20c0-4 2.7-6 6-6s6 2 6 6"/>
+                        </svg>
+                    </div>
+                {% endif %}
+                <h3>{{ member.name }}</h3>
+                <p>{{ member.role }}</p>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="text-align: center; color: var(--color-text-muted);">No team members to show yet.</p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/assets/js/main.js"></script>
+{% endblock %}

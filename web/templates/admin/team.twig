@@ -1,0 +1,67 @@
+{% extends "admin/layout.twig" %}
+
+{% block title %}Team{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-page-header">
+        <h1>Team Members</h1>
+        <a href="/admin/team/create" class="btn btn-primary">Add Member</a>
+    </div>
+
+    <div class="admin-table-wrapper">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Image</th>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in members %}
+                <tr>
+                    <td>{{ member.sort_order }}</td>
+                    <td>
+                        {% if member.image_path %}
+                            <img src="/uploads/team/{{ member.image_path }}" alt="{{ member.name }}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid var(--admin-border);">
+                        {% else %}
+                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: var(--admin-bg-secondary); border: 1px solid var(--admin-border); color: var(--admin-text-muted);">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20c0-4 2.7-6 6-6s6 2 6 6"/></svg>
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>{{ member.name }}</td>
+                    <td>{{ member.role }}</td>
+                    <td class="actions">
+                        {% if not loop.first %}
+                        <form method="POST" action="/admin/team/{{ member.id }}/move-up" style="display:inline">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-sm" title="Move up">&uarr;</button>
+                        </form>
+                        {% endif %}
+                        {% if not loop.last %}
+                        <form method="POST" action="/admin/team/{{ member.id }}/move-down" style="display:inline">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-sm" title="Move down">&darr;</button>
+                        </form>
+                        {% endif %}
+                        <a href="/admin/team/{{ member.id }}/edit" class="btn btn-sm">Edit</a>
+                        <form method="POST" action="/admin/team/{{ member.id }}/delete" style="display:inline" onsubmit="return confirm('Delete this team member?')">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="empty">No team members yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

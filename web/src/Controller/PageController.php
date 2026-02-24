@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Service\NotificationService;
+use App\Service\TeamService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -73,6 +74,15 @@ class PageController
     {
         return $this->twig->render($response, 'pages/features.twig', [
             'active_page' => 'features',
+        ]);
+    }
+
+    public function team(Request $request, Response $response): Response
+    {
+        $service = new TeamService();
+        return $this->twig->render($response, 'pages/team.twig', [
+            'active_page' => 'team',
+            'members' => $service->getAll(),
         ]);
     }
 

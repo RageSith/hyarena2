@@ -1,0 +1,41 @@
+$C = "../Common.ui";
+
+Group #AdminSpleefFloorRow {
+    Anchor: (Top: 10);
+    LayoutMode: Top;
+    Padding: (Full: 12);
+    Background: #0d1520;
+
+    // Block ID + remove row
+    Group #FloorBlockRow {
+        Anchor: (Height: 38);
+        LayoutMode: Left;
+        Label { Text: "Block"; Anchor: (Width: 50); Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center); }
+        $C.@TextField #FloorBlockField { FlexWeight: 1; PlaceholderText: "hytale:snow"; }
+        $C.@SecondaryTextButton #FloorRemoveBtn { @Text = "X"; @Anchor = (Width: 56, Left: 8); }
+    }
+
+    // Min coords row
+    Group #FloorMinRow {
+        Anchor: (Height: 38, Top: 8);
+        LayoutMode: Left;
+        Label { Text: "Min"; Anchor: (Width: 50); Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center); }
+        $C.@TextField #FloorMinXField { @Anchor = (Width: 80); PlaceholderText: "X"; }
+        $C.@TextField #FloorMinYField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Y"; }
+        $C.@TextField #FloorMinZField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Z"; }
+        $C.@SecondaryTextButton #FloorSetMinBtn { @Text = "Set"; @Anchor = (Width: 90, Left: 10); }
+        Group { FlexWeight: 1; }
+    }
+
+    // Max coords row
+    Group #FloorMaxRow {
+        Anchor: (Height: 38, Top: 8);
+        LayoutMode: Left;
+        Label { Text: "Max"; Anchor: (Width: 50); Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center); }
+        $C.@TextField #FloorMaxXField { @Anchor = (Width: 80); PlaceholderText: "X"; }
+        $C.@TextField #FloorMaxYField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Y"; }
+        $C.@TextField #FloorMaxZField { @Anchor = (Width: 80, Left: 6); PlaceholderText: "Z"; }
+        $C.@SecondaryTextButton #FloorSetMaxBtn { @Text = "Set"; @Anchor = (Width: 90, Left: 10); }
+        Group { FlexWeight: 1; }
+    }
+}

@@ -13,10 +13,11 @@
             <li><a href="/news" class="nav-link{% if active_page is defined and active_page == 'news' %} active{% endif %}">News</a></li>
             <li><a href="/live" class="nav-link nav-live{% if active_page is defined and active_page == 'live' %} active{% endif %}"><span class="live-dot"></span>Live</a></li>
             <li class="nav-dropdown">
-                <button class="nav-link nav-dropdown-toggle{% if active_page is defined and active_page in ['arenas', 'kits', 'features'] %} active{% endif %}" aria-expanded="false">Game</button>
+                <button class="nav-link nav-dropdown-toggle{% if active_page is defined and active_page in ['arenas', 'kits', 'team', 'features'] %} active{% endif %}" aria-expanded="false">Game</button>
                 <ul class="nav-dropdown-menu">
                     <li><a href="/arenas" class="nav-link{% if active_page is defined and active_page == 'arenas' %} active{% endif %}">Arenas</a></li>
                     <li><a href="/kits" class="nav-link{% if active_page is defined and active_page == 'kits' %} active{% endif %}">Kits</a></li>
+                    <li><a href="/team" class="nav-link{% if active_page is defined and active_page == 'team' %} active{% endif %}">Team</a></li>
                     <li><a href="/features" class="nav-link{% if active_page is defined and active_page == 'features' %} active{% endif %}">Features</a></li>
                 </ul>
             </li>

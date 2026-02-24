@@ -27,21 +27,14 @@ Group #ArenaCategoryPage {
                 Padding: (Horizontal: 14, Vertical: 10);
                 LayoutMode: Top;
 
-                Label {
-                    Text: "PVP";
-                    Anchor: (Top: 25, Height: 36);
-                    Style: (FontSize: 28, TextColor: #e8c872, RenderBold: true, Alignment: Center);
-                }
-
-                Label {
-                    Text: "Duels, Deathmatch and more";
-                    Anchor: (Top: 4, Height: 22);
-                    Style: (FontSize: 11, TextColor: #96a9be, Alignment: Center);
+                Group {
+                    Anchor: (Width: 200, Height: 200);
+                    Background: "pvp_button-nobg.png";
                 }
 
                 // Reward info
                 Group {
-                    Anchor: (Top: 22);
+                    Anchor: (Top: 0);
                     LayoutMode: Top;
 
                     Label {
@@ -66,21 +59,14 @@ Group #ArenaCategoryPage {
                 Padding: (Horizontal: 14, Vertical: 10);
                 LayoutMode: Top;
 
-                Label {
-                    Text: "MiniGames";
-                    Anchor: (Top: 25, Height: 36);
-                    Style: (FontSize: 28, TextColor: #e8c872, RenderBold: true, Alignment: Center);
-                }
-
-                Label {
-                    Text: "Wave Defense, Spleef and more";
-                    Anchor: (Top: 4, Height: 22);
-                    Style: (FontSize: 11, TextColor: #96a9be, Alignment: Center);
+                Group {
+                    Anchor: (Width: 200, Height: 200);
+                    Background: "minigames_button-nobg.png";
                 }
 
                 // Reward info
                 Group {
-                    Anchor: (Top: 22);
+                    Anchor: (Top: 0);
                     LayoutMode: Top;
 
                     Label {

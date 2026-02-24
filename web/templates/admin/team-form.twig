@@ -1,0 +1,42 @@
+{% extends "admin/layout.twig" %}
+
+{% block title %}{{ member ? 'Edit' : 'Add' }} Team Member{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <h1>{{ member ? 'Edit' : 'Add' }} Team Member</h1>
+
+    <form method="POST" class="admin-form" enctype="multipart/form-data">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" value="{{ member.name ?? '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="role">Role</label>
+            <input type="text" id="role" name="role" value="{{ member.role ?? '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="image">Image</label>
+            <input type="file" id="image" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+            {% if member and member.image_path %}
+                <div style="margin-top: 0.75rem;">
+                    <img src="/uploads/team/{{ member.image_path }}" alt="Current image" style="width: 120px; height: 120px; object-fit: cover; border-radius: 50%; border: 2px solid var(--admin-border);">
+                    <label style="display: block; margin-top: 0.5rem;">
+                        <input type="checkbox" name="remove_image" value="1">
+                        Remove current image
+                    </label>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{{ member ? 'Update' : 'Create' }}</button>
+            <a href="/admin/team" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
