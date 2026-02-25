@@ -122,7 +122,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
                            HubManager hubManager, ConfigManager configManager,
                            HudManager hudManager, ScheduledExecutorService scheduler,
                            Runnable onBack) {
-        super(playerRef, CustomPageLifetime.CantClose, PageEventData.CODEC);
+        super(playerRef, CustomPageLifetime.CanDismiss, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
         this.isCreate = (existingConfig == null);

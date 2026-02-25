@@ -81,7 +81,7 @@ public class ArenaMenuPage extends InteractiveCustomUIPage<ArenaMenuPage.PageEve
                          KitManager kitManager, HudManager hudManager,
                          ScheduledExecutorService scheduler, GameModeCategory category,
                          int selectedModeIndex) {
-        super(playerRef, CustomPageLifetime.CantClose, PageEventData.CODEC);
+        super(playerRef, CustomPageLifetime.CanDismiss, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
         this.matchManager = matchManager;

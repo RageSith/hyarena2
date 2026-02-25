@@ -48,7 +48,7 @@ public class ShopCategoryEditorPage extends InteractiveCustomUIPage<ShopCategory
                                    ShopCategory existingCategory, ShopManager shopManager,
                                    HudManager hudManager, ScheduledExecutorService scheduler,
                                    Runnable onBack) {
-        super(playerRef, CustomPageLifetime.CantClose, PageEventData.CODEC);
+        super(playerRef, CustomPageLifetime.CanDismiss, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
         this.isCreate = (existingCategory == null);

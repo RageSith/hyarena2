@@ -53,7 +53,7 @@ public class KitListPage extends InteractiveCustomUIPage<KitListPage.PageEventDa
                        HubManager hubManager, ConfigManager configManager,
                        HudManager hudManager, ScheduledExecutorService scheduler,
                        Runnable onBack) {
-        super(playerRef, CustomPageLifetime.CantClose, PageEventData.CODEC);
+        super(playerRef, CustomPageLifetime.CanDismiss, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
         this.kitManager = kitManager;

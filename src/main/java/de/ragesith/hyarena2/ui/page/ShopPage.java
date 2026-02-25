@@ -77,7 +77,7 @@ public class ShopPage extends InteractiveCustomUIPage<ShopPage.PageEventData> im
                     ShopManager shopManager, EconomyManager economyManager,
                     HonorManager honorManager, HudManager hudManager,
                     ScheduledExecutorService scheduler, int selectedCategoryIndex) {
-        super(playerRef, CustomPageLifetime.CantClose, PageEventData.CODEC);
+        super(playerRef, CustomPageLifetime.CanDismiss, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
         this.shopManager = shopManager;

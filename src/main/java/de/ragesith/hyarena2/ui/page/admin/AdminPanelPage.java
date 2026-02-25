@@ -53,7 +53,7 @@ public class AdminPanelPage extends InteractiveCustomUIPage<AdminPanelPage.PageE
                           MatchManager matchManager, KitManager kitManager,
                           HubManager hubManager, ConfigManager configManager,
                           HudManager hudManager, ScheduledExecutorService scheduler) {
-        super(playerRef, CustomPageLifetime.CantClose, PageEventData.CODEC);
+        super(playerRef, CustomPageLifetime.CanDismiss, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
         this.matchManager = matchManager;

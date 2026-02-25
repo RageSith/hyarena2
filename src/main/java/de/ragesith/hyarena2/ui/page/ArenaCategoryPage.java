@@ -43,7 +43,7 @@ public class ArenaCategoryPage extends InteractiveCustomUIPage<ArenaCategoryPage
                              MatchManager matchManager, QueueManager queueManager,
                              KitManager kitManager, HudManager hudManager,
                              ScheduledExecutorService scheduler) {
-        super(playerRef, CustomPageLifetime.CantClose, PageEventData.CODEC);
+        super(playerRef, CustomPageLifetime.CanDismiss, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
         this.matchManager = matchManager;

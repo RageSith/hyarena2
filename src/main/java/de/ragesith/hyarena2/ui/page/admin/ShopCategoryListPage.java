@@ -45,7 +45,7 @@ public class ShopCategoryListPage extends InteractiveCustomUIPage<ShopCategoryLi
     public ShopCategoryListPage(PlayerRef playerRef, UUID playerUuid,
                                 ShopManager shopManager, HudManager hudManager,
                                 ScheduledExecutorService scheduler, Runnable onBack) {
-        super(playerRef, CustomPageLifetime.CantClose, PageEventData.CODEC);
+        super(playerRef, CustomPageLifetime.CanDismiss, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
         this.shopManager = shopManager;

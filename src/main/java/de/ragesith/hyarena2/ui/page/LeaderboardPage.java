@@ -77,7 +77,7 @@ public class LeaderboardPage extends InteractiveCustomUIPage<LeaderboardPage.Pag
                            StatsManager statsManager, MatchManager matchManager,
                            HudManager hudManager, ScheduledExecutorService scheduler,
                            int selectedScopeIndex, String currentSort, int currentPage) {
-        super(playerRef, CustomPageLifetime.CantClose, PageEventData.CODEC);
+        super(playerRef, CustomPageLifetime.CanDismiss, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
         this.statsManager = statsManager;
