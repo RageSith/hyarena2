@@ -235,48 +235,6 @@ Group #ArenaEditorPage {
                         @Anchor = (Height: 32, Top: 10, Width: 150);
                     }
 
-                    // Random Kit Pool (kit_roulette only)
-                    Group #RandomKitPoolSection {
-                        Visible: false;
-                        Anchor: (Top: 14);
-                        LayoutMode: Top;
-
-                        Label {
-                            Text: "RANDOM KIT POOL";
-                            Anchor: (Height: 20);
-                            Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
-                        }
-
-                        Group #RandomKitPoolList {
-                            Anchor: (Top: 6);
-                            LayoutMode: Top;
-                        }
-
-                        $C.@SecondaryTextButton #AddRandomKitBtn {
-                            @Text = "+ Add Kit";
-                            @Anchor = (Height: 32, Top: 10, Width: 150);
-                        }
-
-                        // Kit swap triggers
-                        Group #SwapOnKillRow {
-                            Anchor: (Height: 38, Top: 10);
-                            LayoutMode: Left;
-                            Label { Text: "Swap Kit on Kill"; Anchor: (Width: 160); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
-                            $C.@CheckBox #SwapOnKillCheckbox {
-                            }
-                            Group { FlexWeight: 1; }
-                        }
-
-                        Group #SwapOnRespawnRow {
-                            Anchor: (Height: 38, Top: 4);
-                            LayoutMode: Left;
-                            Label { Text: "Swap Kit on Respawn"; Anchor: (Width: 160); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
-                            $C.@CheckBox #SwapOnRespawnCheckbox {
-                            }
-                            Group { FlexWeight: 1; }
-                        }
-                    }
-
                     Group { Anchor: (Height: 16); }
                 }
 
@@ -554,6 +512,47 @@ Group #ArenaEditorPage {
                 Group #SectionMode {
                     LayoutMode: Top;
                     Visible: false;
+
+                    // Kit Roulette Section (kit_roulette only)
+                    Group #RandomKitPoolSection {
+                        Visible: false;
+                        LayoutMode: Top;
+
+                        Label {
+                            Text: "RANDOM KIT POOL";
+                            Anchor: (Height: 20);
+                            Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
+                        }
+
+                        Group #RandomKitPoolList {
+                            Anchor: (Top: 6);
+                            LayoutMode: Top;
+                        }
+
+                        $C.@SecondaryTextButton #AddRandomKitBtn {
+                            @Text = "+ Add Kit";
+                            @Anchor = (Height: 32, Top: 10, Width: 150);
+                        }
+
+                        // Kit swap triggers
+                        Group #SwapOnKillRow {
+                            Anchor: (Height: 38, Top: 10);
+                            LayoutMode: Left;
+                            Label { Text: "Swap Kit on Kill"; Anchor: (Width: 160); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                            $C.@CheckBox #SwapOnKillCheckbox {
+                            }
+                            Group { FlexWeight: 1; }
+                        }
+
+                        Group #SwapOnRespawnRow {
+                            Anchor: (Height: 38, Top: 4);
+                            LayoutMode: Left;
+                            Label { Text: "Swap Kit on Respawn"; Anchor: (Width: 160); Style: (FontSize: 13, TextColor: #6b7d8e, VerticalAlignment: Center); }
+                            $C.@CheckBox #SwapOnRespawnCheckbox {
+                            }
+                            Group { FlexWeight: 1; }
+                        }
+                    }
 
                     // SpeedRun Section
                     Group #SpeedRunSection {

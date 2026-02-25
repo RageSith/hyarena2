@@ -291,10 +291,10 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
         cmd.set("#SpleefSection.Visible", showSpleef);
 
         // Tab sidebar logic
-        boolean showModeTab = showSpeedRun || showSpleef;
+        boolean showModeTab = showSpeedRun || showSpleef || showRandomKitPool;
         cmd.set("#TabMode.Visible", showModeTab);
         if (showModeTab) {
-            String modeLabel = showSpleef ? "Spleef" : "Speed Run";
+            String modeLabel = showRandomKitPool ? "Kit Roulette" : showSpleef ? "Spleef" : "Speed Run";
             cmd.set("#TabModeLabel.Text", modeLabel);
         }
 
@@ -926,7 +926,7 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             case "gameMode":
                 formGameMode = data.value;
                 // If Mode tab is active but new mode doesn't need it, reset to General
-                boolean needsModeTab = "speed_run".equals(data.value) || "spleef".equals(data.value);
+                boolean needsModeTab = "speed_run".equals(data.value) || "spleef".equals(data.value) || "kit_roulette".equals(data.value);
                 if (activeTab == TAB_MODE && !needsModeTab) {
                     activeTab = 0;
                 }
