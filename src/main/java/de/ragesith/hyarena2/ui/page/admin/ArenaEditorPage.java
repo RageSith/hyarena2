@@ -104,16 +104,17 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
     private static final String[] BOT_DIFFICULTIES = {"EASY", "MEDIUM", "HARD", "EXTREME", "EASY_TANK", "MEDIUM_TANK", "HARD_TANK", "EXTREME_TANK"};
 
     private static final String[] TAB_SELECTORS = {
-        "#TabGeneral", "#TabKits", "#TabBots", "#TabSpawns", "#TabBounds", "#TabMode"
+        "#TabGeneral", "#TabKits", "#TabBots", "#TabSpawns", "#TabBounds", "#TabWaypoints", "#TabMode"
     };
     private static final String[] TAB_LABEL_SELECTORS = {
         "#TabGeneralLabel", "#TabKitsLabel", "#TabBotsLabel",
-        "#TabSpawnsLabel", "#TabBoundsLabel", "#TabModeLabel"
+        "#TabSpawnsLabel", "#TabBoundsLabel", "#TabWaypointsLabel", "#TabModeLabel"
     };
     private static final String[] SECTION_SELECTORS = {
         "#SectionGeneral", "#SectionKits", "#SectionBots",
-        "#SectionSpawns", "#SectionBounds", "#SectionMode"
+        "#SectionSpawns", "#SectionBounds", "#SectionWaypoints", "#SectionMode"
     };
+    private static final int TAB_MODE = 6;
 
     public ArenaEditorPage(PlayerRef playerRef, UUID playerUuid,
                            ArenaConfig existingConfig,
@@ -924,9 +925,9 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             case "worldName": formWorldName = data.value; break;
             case "gameMode":
                 formGameMode = data.value;
-                // If Mode tab (index 5) is active but new mode doesn't need it, reset to General
+                // If Mode tab is active but new mode doesn't need it, reset to General
                 boolean needsModeTab = "speed_run".equals(data.value) || "spleef".equals(data.value);
-                if (activeTab == 5 && !needsModeTab) {
+                if (activeTab == TAB_MODE && !needsModeTab) {
                     activeTab = 0;
                 }
                 active = true;

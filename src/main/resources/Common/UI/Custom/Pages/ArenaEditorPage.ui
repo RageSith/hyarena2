@@ -55,6 +55,12 @@ Group #ArenaEditorPage {
                     Padding: (Horizontal: 12);
                     Label #TabBoundsLabel { Text: "Bounds"; Style: (FontSize: 14, TextColor: #b7cedd, VerticalAlignment: Center); FlexWeight: 1; }
                 }
+                Button #TabWaypoints {
+                    Anchor: (Height: 36, Top: 4);
+                    Style: $C.@SecondaryButtonStyle;
+                    Padding: (Horizontal: 12);
+                    Label #TabWaypointsLabel { Text: "Waypoints"; Style: (FontSize: 14, TextColor: #b7cedd, VerticalAlignment: Center); FlexWeight: 1; }
+                }
                 Button #TabMode {
                     Anchor: (Height: 36, Top: 4);
                     Visible: false;
@@ -438,10 +444,17 @@ Group #ArenaEditorPage {
                         }
                     }
 
-                    // Nav Waypoints
+                    Group { Anchor: (Height: 16); }
+                }
+
+                // ===== Section: Waypoints =====
+                Group #SectionWaypoints {
+                    LayoutMode: Top;
+                    Visible: false;
+
                     Label #NavWaypointsHeader {
                         Text: "NAV WAYPOINTS";
-                        Anchor: (Height: 20, Top: 18);
+                        Anchor: (Height: 20);
                         Style: (FontSize: 11, TextColor: #e8c872, RenderBold: true, RenderUppercase: true);
                     }
 
