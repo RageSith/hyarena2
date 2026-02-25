@@ -47,6 +47,10 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEventData> implements CloseablePage {
 
+    // Per-player persistent state (survives page close/reopen, lost on server restart)
+    private static final Map<UUID, String> playerSelectedArena = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<UUID, String> playerFilterGameMode = new java.util.concurrent.ConcurrentHashMap<>();
+
     private final PlayerRef playerRef;
     private final UUID playerUuid;
     private final MatchManager matchManager;
@@ -66,20 +70,14 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
     // Current game mode filter (null or "all" = show all)
     private String filterGameMode;
 
-    public ArenaListPage(PlayerRef playerRef, UUID playerUuid,
-                         MatchManager matchManager, KitManager kitManager,
-                         HubManager hubManager, ConfigManager configManager,
-                         HudManager hudManager, ScheduledExecutorService scheduler,
-                         Runnable onBack) {
-        this(playerRef, playerUuid, matchManager, kitManager,
-             hubManager, configManager, hudManager, scheduler, onBack, null);
-    }
+    // Currently selected arena for quick edit (null = none)
+    private String selectedArenaId;
 
     public ArenaListPage(PlayerRef playerRef, UUID playerUuid,
                          MatchManager matchManager, KitManager kitManager,
                          HubManager hubManager, ConfigManager configManager,
                          HudManager hudManager, ScheduledExecutorService scheduler,
-                         Runnable onBack, String filterGameMode) {
+                         Runnable onBack) {
         super(playerRef, CustomPageLifetime.CantClose, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
@@ -90,7 +88,8 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
         this.hudManager = hudManager;
         this.scheduler = scheduler;
         this.onBack = onBack;
-        this.filterGameMode = filterGameMode;
+        this.filterGameMode = playerFilterGameMode.get(playerUuid);
+        this.selectedArenaId = playerSelectedArena.get(playerUuid);
     }
 
     @Override
@@ -138,6 +137,19 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
             String info = matchManager.getGameModeDisplayName(arena) + " | " + MatchManager.formatPlayerCount(arena);
             cmd.set(row + " #RowArenaInfo.Text", info);
 
+            // Highlight selected row
+            if (arena.getId().equals(selectedArenaId)) {
+                cmd.set(row + ".Background", "#1a2a3a");
+            }
+
+            // Select button
+            events.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                row + " #RowSelectBtn",
+                EventData.of("Action", "select").append("Arena", arena.getId()),
+                false
+            );
+
             // Teleport button
             events.addEventBinding(
                 CustomUIEventBindingType.Activating,
@@ -165,6 +177,15 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
                 EventData.of("Action", "delete").append("Arena", arena.getId()),
                 false
             );
+        }
+
+        // Show selection label + Edit Arena button if an arena is selected
+        if (selectedArenaId != null) {
+            Arena selected = matchManager.getArena(selectedArenaId);
+            if (selected != null) {
+                cmd.set("#SelectionLabel.Text", "Selected: " + selected.getDisplayName());
+                cmd.set("#EditArenaBtn.Visible", true);
+            }
         }
 
         // Bind buttons
@@ -201,6 +222,14 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
             CustomUIEventBindingType.ValueChanged,
             "#FilterDropdown",
             EventData.of("Action", "filter").append("@Value", "#FilterDropdown.Value"),
+            false
+        );
+
+        // Edit Arena button (quick edit for selected arena)
+        events.addEventBinding(
+            CustomUIEventBindingType.Activating,
+            "#EditArenaBtn",
+            EventData.of("Action", "edit_selected"),
             false
         );
 
@@ -254,9 +283,38 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
                     handleSyncChunks();
                     break;
 
+                case "select":
+                    if (data.arena != null) {
+                        // Toggle: clicking the already-selected arena deselects it
+                        if (data.arena.equals(selectedArenaId)) {
+                            selectedArenaId = null;
+                            playerSelectedArena.remove(playerUuid);
+                        } else {
+                            selectedArenaId = data.arena;
+                            playerSelectedArena.put(playerUuid, data.arena);
+                        }
+                        reopenSelf();
+                    }
+                    break;
+
+                case "edit_selected":
+                    if (selectedArenaId != null) {
+                        Arena selected = matchManager.getArena(selectedArenaId);
+                        if (selected != null) {
+                            openEditor(ref, store, player, selected);
+                        }
+                    }
+                    break;
+
                 case "filter":
                     if (data.value != null) {
-                        filterGameMode = "all".equals(data.value) ? null : data.value;
+                        if ("all".equals(data.value)) {
+                            filterGameMode = null;
+                            playerFilterGameMode.remove(playerUuid);
+                        } else {
+                            filterGameMode = data.value;
+                            playerFilterGameMode.put(playerUuid, data.value);
+                        }
                         reopenSelf();
                     }
                     break;
@@ -421,7 +479,7 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
 
         ArenaListPage page = new ArenaListPage(
             playerRef, playerUuid, matchManager, kitManager,
-            hubManager, configManager, hudManager, scheduler, onBack, filterGameMode
+            hubManager, configManager, hudManager, scheduler, onBack
         );
         p.getPageManager().openCustomPage(pRef, pStore, page);
     }

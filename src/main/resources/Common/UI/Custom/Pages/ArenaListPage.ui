@@ -5,7 +5,7 @@ Group #ArenaListPage {
 
     $C.@DecoratedContainer {
         @CloseButton = true;
-        Anchor: (Width: 640, Height: 480);
+        Anchor: (Width: 780, Height: 600);
 
         Group #Title {
             $C.@Title #TitleLabel {
@@ -70,6 +70,13 @@ Group #ArenaListPage {
             }
         }
 
+        // Selection label (above bottom buttons)
+        Label #SelectionLabel {
+            Anchor: (Bottom: 56, Height: 16, Left: 20, Right: 20);
+            Style: (FontSize: 11, TextColor: #e0a84a, Alignment: Center);
+            Text: "";
+        }
+
         // Bottom Button Row
         Group #ButtonRow {
             Anchor: (Bottom: 16, Height: 44, Left: 20, Right: 20);
@@ -78,6 +85,14 @@ Group #ArenaListPage {
             $C.@SecondaryTextButton #BackBtn {
                 @Text = "Back";
                 @Anchor = (Width: 120);
+            }
+
+            Group { FlexWeight: 1; }
+
+            $C.@TextButton #EditArenaBtn {
+                @Text = "Edit Arena";
+                @Anchor = (Width: 140);
+                Visible: false;
             }
 
             Group { FlexWeight: 1; }

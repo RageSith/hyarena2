@@ -24,10 +24,16 @@ Group #AdminArenaRow {
         }
     }
 
+    // Select button
+    $C.@SecondaryTextButton #RowSelectBtn {
+        @Text = "Select";
+        @Anchor = (Width: 90, Left: 8);
+    }
+
     // Teleport button
     $C.@SecondaryTextButton #RowTpBtn {
         @Text = "TP";
-        @Anchor = (Width: 50, Left: 8);
+        @Anchor = (Width: 75, Left: 4);
     }
 
     // Edit button
