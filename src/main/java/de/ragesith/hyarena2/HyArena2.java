@@ -23,6 +23,7 @@ import de.ragesith.hyarena2.economy.PlayerDataManager;
 import de.ragesith.hyarena2.boundary.BoundaryManager;
 import de.ragesith.hyarena2.command.AdminCommand;
 import de.ragesith.hyarena2.command.AdminPlayCommand;
+import de.ragesith.hyarena2.command.ApGiveCommand;
 import de.ragesith.hyarena2.command.ArenaCommand;
 import de.ragesith.hyarena2.command.DebugCommand;
 import de.ragesith.hyarena2.command.BuildCommand;
@@ -281,6 +282,7 @@ public class HyArena2 extends JavaPlugin {
         this.getCommandRegistry().registerCommand(new AdminPlayCommand(scheduler));
         this.getCommandRegistry().registerCommand(new BugCommand(this));
         this.getCommandRegistry().registerCommand(new BuildCommand(hubManager));
+        this.getCommandRegistry().registerCommand(new ApGiveCommand(economyManager));
 
         // Test match commands (Phase 2 testing)
         this.getCommandRegistry().registerCommand(new TestMatchArenasCommand(matchManager));

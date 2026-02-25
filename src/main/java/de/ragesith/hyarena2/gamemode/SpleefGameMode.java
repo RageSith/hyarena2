@@ -215,12 +215,12 @@ public class SpleefGameMode implements GameMode {
 
         for (ArenaConfig.SpleefFloor floor : floors) {
             if (floor.contains(x, y, z) && blockTypeId.equals(floor.getBlockId())) {
-                // Clear the block ourselves instead of letting the engine break it
+                // Replace with air to prevent item drops, return true so client isn't cancelled
                 World world = Universe.get().getWorld(config.getWorldName());
                 if (world != null) {
                     world.setBlock(x, y, z, "Empty");
                 }
-                return false;
+                return true;
             }
         }
         return false;

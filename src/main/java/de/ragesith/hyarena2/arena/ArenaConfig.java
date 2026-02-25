@@ -371,14 +371,21 @@ public class ArenaConfig {
         public void setMaxZ(double maxZ) { this.maxZ = maxZ; }
         public void setBlockId(String blockId) { this.blockId = blockId; }
 
-        /** Max-exclusive containment — matches the debug wireframe visual. */
-        public boolean contains(double x, double y, double z) {
-            double loX = Math.min(minX, maxX), hiX = Math.max(minX, maxX);
-            double loY = Math.min(minY, maxY), hiY = Math.max(minY, maxY);
-            double loZ = Math.min(minZ, maxZ), hiZ = Math.max(minZ, maxZ);
-            return x >= loX && x < hiX &&
-                   y >= loY && y < hiY &&
-                   z >= loZ && z < hiZ;
+        /**
+         * Block-coordinate containment check.
+         * Converts fractional world positions to block coords via Math.floor(),
+         * then uses inclusive range on both ends so single-layer floors (minY==maxY) work.
+         */
+        public boolean contains(int bx, int by, int bz) {
+            int loX = (int) Math.floor(Math.min(minX, maxX));
+            int hiX = (int) Math.floor(Math.max(minX, maxX));
+            int loY = (int) Math.floor(Math.min(minY, maxY));
+            int hiY = (int) Math.floor(Math.max(minY, maxY));
+            int loZ = (int) Math.floor(Math.min(minZ, maxZ));
+            int hiZ = (int) Math.floor(Math.max(minZ, maxZ));
+            return bx >= loX && bx <= hiX &&
+                   by >= loY && by <= hiY &&
+                   bz >= loZ && bz <= hiZ;
         }
     }
 }
