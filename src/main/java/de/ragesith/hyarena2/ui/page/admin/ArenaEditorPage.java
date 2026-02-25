@@ -98,8 +98,22 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
     private List<ArenaConfig.SpleefFloor> formSpleefFloors;
     private double formSpleefEliminationY;
 
+    private int activeTab = 0;
+
     private List<String> gameModeIds;
     private static final String[] BOT_DIFFICULTIES = {"EASY", "MEDIUM", "HARD", "EXTREME", "EASY_TANK", "MEDIUM_TANK", "HARD_TANK", "EXTREME_TANK"};
+
+    private static final String[] TAB_SELECTORS = {
+        "#TabGeneral", "#TabKits", "#TabBots", "#TabSpawns", "#TabBounds", "#TabMode"
+    };
+    private static final String[] TAB_LABEL_SELECTORS = {
+        "#TabGeneralLabel", "#TabKitsLabel", "#TabBotsLabel",
+        "#TabSpawnsLabel", "#TabBoundsLabel", "#TabModeLabel"
+    };
+    private static final String[] SECTION_SELECTORS = {
+        "#SectionGeneral", "#SectionKits", "#SectionBots",
+        "#SectionSpawns", "#SectionBounds", "#SectionMode"
+    };
 
     public ArenaEditorPage(PlayerRef playerRef, UUID playerUuid,
                            ArenaConfig existingConfig,
@@ -274,6 +288,30 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
         cmd.set("#WaveSpawnPointsSection.Visible", showWaveSpawnPoints);
         cmd.set("#SpeedRunSection.Visible", showSpeedRun);
         cmd.set("#SpleefSection.Visible", showSpleef);
+
+        // Tab sidebar logic
+        boolean showModeTab = showSpeedRun || showSpleef;
+        cmd.set("#TabMode.Visible", showModeTab);
+        if (showModeTab) {
+            String modeLabel = showSpleef ? "Spleef" : "Speed Run";
+            cmd.set("#TabModeLabel.Text", modeLabel);
+        }
+
+        // Show active section, hide others
+        for (int i = 0; i < SECTION_SELECTORS.length; i++) {
+            cmd.set(SECTION_SELECTORS[i] + ".Visible", i == activeTab);
+        }
+
+        // Highlight active tab label (gold), others default (#b7cedd)
+        for (int i = 0; i < TAB_LABEL_SELECTORS.length; i++) {
+            cmd.set(TAB_LABEL_SELECTORS[i] + ".Style.TextColor", i == activeTab ? "#e8c872" : "#b7cedd");
+        }
+
+        // Bind tab click events
+        for (int i = 0; i < TAB_SELECTORS.length; i++) {
+            events.addEventBinding(CustomUIEventBindingType.Activating, TAB_SELECTORS[i],
+                EventData.of("Action", "tab").append("Index", String.valueOf(i)), false);
+        }
 
         cmd.set("#KillTargetField.Value", formKillTarget);
         cmd.set("#RespawnDelayField.Value", formRespawnDelay);
@@ -681,6 +719,15 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
                     if (onBack != null) onBack.run();
                     break;
 
+                case "tab":
+                    int tabIdx = parseIndex(data.index);
+                    if (tabIdx >= 0 && tabIdx < SECTION_SELECTORS.length) {
+                        activeTab = tabIdx;
+                        active = true;
+                        rebuild();
+                    }
+                    break;
+
                 case "field":
                     handleFieldChange(data);
                     break;
@@ -877,6 +924,11 @@ public class ArenaEditorPage extends InteractiveCustomUIPage<ArenaEditorPage.Pag
             case "worldName": formWorldName = data.value; break;
             case "gameMode":
                 formGameMode = data.value;
+                // If Mode tab (index 5) is active but new mode doesn't need it, reset to General
+                boolean needsModeTab = "speed_run".equals(data.value) || "spleef".equals(data.value);
+                if (activeTab == 5 && !needsModeTab) {
+                    activeTab = 0;
+                }
                 active = true;
                 rebuild();
                 break;
