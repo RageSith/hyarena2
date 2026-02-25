@@ -10,6 +10,8 @@ import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.protocol.packets.interface_.Page;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
+import com.hypixel.hytale.server.core.ui.DropdownEntryInfo;
+import com.hypixel.hytale.server.core.ui.LocalizableString;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
@@ -20,6 +22,7 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import de.ragesith.hyarena2.arena.Arena;
 import de.ragesith.hyarena2.arena.ArenaConfig;
 import de.ragesith.hyarena2.arena.MatchManager;
+import de.ragesith.hyarena2.gamemode.GameMode;
 import de.ragesith.hyarena2.config.ConfigManager;
 import de.ragesith.hyarena2.config.Position;
 import de.ragesith.hyarena2.hub.HubManager;
@@ -60,11 +63,23 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
     // Track which arena is pending delete confirmation (null = none)
     private String pendingDeleteId;
 
+    // Current game mode filter (null or "all" = show all)
+    private String filterGameMode;
+
     public ArenaListPage(PlayerRef playerRef, UUID playerUuid,
                          MatchManager matchManager, KitManager kitManager,
                          HubManager hubManager, ConfigManager configManager,
                          HudManager hudManager, ScheduledExecutorService scheduler,
                          Runnable onBack) {
+        this(playerRef, playerUuid, matchManager, kitManager,
+             hubManager, configManager, hudManager, scheduler, onBack, null);
+    }
+
+    public ArenaListPage(PlayerRef playerRef, UUID playerUuid,
+                         MatchManager matchManager, KitManager kitManager,
+                         HubManager hubManager, ConfigManager configManager,
+                         HudManager hudManager, ScheduledExecutorService scheduler,
+                         Runnable onBack, String filterGameMode) {
         super(playerRef, CustomPageLifetime.CantClose, PageEventData.CODEC);
         this.playerRef = playerRef;
         this.playerUuid = playerUuid;
@@ -75,6 +90,7 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
         this.hudManager = hudManager;
         this.scheduler = scheduler;
         this.onBack = onBack;
+        this.filterGameMode = filterGameMode;
     }
 
     @Override
@@ -82,10 +98,35 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
                       @Nonnull UIEventBuilder events, @Nonnull Store<EntityStore> store) {
         cmd.append("Pages/ArenaListPage.ui");
 
-        arenaList = new ArrayList<>(matchManager.getArenas());
-        arenaList.sort((a, b) -> a.getDisplayName().compareToIgnoreCase(b.getDisplayName()));
+        // Build full arena list sorted alphabetically
+        List<Arena> allArenas = new ArrayList<>(matchManager.getArenas());
+        allArenas.sort((a, b) -> a.getDisplayName().compareToIgnoreCase(b.getDisplayName()));
 
-        cmd.set("#ArenaCountLabel.Text", arenaList.size() + " arenas loaded");
+        // Populate filter dropdown: "All" + each game mode that has arenas
+        var filterEntries = new ArrayList<DropdownEntryInfo>();
+        filterEntries.add(new DropdownEntryInfo(LocalizableString.fromString("All (" + allArenas.size() + ")"), "all"));
+        Map<String, Integer> modeCounts = new java.util.LinkedHashMap<>();
+        for (Arena a : allArenas) {
+            modeCounts.merge(a.getGameMode(), 1, Integer::sum);
+        }
+        for (Map.Entry<String, Integer> entry : modeCounts.entrySet()) {
+            GameMode gm = matchManager.getGameMode(entry.getKey());
+            String label = (gm != null ? gm.getDisplayName() : entry.getKey()) + " (" + entry.getValue() + ")";
+            filterEntries.add(new DropdownEntryInfo(LocalizableString.fromString(label), entry.getKey()));
+        }
+        cmd.set("#FilterDropdown.Entries", filterEntries);
+        cmd.set("#FilterDropdown.Value", filterGameMode != null ? filterGameMode : "all");
+
+        // Apply filter
+        boolean filtering = filterGameMode != null && !"all".equals(filterGameMode);
+        arenaList = filtering
+            ? allArenas.stream().filter(a -> filterGameMode.equals(a.getGameMode())).collect(java.util.stream.Collectors.toList())
+            : allArenas;
+
+        String countText = filtering
+            ? arenaList.size() + " of " + allArenas.size() + " arenas"
+            : allArenas.size() + " arenas loaded";
+        cmd.set("#ArenaCountLabel.Text", countText);
 
         for (int i = 0; i < arenaList.size(); i++) {
             Arena arena = arenaList.get(i);
@@ -155,6 +196,14 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
             false
         );
 
+        // Filter dropdown
+        events.addEventBinding(
+            CustomUIEventBindingType.ValueChanged,
+            "#FilterDropdown",
+            EventData.of("Action", "filter").append("@Value", "#FilterDropdown.Value"),
+            false
+        );
+
         hudManager.registerPage(playerUuid, this);
     }
 
@@ -203,6 +252,13 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
 
                 case "sync_chunks":
                     handleSyncChunks();
+                    break;
+
+                case "filter":
+                    if (data.value != null) {
+                        filterGameMode = "all".equals(data.value) ? null : data.value;
+                        reopenSelf();
+                    }
                     break;
             }
         } catch (Exception e) {
@@ -365,7 +421,7 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
 
         ArenaListPage page = new ArenaListPage(
             playerRef, playerUuid, matchManager, kitManager,
-            hubManager, configManager, hudManager, scheduler, onBack
+            hubManager, configManager, hudManager, scheduler, onBack, filterGameMode
         );
         p.getPageManager().openCustomPage(pRef, pStore, page);
     }
@@ -398,6 +454,7 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
     public static class PageEventData {
         public String action;
         public String arena;
+        public String value;
 
         public static final BuilderCodec<PageEventData> CODEC =
             BuilderCodec.builder(PageEventData.class, PageEventData::new)
@@ -405,6 +462,8 @@ public class ArenaListPage extends InteractiveCustomUIPage<ArenaListPage.PageEve
                     (d, v) -> d.action = v, d -> d.action).add()
                 .append(new KeyedCodec<>("Arena", Codec.STRING),
                     (d, v) -> d.arena = v, d -> d.arena).add()
+                .append(new KeyedCodec<>("@Value", Codec.STRING),
+                    (d, v) -> d.value = v, d -> d.value).add()
                 .build();
     }
 }

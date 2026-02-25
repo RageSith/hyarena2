@@ -19,17 +19,46 @@ Group #ArenaListPage {
             Anchor: (Top: 40, Bottom: 70);
             LayoutMode: Top;
 
-            // Create New Button
-            $C.@TextButton #CreateNewBtn {
-                @Text = "Create New Arena";
-                @Anchor = (Height: 40);
+            // Top row: Create button + filter dropdown
+            Group #TopRow {
+                Anchor: (Height: 40);
+                LayoutMode: Left;
+
+                $C.@TextButton #CreateNewBtn {
+                    @Text = "Create New Arena";
+                    @Anchor = (Width: 200, Height: 40);
+                }
+
+                Group { FlexWeight: 1; }
+
+                Label {
+                    Text: "Filter:";
+                    Anchor: (Width: 46, Height: 40);
+                    Style: (FontSize: 12, TextColor: #6b7d8e, VerticalAlignment: Center);
+                }
+
+                $C.@DropdownBox #FilterDropdown {
+                    Anchor: (Width: 180, Height: 32);
+                    Style: (
+                        ...@DefaultDropdownBoxStyle,
+                        SearchInputStyle: DropdownBoxSearchInputStyle(
+                            Anchor: (Height: 20),
+                            Padding: (Left: 28, Right: 24),
+                            PlaceholderText: %server.customUI.searchPlaceholder,
+                            PlaceholderStyle: (TextColor: #3d5a85, RenderUppercase: true, FontSize: 14),
+                            Icon: (Texture: "Common/SearchIcon.png", Width: 16, Height: 16, Offset: 9),
+                            ClearButtonStyle: $C.@ClearButtonStyle
+                        )
+                    );
+                    ShowSearchInput: true;
+                }
             }
 
             // Arena count label
             Label #ArenaCountLabel {
                 Text: "0 arenas loaded";
-                Anchor: (Height: 20, Top: 8);
-                Style: (FontSize: 12, TextColor: #6b7d8e);
+                Anchor: (Height: 16, Top: 4);
+                Style: (FontSize: 11, TextColor: #6b7d8e);
             }
 
             // Scrollable arena list
